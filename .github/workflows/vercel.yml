@@ -1,0 +1,34 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          WAFFO_PRIVATE_KEY: *** secrets.WAFFO_PRIVATE_KEY }}
+          NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED: ${{ secrets.NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED }}
+          NEXT_PUBLIC_WAFFO_PRODUCT_FULL: ${{ secrets.NEXT_PUBLIC_WAFFO_PRODUCT_FULL }}
+          NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION: ${{ secrets.NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION }}
+          NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
+
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
