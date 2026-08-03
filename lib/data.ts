@@ -689,7 +689,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     radarScores: { floral: 30, woody: 95, fresh: 35, oriental: 95, citrus: 15, gourmand: 15 },
     signaturePerfume: PERFUMES["珍华乌木"],
     advancedPerfume: PERFUMES["魅力丝绸"],
-    budgetPerfume: PERFUMES["旷野之心"],
+    budgetPerfume: PERFUMES["沉香迷雾"],
     matchingReport: {
       coreMessage: "你的气场是天赋，但真正让你无可替代的，是那颗从不服输的心。",
       personalityAnalysis: "裂岸人格的你做事讲究效率，讨厌绕路。你的决断力源于对自己判断的绝对信任，这也是为什么人们愿意跟随你。",
@@ -725,7 +725,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     radarScores: { floral: 80, woody: 60, fresh: 25, oriental: 100, citrus: 10, gourmand: 10 },
     signaturePerfume: PERFUMES["史诗女士"],
     advancedPerfume: PERFUMES["禁忌之夜"],
-    budgetPerfume: PERFUMES["玫瑰之花"],
+    budgetPerfume: PERFUMES["玫瑰初语"],
     matchingReport: {
       coreMessage: "你追求的极致，是对自己最深的尊重。",
       personalityAnalysis: "极夜人格的你做事一丝不苟，对自己对他人都有高标准。你不轻易妥协，因为你知道平庸的代价。",
@@ -815,7 +815,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     radarScores: { floral: 95, woody: 50, fresh: 45, oriental: 50, citrus: 30, gourmand: 25 },
     signaturePerfume: PERFUMES["杜桑"],
     advancedPerfume: PERFUMES["月亮女人"],
-    budgetPerfume: PERFUMES["精纯鸢尾"],
+    budgetPerfume: PERFUMES["紫罗兰心事"],
     matchingReport: {
       coreMessage: "你的审美直觉，是最珍贵的资产，不要让任何人说服你放弃它。",
       personalityAnalysis: "冷砚人格的你对美有本能的敏感，能在别人忽略的地方发现独特的价值。你的审美是你看世界的方式。",
@@ -869,7 +869,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     radarScores: { floral: 20, woody: 85, fresh: 70, oriental: 50, citrus: 60, gourmand: 15 },
     signaturePerfume: PERFUMES["蔚蓝"],
     advancedPerfume: PERFUMES["成功"],
-    budgetPerfume: PERFUMES["旷野"],
+    budgetPerfume: PERFUMES["雪松荒野"],
     matchingReport: {
       coreMessage: "你的可靠不需要被看见，它的力量在于持续的陪伴。",
       personalityAnalysis: "霜冷人格的你是团队中最稳定的那个存在。你的可靠来自于对责任的担当，不说漂亮话，只做实在事。",
@@ -905,7 +905,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     radarScores: { floral: 70, woody: 55, fresh: 60, oriental: 40, citrus: 45, gourmand: 50 },
     signaturePerfume: PERFUMES["纯白棉麻"],
     advancedPerfume: PERFUMES["肌肤之弦"],
-    budgetPerfume: PERFUMES["白茶"],
+    budgetPerfume: PERFUMES["桂花引"],
     matchingReport: {
       coreMessage: "你的温柔是最被低估的力量，它能融化这个世界最坚硬的东西。",
       personalityAnalysis: "烬生人格的你拥有最难得的品质：温柔但不软弱。你的柔软是有根基的，来自内心深处的稳定和力量。",
