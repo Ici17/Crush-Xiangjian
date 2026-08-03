@@ -1,0 +1,27 @@
+{
+  "name": "Crush香鉴",
+  "short_name": "香鉴",
+  "description": "10道情境题，测出你的灵魂香气与本命香水。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF3EA",
+  "theme_color": "#FAF3EA",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "entertainment"],
+  "lang": "zh-CN"
+}
