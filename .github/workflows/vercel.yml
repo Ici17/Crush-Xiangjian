@@ -26,9 +26,19 @@ jobs:
           NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION: ${{ secrets.NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION }}
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
 
-      - uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+      - name: Deploy to Vercel
+        run: |
+          echo "Uploading build to Vercel..."
+          curl -s -X POST 'https://api.vercel.com/v13/deployments' \
+            -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "name": "crush-xiangjian",
+              "orgId": "${{ secrets.VERCEL_ORG_ID }}",
+              "projectId": "${{ secrets.VERCEL_PROJECT_ID }}",
+              "files": [{"file": "dist.tar\",\"data": "$(tar -C out -czf - . | base64 -w0)"}],
+              "target": "production"
+            }' | tee /tmp/vercel-response.json
+          echo ""
+          echo "=== Deployment Response ==="
+          cat /tmp/vercel-response.json | head -c 500
