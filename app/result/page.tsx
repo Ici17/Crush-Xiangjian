@@ -14,6 +14,7 @@ import {
   getRadarScoresFromStorage,
   getPathLabelsFromStorage,
   getScentAdvice,
+  STORAGE_KEYS,
   type Recommendation,
 } from '@/lib/personalities';
 import { PERSONALITY_TYPES } from '@/lib/data';
@@ -251,11 +252,23 @@ function ResultInner() {
 
   // 读原始 0-100 雷达分数（localStorage 优先，否则从人格类型推算）
   useEffect(() => {
-    const raw = getRadarScoresFromStorage();
-    if (raw) {
-      setShareRadarRaw(raw);
-      return;
-    }
+    // 从 localStorage 直读原始 JSON（getRadarScoresFromStorage 会除以 100，不能用）
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.RADAR_SCORES);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, number>;
+        setShareRadarRaw({
+          木质: parsed.woody ?? 0,
+          清新: parsed.fresh ?? 0,
+          东方: parsed.oriental ?? 0,
+          美食: parsed.gourmand ?? 0,
+          柑橘: parsed.citrus ?? 0,
+          花香: parsed.floral ?? 0,
+        });
+        return;
+      }
+    } catch {}
+    // fallback：从人格静态定义取（也是 0-100 原始值）
     const type = PERSONALITY_TYPES.find((t) => t.name === personalityName);
     if (type?.radarScores) {
       const r = type.radarScores;
