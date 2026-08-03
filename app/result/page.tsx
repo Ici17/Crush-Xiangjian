@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
+import QRCode from 'qrcode';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -15,6 +16,7 @@ import {
   getScentAdvice,
   type Recommendation,
 } from '@/lib/personalities';
+import { PERSONALITY_TYPES } from '@/lib/data';
 import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
 import PaymentModal, { type PaymentContext } from '@/components/PaymentModal';
 import UnlockedContent from '@/components/UnlockedContent';
@@ -124,7 +126,9 @@ function ResultInner() {
   const [revealed, setRevealed] = useState(false);
   const [shareHint, setShareHint] = useState('');
   const [shareLink, setShareLink] = useState('');
-  const [qrUrl, setQrUrl] = useState('');
+  const [shareQrSvg, setShareQrSvg] = useState('');
+  // 分享图专用 0-100 原始雷达分数（页面其他部分仍用归一化后的 radarData）
+  const [shareRadarRaw, setShareRadarRaw] = useState<Record<string, number> | null>(null);
   const [copiedInvite, setCopiedInvite] = useState(false);
 
   // 邀请状态订阅（实时同步 canDiscount）
@@ -231,11 +235,41 @@ function ResultInner() {
     }
   }, [params]);
 
-  // ── 分享链接 + 二维码 URL（依赖 personalityName）──
+  // ── 分享链接 + 本地 SVG 二维码 + 原始 0-100 雷达分数 ──
   useEffect(() => {
     const path = `/shared?p=${encodeURIComponent(personalityName)}`;
     setShareLink(path);
-    setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=${encodeURIComponent(path)}`);
+    const fullUrl = `https://crushxiangjian.com${path}`;
+    QRCode.toString(fullUrl, {
+      type: 'svg',
+      width: 140,
+      margin: 1,
+      color: { dark: '#451A03', light: '#FFFFFF' },
+      errorCorrectionLevel: 'M',
+    }).then((svg) => setShareQrSvg(svg)).catch(() => setShareQrSvg(''));
+  }, [personalityName]);
+
+  // 读原始 0-100 雷达分数（localStorage 优先，否则从人格类型推算）
+  useEffect(() => {
+    const raw = getRadarScoresFromStorage();
+    if (raw) {
+      setShareRadarRaw(raw);
+      return;
+    }
+    const type = PERSONALITY_TYPES.find((t) => t.name === personalityName);
+    if (type?.radarScores) {
+      const r = type.radarScores;
+      setShareRadarRaw({
+        木质: r.woody,
+        清新: r.fresh,
+        东方: r.oriental,
+        美食: r.gourmand,
+        柑橘: r.citrus,
+        花香: r.floral,
+      });
+    } else {
+      setShareRadarRaw(null);
+    }
   }, [personalityName]);
 
   // ── 人格揭晓动画 ──
@@ -1078,7 +1112,7 @@ function ResultInner() {
           v0.9 升级：人格结果 + 本命香 + 扫码测自己的二维码 + 完整短链接（多入口） */ }
       <div id="share-card" style={{ position: 'fixed', left: '-9999px', top: 0, width: '420px', padding: '36px 32px', background: 'linear-gradient(160deg, #FAF3EA 0%, #FDF8F3 100%)', borderRadius: '28px', fontFamily: '"Noto Serif SC", serif' }}>
         {/* 顶部品牌标签 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.3em', textTransform: 'uppercase', margin: 0 }}>
             YOUR SOUL SCENT
           </p>
@@ -1088,18 +1122,18 @@ function ResultInner() {
         </div>
 
         {/* 人格名 - 主打 */}
-        <h2 style={{ fontSize: '44px', color: '#451A03', textAlign: 'center', margin: '0 0 8px', fontWeight: 600, letterSpacing: '0.04em' }}>
+        <h2 style={{ fontSize: '44px', color: '#451A03', textAlign: 'center', margin: '0 0 6px', fontWeight: 600, letterSpacing: '0.04em' }}>
           {personality.name}
         </h2>
-        <p style={{ fontSize: '15px', color: '#92400E', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '14px', color: '#92400E', textAlign: 'center', margin: '0 0 20px', lineHeight: 1.5 }}>
           {personality.tagline}
         </p>
 
-        {/* 香调偏好小色块 */}
-        {radarData && (
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '24px' }}>
+        {/* 香调偏好小色块（0-100 整数） */}
+        {shareRadarRaw && (
+          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '20px' }}>
             {(['木质','东方','花香','美食','柑橘','清新'] as const).map((dim) => {
-              const v = radarData[dim] ?? 0;
+              const v = Math.round(shareRadarRaw[dim] ?? 0);
               return (
                 <div key={dim} style={{ textAlign: 'center', minWidth: '52px' }}>
                   <div style={{ fontSize: '10px', color: '#8B5E3C', marginBottom: '4px' }}>{dim}</div>
@@ -1114,15 +1148,10 @@ function ResultInner() {
         )}
 
         {/* 分隔线 */}
-        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)', margin: '0 0 20px' }} />
-
-        {/* 本命香金句 */}
-        <p style={{ fontSize: '14px', color: '#8B5E3C', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.6, fontStyle: 'italic' }}>
-          「{personality.tagline}」
-        </p>
+        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)', margin: '0 0 16px' }} />
 
         {/* 本命香主推 */}
-        <div style={{ background: 'rgba(255,255,255,0.6)', borderRadius: '16px', padding: '16px', marginBottom: '24px', border: '1px solid rgba(212,165,116,0.25)' }}>
+        <div style={{ background: 'rgba(255,255,255,0.6)', borderRadius: '16px', padding: '14px 16px', marginBottom: '16px', border: '1px solid rgba(212,165,116,0.25)' }}>
           <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.2em', margin: '0 0 6px', textTransform: 'uppercase' }}>
             本命香水
           </p>
@@ -1131,31 +1160,31 @@ function ResultInner() {
           </p>
         </div>
 
-        {/* 扫码邀请区 */}
-        {qrUrl && (
-          <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '20px', textAlign: 'center', border: '1px solid rgba(212,165,116,0.3)' }}>
-            <p style={{ fontSize: '12px', color: '#8B5E3C', margin: '0 0 12px', letterSpacing: '0.1em' }}>
-              扫码测你的灵魂香气
-            </p>
-            <img
-              src={qrUrl}
-              alt="扫码测试你的灵魂香气"
-              width={140}
-              height={140}
-              style={{ display: 'block', margin: '0 auto', borderRadius: '12px' }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        {/* 扫码邀请区（本地 SVG QR，不依赖第三方网络） */}
+        <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '18px 20px', textAlign: 'center', border: '1px solid rgba(212,165,116,0.3)' }}>
+          <p style={{ fontSize: '12px', color: '#8B5E3C', margin: '0 0 10px', letterSpacing: '0.1em' }}>
+            扫码测你的灵魂香气
+          </p>
+          {shareQrSvg ? (
+            <div
+              style={{ display: 'flex', justifyContent: 'center' }}
+              dangerouslySetInnerHTML={{ __html: shareQrSvg }}
             />
-            <p style={{ fontSize: '11px', color: '#D4A574', margin: '10px 0 0' }}>
-              长按识别二维码 · 或点击链接
-            </p>
-            <p style={{ fontSize: '11px', color: '#5C3A24', margin: '4px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-              {shareLink}
-            </p>
-          </div>
-        )}
+          ) : (
+            <div style={{ width: 140, height: 140, margin: '0 auto', background: '#F5EDE3', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#8B5E3C' }}>
+              生成中…
+            </div>
+          )}
+          <p style={{ fontSize: '11px', color: '#D4A574', margin: '10px 0 0' }}>
+            长按识别二维码 · 或点击链接
+          </p>
+          <p style={{ fontSize: '11px', color: '#5C3A24', margin: '4px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            crushxiangjian.com{shareLink}
+          </p>
+        </div>
 
         {/* 底部品牌页脚 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '14px', borderTop: '1px dashed rgba(212,165,116,0.4)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed rgba(212,165,116,0.4)' }}>
           <p style={{ fontSize: '10px', color: '#D4A574', margin: 0, letterSpacing: '0.1em' }}>
             crushxiangjian.com
           </p>
