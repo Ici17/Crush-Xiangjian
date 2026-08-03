@@ -163,7 +163,7 @@ export function getRecommendations(personalityName: string): readonly Recommenda
 }
 
 /**
- * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 110 支香水库动态推荐
+ * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 151 支香水库动态推荐
  * @returns 校准推荐结果，若无校准数据则退回固定映射
  */
 export async function getDynamicRecommendations(personalityName: string): Promise<readonly Recommendation[]> {
