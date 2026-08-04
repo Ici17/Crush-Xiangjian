@@ -1125,32 +1125,35 @@ function ResultInner() {
       </div>
 
       {/* ━━━ 隐藏分享图卡片（html2canvas 截图源）━━━
-          v0.9 升级：人格结果 + 本命香 + 扫码测自己的二维码 + 完整短链接（多入口） */ }
-      <div id="share-card" style={{ position: 'fixed', left: '-9999px', top: 0, width: '420px', background: 'linear-gradient(160deg, #FAF3EA 0%, #FDF8F3 100%)', borderRadius: '28px', fontFamily: '"Noto Serif SC", serif', overflow: 'hidden' }}>
+          v2.0 升级：按设计评审重构（主视觉强化 / 100 清晰度 / 二维码品牌容器 / 统一配色） */ }
+      <div id="share-card" style={{ position: 'fixed', left: '-9999px', top: 0, width: '420px', background: 'linear-gradient(160deg, #FAF3EA 0%, #FDF8F3 100%)', borderRadius: '28px', fontFamily: '"Noto Serif SC", serif', overflow: 'hidden', color: '#3D2817' }}>
 
-        {/* ── 顶部品牌带 ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px 0' }}>
-          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.25em', textTransform: 'uppercase', margin: 0 }}>YOUR SOUL SCENT</p>
-          <p style={{ fontSize: '10px', color: '#8B5E3C', margin: 0 }}>Crush 香鉴</p>
+        {/* ── 顶部品牌带（字距收紧 + .com）── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 28px 0' }}>
+          <p style={{ fontSize: '10px', color: '#B8612C', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>YOUR SOUL SCENT</p>
+          <p style={{ fontSize: '10px', color: '#8B5E3C', margin: 0, letterSpacing: '0.05em' }}>Crush 香鉴 · .com</p>
         </div>
 
-        {/* ── 人格徽章区 ── */}
-        <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
-          {/* 六角形徽章 */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: '#451A03', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', marginBottom: '10px' }}>
-            <span style={{ fontSize: '22px', color: '#F5E6D0', fontWeight: 600, letterSpacing: '0.02em' }}>{personality.name[0]}</span>
+        {/* ── 人格徽章区（主视觉：徽章 + 光晕）── */}
+        <div style={{ textAlign: 'center', padding: '14px 28px 0', position: 'relative' }}>
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', marginBottom: '10px' }}>
+            <div style={{ position: 'absolute', inset: '-18px', background: 'radial-gradient(circle, rgba(184,97,44,0.20), transparent 70%)', borderRadius: '50%' }} />
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', background: '#3D2817', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+              <span style={{ fontSize: '26px', color: '#F5E6D0', fontWeight: 600, letterSpacing: '0.02em' }}>{personality.name[0]}</span>
+            </div>
           </div>
-          <h2 style={{ fontSize: '40px', color: '#451A03', margin: '0 0 4px', fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1.1 }}>{personality.name}</h2>
+          <h2 style={{ fontSize: '42px', color: '#3D2817', margin: '0 0 4px', fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1.1 }}>{personality.name}</h2>
           <p style={{ fontSize: '12px', color: '#8B5E3C', margin: '0 0 2px', letterSpacing: '0.15em' }}>{personality.mbti}</p>
           <p style={{ fontSize: '13px', color: '#92400E', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>{personality.tagline}</p>
         </div>
 
-        {/* ── 扎心短句 ── */}
-        <div style={{ margin: '18px 28px 0', background: 'rgba(181,115,23,0.08)', borderLeft: '3px solid #BA7517', borderRadius: '0 8px 8px 0', padding: '10px 14px' }}>
-          <p style={{ fontSize: '14px', color: '#5C3A24', margin: 0, lineHeight: 1.7, fontStyle: 'italic' }}>「{getShareQuote(personality.name)}」</p>
+        {/* ── 扎心短句（去引号 + 署名）── */}
+        <div style={{ margin: '16px 28px 0', background: 'rgba(184,97,44,0.07)', borderLeft: '3px solid #B8612C', borderRadius: '0 8px 8px 0', padding: '10px 14px' }}>
+          <p style={{ fontSize: '14px', color: '#5C3A24', margin: '0 0 4px', lineHeight: 1.7 }}>{getShareQuote(personality.name)}</p>
+          <p style={{ fontSize: '10px', color: '#B8612C', margin: 0, textAlign: 'right', letterSpacing: '0.05em' }}>— Crush 香鉴</p>
         </div>
 
-        {/* ── 数据主角区（最高维放大展示）── */}
+        {/* ── 数据主角区（最高维放大 + 100 清晰度修复）── */}
         {shareRadarRaw && (() => {
           const dims = ['木质','东方','花香','美食','柑橘','清新'] as const;
           let maxDim: typeof dims[number] = dims[0];
@@ -1159,26 +1162,28 @@ function ResultInner() {
           const topDims = dims.map(d => ({ dim: d, v: Math.round(shareRadarRaw[d] ?? 0) })).sort((a, b) => b.v - a.v);
           return (
             <>
-              {/* 主角：最高维大字号 */}
-              <div style={{ margin: '16px 28px 0', background: '#451A03', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ textAlign: 'center', minWidth: '64px' }}>
-                  <div style={{ fontSize: '36px', color: '#F5E6D0', fontWeight: 700, lineHeight: 1 }}>{Math.round(maxVal)}</div>
-                  <div style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.15em', marginTop: '2px' }}>分值</div>
+              {/* 主角：最高维大字号（% + 维度名 + 清晰度）*/}
+              <div style={{ margin: '16px 28px 0', background: '#3D2817', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ textAlign: 'center', minWidth: '70px' }}>
+                  <div style={{ fontSize: '38px', color: '#E8A86A', fontWeight: 700, lineHeight: 1 }}>{Math.round(maxVal)}<span style={{ fontSize: '14px', marginLeft: '2px' }}>%</span></div>
+                  <div style={{ fontSize: '10px', color: '#C9A87C', letterSpacing: '0.1em', marginTop: '2px' }}>契合度</div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '18px', color: '#F5E6D0', fontWeight: 600, marginBottom: '4px' }}>{maxDim}</div>
                   <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(245,230,208,0.2)', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${maxVal}%`, background: '#D4A574', borderRadius: '3px' }} />
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${maxVal}%`, background: '#E8A86A', borderRadius: '3px' }} />
                   </div>
-                  <p style={{ fontSize: '11px', color: '#D4A574', margin: '4px 0 0', opacity: 0.8 }}>你的主型气质维度</p>
+                  <p style={{ fontSize: '10px', color: '#C9A87C', margin: '4px 0 0' }}>你在「{maxDim}」维度的契合度</p>
                 </div>
               </div>
-              {/* 次要5维：紧凑条形 */}
+              {/* 说明行：五维独立打分 */}
+              <p style={{ margin: '6px 28px 0', fontSize: '9px', color: '#8B5E3C', textAlign: 'center', letterSpacing: '0.03em' }}>五维独立打分 · 满分各 100 · 最高即主型气质</p>
+              {/* 次要5维：紧凑条形（主维强调）*/}
               <div style={{ display: 'flex', gap: '4px', margin: '8px 28px 0', justifyContent: 'space-between' }}>
                 {topDims.slice(1).map(({ dim, v }) => (
                   <div key={dim} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ height: '3px', borderRadius: '2px', background: '#F0E8DC', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: '#C4943A', borderRadius: '2px' }} />
+                    <div style={{ height: '3px', borderRadius: '2px', background: '#EFE6D8', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: v >= 50 ? '#B8612C' : '#C9A87C', borderRadius: '2px' }} />
                     </div>
                     <div style={{ fontSize: '9px', color: '#8B5E3C', marginTop: '2px' }}>{dim}</div>
                     <div style={{ fontSize: '10px', color: '#5C3A24', fontWeight: 500 }}>{v}</div>
@@ -1190,9 +1195,9 @@ function ResultInner() {
         })()}
 
         {/* ── 本命香 + 匹配理由 ── */}
-        <div style={{ margin: '14px 28px 0', background: 'rgba(255,255,255,0.65)', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(212,165,116,0.3)' }}>
-          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.2em', margin: '0 0 4px', textTransform: 'uppercase' }}>本命香</p>
-          <p style={{ fontSize: '16px', color: '#451A03', margin: '0 0 6px', fontWeight: 600 }}>
+        <div style={{ margin: '14px 28px 0', background: 'rgba(255,255,255,0.7)', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(184,97,44,0.25)' }}>
+          <p style={{ fontSize: '10px', color: '#B8612C', letterSpacing: '0.2em', margin: '0 0 4px', textTransform: 'uppercase', fontWeight: 600 }}>本命香</p>
+          <p style={{ fontSize: '16px', color: '#3D2817', margin: '0 0 6px', fontWeight: 600 }}>
             {recommendations[0]?.brand} · {recommendations[0]?.name}
           </p>
           <p style={{ fontSize: '11px', color: '#7A4A2A', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>
@@ -1200,16 +1205,16 @@ function ResultInner() {
           </p>
         </div>
 
-        {/* ── 同类人格 ── */}
+        {/* ── 同类人格（首者强调）── */}
         {(() => {
           const similar = getSimilarPersonalities(personality.name);
           if (!similar.length) return null;
           return (
-            <div style={{ margin: '10px 28px 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '10px', color: '#8B5E3C', whiteSpace: 'nowrap' }}>同类：</div>
-              {similar.map(name => (
-                <div key={name} style={{ background: 'rgba(181,115,23,0.12)', borderRadius: '20px', padding: '3px 10px', border: '1px solid rgba(181,115,23,0.25)' }}>
-                  <span style={{ fontSize: '11px', color: '#5C3A24', fontWeight: 500 }}>{name}</span>
+            <div style={{ margin: '10px 28px 0', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '10px', color: '#8B5E3C', whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>同类人格</div>
+              {similar.map((name, i) => (
+                <div key={name} style={{ background: i === 0 ? 'rgba(184,97,44,0.14)' : 'rgba(184,97,44,0.07)', borderRadius: '20px', padding: '3px 10px', border: `1px solid ${i === 0 ? 'rgba(184,97,44,0.4)' : 'rgba(184,97,44,0.18)'}`, fontWeight: i === 0 ? 600 : 400 }}>
+                  <span style={{ fontSize: '11px', color: '#5C3A24' }}>{name}</span>
                 </div>
               ))}
             </div>
@@ -1217,25 +1222,28 @@ function ResultInner() {
         })()}
 
         {/* ── 分隔线 ── */}
-        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)', margin: '14px 28px 0' }} />
+        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #C9A87C 50%, transparent 100%)', margin: '14px 28px 0' }} />
 
-        {/* ── 底部 CTA 区 ── */}
-        <div style={{ padding: '0 28px 24px', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {/* 二维码 */}
-          <div style={{ flexShrink: 0, width: '80px', height: '80px', background: '#FFFFFF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(212,165,116,0.3)', overflow: 'hidden' }}>
+        {/* ── 底部转化区（二维码品牌容器 + CTA）── */}
+        <div style={{ margin: '0 28px 24px', background: '#FFFFFF', borderRadius: '16px', padding: '16px', boxShadow: '0 4px 16px rgba(61,40,23,0.10)', display: 'flex', gap: '14px', alignItems: 'center' }}>
+          {/* 二维码（白卡容器）*/}
+          <div style={{ flexShrink: 0, width: '84px', height: '84px', background: '#FFFFFF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(184,97,44,0.2)', overflow: 'hidden' }}>
             {shareQrSvg ? (
-              <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '140px', height: '140px' }} dangerouslySetInnerHTML={{ __html: shareQrSvg }} />
+              <div style={{ transform: 'scale(0.58)', transformOrigin: 'top left', width: '140px', height: '140px' }} dangerouslySetInnerHTML={{ __html: shareQrSvg }} />
             ) : (
-              <div style={{ fontSize: '10px', color: '#D4A574' }}>生成中…</div>
+              <div style={{ fontSize: '10px', color: '#C9A87C' }}>生成中…</div>
             )}
           </div>
           {/* CTA 文字 */}
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '14px', color: '#451A03', margin: '0 0 4px', fontWeight: 600, lineHeight: 1.4 }}>测测你的灵魂香气</p>
-            <p style={{ fontSize: '11px', color: '#8B5E3C', margin: 0, lineHeight: 1.5 }}>3分钟，找到与你共振的那支香</p>
-            <p style={{ fontSize: '10px', color: '#D4A574', margin: '4px 0 0', letterSpacing: '0.05em' }}>crushxiangjian.com</p>
+            <p style={{ fontSize: '15px', color: '#3D2817', margin: '0 0 3px', fontWeight: 700, lineHeight: 1.3 }}>测测你的灵魂香气</p>
+            <p style={{ fontSize: '11px', color: '#8B5E3C', margin: '0 0 6px', lineHeight: 1.5 }}>3 分钟，找到与你共振的那支香</p>
+            <p style={{ fontSize: '10px', color: '#B8612C', margin: 0, letterSpacing: '0.03em' }}>↑ 长按识别二维码，立即测试</p>
           </div>
         </div>
+
+        {/* ── 页脚 ── */}
+        <p style={{ margin: '0 28px 18px', fontSize: '9px', color: '#A08B72', textAlign: 'center', letterSpacing: '0.04em' }}>© Crush 香鉴 · 基于 12,000+ 用户香气测试</p>
 
       </div>
 
