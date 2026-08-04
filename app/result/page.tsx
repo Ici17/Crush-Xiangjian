@@ -14,6 +14,9 @@ import {
   getRadarScoresFromStorage,
   getPathLabelsFromStorage,
   getScentAdvice,
+  getShareQuote,
+  getSharePerfumeReason,
+  getSimilarPersonalities,
   STORAGE_KEYS,
   type Recommendation,
 } from '@/lib/personalities';
@@ -1123,88 +1126,117 @@ function ResultInner() {
 
       {/* ━━━ 隐藏分享图卡片（html2canvas 截图源）━━━
           v0.9 升级：人格结果 + 本命香 + 扫码测自己的二维码 + 完整短链接（多入口） */ }
-      <div id="share-card" style={{ position: 'fixed', left: '-9999px', top: 0, width: '420px', padding: '36px 32px', background: 'linear-gradient(160deg, #FAF3EA 0%, #FDF8F3 100%)', borderRadius: '28px', fontFamily: '"Noto Serif SC", serif' }}>
-        {/* 顶部品牌标签 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.3em', textTransform: 'uppercase', margin: 0 }}>
-            YOUR SOUL SCENT
-          </p>
-          <p style={{ fontSize: '10px', color: '#8B5E3C', margin: 0 }}>
-            Crush 香鉴
-          </p>
+      <div id="share-card" style={{ position: 'fixed', left: '-9999px', top: 0, width: '420px', background: 'linear-gradient(160deg, #FAF3EA 0%, #FDF8F3 100%)', borderRadius: '28px', fontFamily: '"Noto Serif SC", serif', overflow: 'hidden' }}>
+
+        {/* ── 顶部品牌带 ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 28px 0' }}>
+          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.25em', textTransform: 'uppercase', margin: 0 }}>YOUR SOUL SCENT</p>
+          <p style={{ fontSize: '10px', color: '#8B5E3C', margin: 0 }}>Crush 香鉴</p>
         </div>
 
-        {/* 人格名 - 主打 */}
-        <h2 style={{ fontSize: '44px', color: '#451A03', textAlign: 'center', margin: '0 0 6px', fontWeight: 600, letterSpacing: '0.04em' }}>
-          {personality.name}
-        </h2>
-        <p style={{ fontSize: '14px', color: '#92400E', textAlign: 'center', margin: '0 0 20px', lineHeight: 1.5 }}>
-          {personality.tagline}
-        </p>
-
-        {/* 香调偏好小色块（0-100 整数） */}
-        {shareRadarRaw && (
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '20px' }}>
-            {(['木质','东方','花香','美食','柑橘','清新'] as const).map((dim) => {
-              const v = Math.round(shareRadarRaw[dim] ?? 0);
-              return (
-                <div key={dim} style={{ textAlign: 'center', minWidth: '52px' }}>
-                  <div style={{ fontSize: '10px', color: '#8B5E3C', marginBottom: '4px' }}>{dim}</div>
-                  <div style={{ height: '4px', borderRadius: '2px', background: '#F0E8DC', position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: '#BA7517', borderRadius: '2px' }} />
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#5C3A24', marginTop: '3px', fontWeight: 500 }}>{v}</div>
-                </div>
-              );
-            })}
+        {/* ── 人格徽章区 ── */}
+        <div style={{ textAlign: 'center', padding: '16px 28px 0' }}>
+          {/* 六角形徽章 */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', background: '#451A03', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', marginBottom: '10px' }}>
+            <span style={{ fontSize: '22px', color: '#F5E6D0', fontWeight: 600, letterSpacing: '0.02em' }}>{personality.name[0]}</span>
           </div>
-        )}
+          <h2 style={{ fontSize: '40px', color: '#451A03', margin: '0 0 4px', fontWeight: 700, letterSpacing: '0.06em', lineHeight: 1.1 }}>{personality.name}</h2>
+          <p style={{ fontSize: '12px', color: '#8B5E3C', margin: '0 0 2px', letterSpacing: '0.15em' }}>{personality.mbti}</p>
+          <p style={{ fontSize: '13px', color: '#92400E', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>{personality.tagline}</p>
+        </div>
 
-        {/* 分隔线 */}
-        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)', margin: '0 0 16px' }} />
+        {/* ── 扎心短句 ── */}
+        <div style={{ margin: '18px 28px 0', background: 'rgba(181,115,23,0.08)', borderLeft: '3px solid #BA7517', borderRadius: '0 8px 8px 0', padding: '10px 14px' }}>
+          <p style={{ fontSize: '14px', color: '#5C3A24', margin: 0, lineHeight: 1.7, fontStyle: 'italic' }}>「{getShareQuote(personality.name)}」</p>
+        </div>
 
-        {/* 本命香主推 */}
-        <div style={{ background: 'rgba(255,255,255,0.6)', borderRadius: '16px', padding: '14px 16px', marginBottom: '16px', border: '1px solid rgba(212,165,116,0.25)' }}>
-          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.2em', margin: '0 0 6px', textTransform: 'uppercase' }}>
-            本命香水
-          </p>
-          <p style={{ fontSize: '17px', color: '#451A03', margin: 0, fontWeight: 500 }}>
+        {/* ── 数据主角区（最高维放大展示）── */}
+        {shareRadarRaw && (() => {
+          const dims = ['木质','东方','花香','美食','柑橘','清新'] as const;
+          let maxDim: typeof dims[number] = dims[0];
+          let maxVal = 0;
+          dims.forEach(d => { const v = shareRadarRaw[d] ?? 0; if (v > maxVal) { maxVal = v; maxDim = d; } });
+          const topDims = dims.map(d => ({ dim: d, v: Math.round(shareRadarRaw[d] ?? 0) })).sort((a, b) => b.v - a.v);
+          return (
+            <>
+              {/* 主角：最高维大字号 */}
+              <div style={{ margin: '16px 28px 0', background: '#451A03', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ textAlign: 'center', minWidth: '64px' }}>
+                  <div style={{ fontSize: '36px', color: '#F5E6D0', fontWeight: 700, lineHeight: 1 }}>{Math.round(maxVal)}</div>
+                  <div style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.15em', marginTop: '2px' }}>分值</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '18px', color: '#F5E6D0', fontWeight: 600, marginBottom: '4px' }}>{maxDim}</div>
+                  <div style={{ height: '5px', borderRadius: '3px', background: 'rgba(245,230,208,0.2)', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${maxVal}%`, background: '#D4A574', borderRadius: '3px' }} />
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#D4A574', margin: '4px 0 0', opacity: 0.8 }}>你的主型气质维度</p>
+                </div>
+              </div>
+              {/* 次要5维：紧凑条形 */}
+              <div style={{ display: 'flex', gap: '4px', margin: '8px 28px 0', justifyContent: 'space-between' }}>
+                {topDims.slice(1).map(({ dim, v }) => (
+                  <div key={dim} style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ height: '3px', borderRadius: '2px', background: '#F0E8DC', position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v}%`, background: '#C4943A', borderRadius: '2px' }} />
+                    </div>
+                    <div style={{ fontSize: '9px', color: '#8B5E3C', marginTop: '2px' }}>{dim}</div>
+                    <div style={{ fontSize: '10px', color: '#5C3A24', fontWeight: 500 }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ── 本命香 + 匹配理由 ── */}
+        <div style={{ margin: '14px 28px 0', background: 'rgba(255,255,255,0.65)', borderRadius: '14px', padding: '12px 16px', border: '1px solid rgba(212,165,116,0.3)' }}>
+          <p style={{ fontSize: '10px', color: '#D4A574', letterSpacing: '0.2em', margin: '0 0 4px', textTransform: 'uppercase' }}>本命香</p>
+          <p style={{ fontSize: '16px', color: '#451A03', margin: '0 0 6px', fontWeight: 600 }}>
             {recommendations[0]?.brand} · {recommendations[0]?.name}
           </p>
+          <p style={{ fontSize: '11px', color: '#7A4A2A', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>
+            {getSharePerfumeReason(personality.name)}
+          </p>
         </div>
 
-        {/* 扫码邀请区（本地 SVG QR，不依赖第三方网络） */}
-        <div style={{ background: '#FFFFFF', borderRadius: '20px', padding: '18px 20px', textAlign: 'center', border: '1px solid rgba(212,165,116,0.3)' }}>
-          <p style={{ fontSize: '12px', color: '#8B5E3C', margin: '0 0 10px', letterSpacing: '0.1em' }}>
-            扫码测你的灵魂香气
-          </p>
-          {shareQrSvg ? (
-            <div
-              style={{ display: 'flex', justifyContent: 'center' }}
-              dangerouslySetInnerHTML={{ __html: shareQrSvg }}
-            />
-          ) : (
-            <div style={{ width: 140, height: 140, margin: '0 auto', background: '#F5EDE3', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#8B5E3C' }}>
-              生成中…
+        {/* ── 同类人格 ── */}
+        {(() => {
+          const similar = getSimilarPersonalities(personality.name);
+          if (!similar.length) return null;
+          return (
+            <div style={{ margin: '10px 28px 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '10px', color: '#8B5E3C', whiteSpace: 'nowrap' }}>同类：</div>
+              {similar.map(name => (
+                <div key={name} style={{ background: 'rgba(181,115,23,0.12)', borderRadius: '20px', padding: '3px 10px', border: '1px solid rgba(181,115,23,0.25)' }}>
+                  <span style={{ fontSize: '11px', color: '#5C3A24', fontWeight: 500 }}>{name}</span>
+                </div>
+              ))}
             </div>
-          )}
-          <p style={{ fontSize: '11px', color: '#D4A574', margin: '10px 0 0' }}>
-            长按识别二维码 · 或点击链接
-          </p>
-          <p style={{ fontSize: '11px', color: '#5C3A24', margin: '4px 0 0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-            crushxiangjian.com{shareLink}
-          </p>
+          );
+        })()}
+
+        {/* ── 分隔线 ── */}
+        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)', margin: '14px 28px 0' }} />
+
+        {/* ── 底部 CTA 区 ── */}
+        <div style={{ padding: '0 28px 24px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* 二维码 */}
+          <div style={{ flexShrink: 0, width: '80px', height: '80px', background: '#FFFFFF', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(212,165,116,0.3)', overflow: 'hidden' }}>
+            {shareQrSvg ? (
+              <div style={{ transform: 'scale(0.55)', transformOrigin: 'top left', width: '140px', height: '140px' }} dangerouslySetInnerHTML={{ __html: shareQrSvg }} />
+            ) : (
+              <div style={{ fontSize: '10px', color: '#D4A574' }}>生成中…</div>
+            )}
+          </div>
+          {/* CTA 文字 */}
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '14px', color: '#451A03', margin: '0 0 4px', fontWeight: 600, lineHeight: 1.4 }}>测测你的灵魂香气</p>
+            <p style={{ fontSize: '11px', color: '#8B5E3C', margin: 0, lineHeight: 1.5 }}>3分钟，找到与你共振的那支香</p>
+            <p style={{ fontSize: '10px', color: '#D4A574', margin: '4px 0 0', letterSpacing: '0.05em' }}>crushxiangjian.com</p>
+          </div>
         </div>
 
-        {/* 底部品牌页脚 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed rgba(212,165,116,0.4)' }}>
-          <p style={{ fontSize: '10px', color: '#D4A574', margin: 0, letterSpacing: '0.1em' }}>
-            crushxiangjian.com
-          </p>
-          <p style={{ fontSize: '10px', color: '#8B5E3C', margin: 0, fontStyle: 'italic' }}>
-            找到与你共振的那一支香
-          </p>
-        </div>
       </div>
 
       {/* ━━━ Waffo 支付弹窗 ━━━ */}
