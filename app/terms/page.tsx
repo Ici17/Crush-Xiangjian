@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "服务条款 | Crush香鉴",
   description:
-    "Crush香鉴 服务条款。本服务面向 18 岁及以上用户免费提供香气人格测试，并提供可选的完整版解锁与月度订阅。",
+    "Crush香鉴 服务条款。本服务面向 18 岁及以上用户免费提供香气人格测试，并提供可选的完整版解锁与一次性香气盒。",
 };
 
 export default function TermsPage() {
@@ -21,7 +21,7 @@ export default function TermsPage() {
       <Section title="1. 服务概述">
         Crush 香鉴（以下简称"本服务"）由 Crush 香鉴运营团队提供，是一款面向中文用户的
         香气人格测试工具。本服务免费提供 16 型香气人格测试、雷达图、好友匹配与分享图
-        生成；同时提供可选的「完整版解锁」与「月度香气盒订阅」付费内容。
+        生成；同时提供可选的「完整版解锁」与「一次性香气盒」付费内容。
       </Section>
 
       <Section title="2. 使用资格">
@@ -40,10 +40,11 @@ export default function TermsPage() {
           </li>
           <li>
             <strong>付费内容</strong>：完整版解锁（隐藏人格面、反差香、气味底稿、关系解读），
-            单次支付 ¥6.6 或 ¥9.9；月度香气盒订阅 ¥59.9 / 月，按月扣费。
+            单次支付 ¥6.6 或 ¥9.9；一次性香气盒（实物寄送）¥59.9，支付后寄送一次，
+            不含后续订阅，不自动续费。
           </li>
           <li>
-            所有付费内容一旦解锁或订阅生效，<strong>不提供无理由退款</strong>，但您可在
+            所有付费内容一旦解锁或领取生效，<strong>不提供无理由退款</strong>，但您可在
             7 天内因技术故障（页面无法正常显示、支付成功但未解锁等）联系客服全额退款。
           </li>
         </ul>

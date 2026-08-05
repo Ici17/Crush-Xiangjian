@@ -166,6 +166,33 @@ export function getRecommendations(personalityName: string): readonly Recommenda
  * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 151 支香水库动态推荐
  * @returns 校准推荐结果，若无校准数据则退回固定映射
  */
+/** 动态推荐缓存 schema 版本（Recommendation shape 变化时 +1，老缓存自动失效） */
+const DYNAMIC_RECS_SCHEMA_VERSION = 1;
+
+/**
+ * 同步读取动态推荐缓存（跨刷新锁定同一批 3 支）
+ * - 仅当本地有完整 Recommendation[] 时返回；schema 不匹配或缺字段一律返回 null
+ * - 与 getDynamicRecommendations 形成 fallback 链
+ */
+export function getCachedDynamicRecommendations(personalityName: string): readonly Recommendation[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DYNAMIC_RECS);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { version?: number; personalityName?: string; items?: readonly Recommendation[] };
+    if (parsed.version !== DYNAMIC_RECS_SCHEMA_VERSION) return null;
+    if (parsed.personalityName !== personalityName) return null;
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) return null;
+    // 校验每个 item 关键字段，避免老 schema 残留
+    const ok = parsed.items.every((it: any) =>
+      typeof it?.name === 'string' && typeof it?.tier === 'string' && typeof it?.match === 'number'
+    );
+    return ok ? parsed.items : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getDynamicRecommendations(personalityName: string): Promise<readonly Recommendation[]> {
   if (typeof window === 'undefined') return getRecommendations(personalityName);
 
@@ -198,7 +225,7 @@ export async function getDynamicRecommendations(personalityName: string): Promis
 
     if (calibrated.length === 0) return getRecommendations(personalityName);
 
-    return calibrated.map((r) => ({
+    const mapped = calibrated.map((r) => ({
       name: r.name,
       brand: r.brand,
       brandCn: r.brandCn,
@@ -210,7 +237,23 @@ export async function getDynamicRecommendations(personalityName: string): Promis
       priceRange: r.priceRange,
       intensity: r.intensity,
       longevity: r.longevity,
-    }));
+    })) as readonly Recommendation[];
+
+    // 跨刷新锁定同一批 3 支：写入 localStorage 缓存（仅在成功路径写，fallback 不写）
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.DYNAMIC_RECS,
+        JSON.stringify({
+          version: DYNAMIC_RECS_SCHEMA_VERSION,
+          personalityName,
+          items: mapped,
+        }),
+      );
+    } catch {
+      // quota 满 / SSR 写入失败都不影响本次结果
+    }
+
+    return mapped;
   } catch {
     return getRecommendations(personalityName);
   }
@@ -314,6 +357,8 @@ export const STORAGE_KEYS = {
   RADAR_SCORES: 'crushxiangjian_radar_scores',
   PATH_LABELS: 'crushxiangjian_path_labels',
   CALIBRATION_CHOICES: 'crushxiangjian_calibration_choices',
+  /** 动态推荐 3 支缓存（跨刷新保留，避免重开后换成另一批） */
+  DYNAMIC_RECS: 'crushxiangjian_dynamic_recs',
 } as const;
 
 /** 英文雷达 key → 中文 key（0-100 → 0-1）*/

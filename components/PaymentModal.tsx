@@ -40,8 +40,8 @@ const CONTEXT_COPY: Record<PaymentContext, { title: string; subtitle: string; be
     cta: '解锁指南',
   },
   subscription: {
-    title: '领取订阅盒',
-    subtitle: '为你甄选一味小众孤香，实物寄送',
+    title: '领取一次性香气盒',
+    subtitle: '为你甄选一支 15ml 小众孤香小样，一次寄到家，无自动续费',
     benefits: ['依人格甄选小众香', '私享之选不入俗流', '专属香方启封'],
     cta: '去支付',
   },

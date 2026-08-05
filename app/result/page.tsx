@@ -10,6 +10,7 @@ import {
   getRadarScores,
   getRecommendations,
   getDynamicRecommendations,
+  getCachedDynamicRecommendations,
   getPersonalityNameFromStorage,
   getRadarScoresFromStorage,
   getPathLabelsFromStorage,
@@ -338,11 +339,20 @@ function ResultInner() {
     setShowShareGuide(true);
   }, [shareLink, personalityName]);
 
-  // 动态推荐：优先使用校准匹配，降级为固定映射
-  const [recommendations, setRecommendations] = useState<readonly Recommendation[]>(
-    getRecommendations(personalityName),
-  );
+  // 动态推荐：同步读缓存 → useEffect 异步补算
+  // 优先使用校准匹配，降级为固定映射
+  // 跨刷新锁定同一批 3 支：先同步读 localStorage 缓存，命中则跳过 async 调用（避免重开后换一批）
+  const [recommendations, setRecommendations] = useState<readonly Recommendation[]>(() => {
+    const cached = getCachedDynamicRecommendations(personalityName);
+    return cached ?? getRecommendations(personalityName);
+  });
   useEffect(() => {
+    // 缓存命中：personalityName 不变就不重跑（保留同一批）；人格换了才覆盖
+    const cached = getCachedDynamicRecommendations(personalityName);
+    if (cached) {
+      setRecommendations(cached);
+      return;
+    }
     getDynamicRecommendations(personalityName).then(setRecommendations);
   }, [personalityName]);
 
@@ -951,7 +961,7 @@ function ResultInner() {
             </div>
           )}
 
-          {/* ── 订阅服务（与解锁版同款样式） ── */}
+          {/* ── 一次性香气盒（与解锁版同款样式） ── */}
           <div className="flex items-center justify-center gap-3 mt-6 mb-3">
             <span className="h-px w-6 bg-amber-400" />
             <h2 className="font-serif text-lg font-medium text-amber-950">一封信</h2>
@@ -965,19 +975,19 @@ function ResultInner() {
             className="relative rounded-3xl p-5 border border-amber-200"
             style={{ background: '#FAF3EA' }}
             role="group"
-            aria-label="香气订阅盒 ¥59.9 实物寄送"
+            aria-label="一次性香气盒 ¥59.9 实物寄送一次"
           >
             <div
               className="absolute right-3 top-3 rounded-lg px-2 py-0.5"
               style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px' }}
             >
-              ✦ 实物寄送
+              ✦ 实物寄送 · 一次性
             </div>
             <h3
               className="font-serif font-bold text-amber-950 mb-0.5"
               style={{ fontSize: '18px' }}
             >
-              香气订阅盒
+              一次性香气盒
               <span
                 className="ml-1.5 rounded px-1.5 py-0.5"
                 style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px', fontWeight: 500 }}
@@ -986,7 +996,7 @@ function ResultInner() {
               </span>
             </h3>
             <p className="text-amber-700 mb-3" style={{ fontSize: '12px' }}>
-              为你而调的序章
+              为你而调的序章 · 一次寄送，无自动续费
             </p>
             <div className="flex items-baseline gap-2 mb-1 text-left">
               <span
@@ -1000,11 +1010,11 @@ function ResultInner() {
               </span>
             </div>
             <span className="block text-left mb-3" style={{ fontSize: '11px', fontWeight: 600, color: '#C2410C' }}>
-              省 ¥{((subscriptionCfg.originalAmount - subscriptionCfg.amount) / 100).toFixed(1)}
+              省 ¥{((subscriptionCfg.originalAmount - subscriptionCfg.amount) / 100).toFixed(1)} · 一次付清
             </span>
 
             <ul className="text-left mb-4" role="list">
-              {['依你的人格，甄选一味小众孤香', '私享之选，不入俗流', '循香识己，启封专属香方'].map((item) => (
+              {['依你的人格，甄选一支 15ml 小众孤香小样', '私享之选，不入俗流', '循香识己，启封专属香方'].map((item) => (
                 <li
                   key={item}
                   className="flex items-center gap-2 text-amber-800 py-1"
@@ -1017,7 +1027,7 @@ function ResultInner() {
             </ul>
 
             <button
-              onClick={() => alert('订阅盒即将开放，敬请期待')}
+              onClick={() => alert('一次性香气盒即将开放，敬请期待')}
               className="w-full rounded-full transition-transform active:scale-[0.98]"
               style={{
                 fontSize: '15px',
@@ -1027,9 +1037,9 @@ function ResultInner() {
                 color: '#8B5E3C',
                 fontWeight: 500,
               }}
-              aria-label="¥59.9 领取订阅盒"
+              aria-label="¥59.9 领取一次性香气盒"
             >
-              ¥{(subscriptionCfg.amount / 100).toFixed(1)} 领取订阅盒
+              ¥{(subscriptionCfg.amount / 100).toFixed(1)} 领取一次性香气盒
             </button>
           </article>
 

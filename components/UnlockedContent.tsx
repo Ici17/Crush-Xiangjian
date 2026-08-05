@@ -380,7 +380,7 @@ export default function UnlockedContent({
         </p>
       </section>
 
-      {/* ── 订阅盒入口（与锁定页付费墙同款卡片） ── */}
+      {/* ── 一次性香气盒入口（与锁定页付费墙同款卡片） ── */}
       <section className="px-6 pt-10 pb-4 border-t border-amber-100">
         <div className="flex items-center justify-center gap-3 mb-5">
           <span className="h-px w-6 bg-amber-400" />
@@ -399,13 +399,13 @@ export default function UnlockedContent({
             className="absolute right-3 top-3 rounded-lg px-2 py-0.5"
             style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px' }}
           >
-            ✦ 实物寄送
+            ✦ 实物寄送 · 一次性
           </div>
           <h3
             className="font-serif font-bold text-amber-950 mb-0.5"
             style={{ fontSize: '18px' }}
           >
-            香气订阅盒
+            一次性香气盒
             <span
               className="ml-1.5 rounded px-1.5 py-0.5"
               style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px', fontWeight: 500 }}
@@ -414,7 +414,7 @@ export default function UnlockedContent({
             </span>
           </h3>
           <p className="text-amber-700 mb-3" style={{ fontSize: '12px' }}>
-            为你而调的序章
+            为你而调的序章 · 一次寄送，无自动续费
           </p>
           <div className="flex items-baseline gap-2 mb-1 text-left">
             <span
@@ -427,12 +427,12 @@ export default function UnlockedContent({
               ¥129.9
             </span>
           </div>
-          <span className="block text-left text-amber-700 mb-3" style={{ fontSize: '11px' }}>
-            <span className="block text-left mb-3" style={{ fontSize: '11px', fontWeight: 600, color: '#C2410C' }}>省 ¥70</span>
+          <span className="block text-left mb-3" style={{ fontSize: '11px', fontWeight: 600, color: '#C2410C' }}>
+            省 ¥70 · 一次付清
           </span>
 
           <ul className="text-left mb-4" role="list">
-            {['依你的人格，甄选一味小众孤香', '私享之选，不入俗流', '循香识己，启封专属香方'].map((item) => (
+            {['依你的人格，甄选一支 15ml 小众孤香小样', '私享之选，不入俗流', '循香识己，启封专属香方'].map((item) => (
               <li
                 key={item}
                 className="flex items-center gap-2 text-amber-800 py-1"
@@ -445,7 +445,7 @@ export default function UnlockedContent({
           </ul>
 
           <button
-            onClick={() => alert('订阅盒即将开放，敬请期待')}
+            onClick={() => alert('一次性香气盒即将开放，敬请期待')}
             className="w-full rounded-full transition-transform active:scale-[0.98]"
             style={{
               fontSize: '15px',
@@ -455,8 +455,9 @@ export default function UnlockedContent({
               color: '#8B5E3C',
               fontWeight: 500,
             }}
+            aria-label="¥59.9 领取一次性香气盒"
           >
-            ¥59.9 领取订阅盒
+            ¥59.9 领取一次性香气盒
           </button>
         </article>
       </section>
