@@ -1,0 +1,781 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import {
+  getHiddenFace,
+  getScentBlueprint,
+  getPerfumeDetails,
+  getContrastScent,
+  getUsageGuide,
+  getPersonality,
+  getScentAdvice,
+  RADAR_DIMS,
+  type RadarDim,
+  type PerfumeDetail,
+  type ContrastScent,
+  type ScentAdvice,
+  type UsageTip,
+} from '@/lib/personalities';
+import PerfumeBottle from '@/components/PerfumeBottle';
+import RadarChart from '@/components/RadarChart';
+import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
+
+const FAMILY_COLORS: Record<string, string> = {
+  木质: '#5C3A24',
+  花香: '#C8849E',
+  柑橘: '#E8A13A',
+  清新: '#6B9E8A',
+  东方: '#8B5E3C',
+  美食: '#D9773E',
+};
+
+const FAMILY_BG: Record<string, string> = {
+  木质: 'rgba(92,58,36,0.08)',
+  花香: 'rgba(200,132,158,0.10)',
+  柑橘: 'rgba(232,161,58,0.10)',
+  清新: 'rgba(107,158,138,0.10)',
+  东方: 'rgba(139,94,60,0.10)',
+  美食: 'rgba(217,119,62,0.10)',
+};
+
+/** 截断香调列表：用 / 分割后保留前 N 项，超出部分加省略号 */
+function truncateNotes(notes: string, max: number): string {
+  const parts = notes.split(/[/\s·]+/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length <= max) return parts.join(' / ');
+  return parts.slice(0, max).join(' / ') + ' …';
+}
+
+function detectFamily(direction: string, notes: string | string[]): string {
+  const noteText = Array.isArray(notes) ? notes.join(' ') : notes;
+  const text = `${direction} ${noteText}`;
+  const order = ['木质', '东方', '花香', '美食', '柑橘', '清新'];
+  for (const k of order) if (text.includes(k)) return k;
+  return '木质';
+}
+
+function sectionTitle(title: string) {
+  return (
+    <div className="flex items-center justify-center gap-3 mb-5">
+      <span className="h-px w-6 bg-amber-400" />
+      <h2 className="font-serif text-lg font-medium text-amber-950">{title}</h2>
+      <span className="h-px w-6 bg-amber-400" />
+    </div>
+  );
+}
+
+export default function UnlockedContent({
+  personalityName,
+  radarData,
+  shareLink,
+  justPaid = false,
+}: {
+  personalityName: string;
+  radarData: Record<RadarDim, number>;
+  shareLink: string;
+  justPaid?: boolean;
+}) {
+  const personality = useMemo(() => getPersonality(personalityName), [personalityName]);
+  const perfumes = useMemo(() => getPerfumeDetails(personalityName), [personalityName]);
+  const hidden = useMemo(() => getHiddenFace(personalityName), [personalityName]);
+  const blueprint = useMemo(() => getScentBlueprint(personalityName), [personalityName]);
+  const contrast = useMemo(() => getContrastScent(personalityName), [personalityName]);
+  const guide = useMemo(() => getUsageGuide(personalityName), [personalityName]);
+  const advice = useMemo(() => getScentAdvice(personalityName), [personalityName]);
+
+  const radarGrid = useMemo(
+    () =>
+      RADAR_DIMS.map((dim) => ({
+        dim,
+        value: Math.round((radarData[dim] ?? 0) * 100),
+      })),
+    [radarData]
+  );
+
+  const contrastMatch = useMemo(() => {
+    const self = Object.values(radarData).map((v) => v ?? 0);
+    // 反差香匹配度：越远越“冒险”，显示 55–72%
+    const avg = self.reduce((a, b) => a + b, 0) / self.length;
+    return Math.min(72, Math.max(55, Math.round((1 - avg) * 100)));
+  }, [radarData]);
+
+  const descriptionParagraphs = useMemo(() => {
+    return personality.description
+      .split(/(?<=[。！？])/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [personality.description]);
+
+  return (
+    <div className="animate-fadeIn space-y-10 pb-8">
+      {justPaid && (
+        <div
+          className="shimmer mx-6 rounded-lg px-5 py-3 flex items-center gap-3"
+          style={{ background: 'linear-gradient(120deg,#8B5E3C,#C4956A,#8B5E3C,#C4956A,#8B5E3C)' }}
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-800 text-sm font-bold">
+            ✓
+          </span>
+          <span className="text-sm font-medium tracking-wide text-amber-50">
+            完整版已解锁 · 你的香气真相都在下面
+          </span>
+        </div>
+      )}
+
+      {/* ── 香气光谱：雷达图 + 数值网格 ── */}
+      <section className="px-6" aria-label="香气光谱">
+        <div className="rounded-3xl p-6" style={{ background: '#FDF8F3' }}>
+          <h3 className="font-serif text-2xl font-medium text-amber-950 text-center mb-1">
+            你的香气光谱
+          </h3>
+          <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
+            六个维度 · 勾勒你的气质坐标
+          </p>
+          <div className="flex justify-center">
+            <RadarChart values={radarData} size={260} />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 mt-6">
+            {radarGrid.map(({ dim, value }) => {
+              const tier = value >= 80 ? 'high' : value < 60 ? 'low' : 'mid';
+              return (
+                <div
+                  key={dim}
+                  className="text-center rounded-xl py-2.5 px-1"
+                  style={{
+                    background:
+                      tier === 'high' ? '#FAEEDA' : tier === 'low' ? '#F5EDE0' : 'transparent',
+                  }}
+                >
+                  <div
+                    className="text-xs mb-0.5"
+                    style={{ color: tier === 'high' ? '#BA7517' : '#854F0B' }}
+                  >
+                    {dim}
+                  </div>
+                  <div
+                    className="font-serif"
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: tier === 'high' ? 600 : 500,
+                      color: tier === 'high' ? '#2C1810' : tier === 'low' ? '#BA7517' : '#5C3A24',
+                    }}
+                  >
+                    {value}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <p className="text-center italic text-amber-700 mt-4" style={{ fontSize: '14px' }}>
+          「香气不是面具，是未说出口的自我。」
+        </p>
+      </section>
+
+      {/* ── 本命香水：SVG 瓶型横滑 ── */}
+      <section className="px-0" aria-label="本命香水完整档案">
+        <div className="px-6">
+          {sectionTitle('本命香水')}
+          <p className="text-center text-amber-700 -mt-3 mb-4" style={{ fontSize: '14px' }}>
+            三支香气，与你的灵魂共振
+          </p>
+        </div>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2">
+          {perfumes.map((p) => (
+            <PerfumeCard key={p.name} perfume={p} direction={personality.direction} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── 性格解读：杂志排版 ── */}
+      <section className="px-6" aria-label="性格解读">
+        {sectionTitle('性格解读')}
+        <div className="space-y-4">
+          {descriptionParagraphs.map((para, i) => (
+            <p
+              key={i}
+              className="text-amber-800"
+              style={{ fontSize: '16px', lineHeight: 1.75 }}
+            >
+              {para}
+            </p>
+          ))}
+        </div>
+        <div className="flex items-center justify-center gap-2 mt-5">
+          <span className="h-px w-5 bg-amber-400" />
+          <span className="w-1 h-1 rounded-full bg-amber-400" />
+          <span className="h-px w-5 bg-amber-400" />
+        </div>
+      </section>
+
+      {/* ── 用香哲学：场景卡片 ── */}
+      <section className="px-6" aria-label="用香哲学">
+        {sectionTitle('用香哲学')}
+        <p
+          className="text-amber-800 italic text-center mb-5"
+          style={{ fontSize: '16px', lineHeight: 1.75 }}
+        >
+          你的香水不是用来遮盖什么，而是用来提醒自己——你比你以为的更深。
+        </p>
+        <div className="space-y-3">
+          {guide.map((g) => (
+            <UsageCard key={g.scene} tip={g} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── 香调偏好：可视化条（共享组件）── */}
+      <section className="px-6" aria-label="香调偏好">
+        {sectionTitle('香调偏好')}
+        <div className="mb-5">
+          <ScentPreferenceBar
+            data={Object.fromEntries(radarGrid.map(({ dim, value }) => [dim, value]))}
+          />
+        </div>
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <span className="h-px w-8 bg-amber-400" />
+        </div>
+        <h4 className="font-serif text-base font-medium text-amber-950 mb-3">推荐探索方向</h4>
+        <ul className="space-y-2">
+          <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
+            · {getTopDimName(radarData)} 是你的舒适区
+          </li>
+          <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
+            · {advice.explore1}
+          </li>
+          <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
+            · {advice.explore2}
+          </li>
+        </ul>
+      </section>
+
+      {/* ── 关系解读 ── */}
+      <section className="px-6" aria-label="关系解读">
+        {sectionTitle('关系解读')}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-white border border-amber-100 rounded-xl p-4">
+            <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初次见面</h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              {advice.firstMeeting}
+            </p>
+          </div>
+          <div className="bg-white border border-amber-100 rounded-xl p-4">
+            <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">亲密关系</h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              {advice.intimateRelation}
+            </p>
+          </div>
+        </div>
+        <p className="text-sm text-amber-800 leading-relaxed">
+          <span className="font-serif font-medium text-amber-950">香气建议：</span>
+          {advice.relationAdvice}
+        </p>
+      </section>
+
+      {/* ── 朋友匹配入口 ── */}
+      <section className="px-6 pb-2">
+        <a
+          href="/friend"
+          className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
+          style={{ background: 'linear-gradient(135deg, #FDF8F3, #FFF9F2)' }}
+        >
+          <div className="flex items-center gap-3">
+            <span style={{ fontSize: '22px' }}>💫</span>
+            <div className="flex-1 text-left">
+              <p className="font-serif text-amber-950" style={{ fontSize: '15px', fontWeight: 500 }}>
+                找朋友比比香气契合度
+              </p>
+              <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
+                发给 TA，一起测 → 看看你们的匹配等级
+              </p>
+            </div>
+            <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
+          </div>
+        </a>
+      </section>
+
+      {/* ── 隐藏人格面：深色杂志区块 ── */}
+      <section
+        className="mx-6 rounded-3xl p-8 animate-blurReveal"
+        style={{ background: '#3D2817', color: '#FAF3EA' }}
+        aria-label="隐藏人格面"
+      >
+        <p
+          className="uppercase text-center mb-3"
+          style={{ fontSize: '10px', letterSpacing: '0.3em', color: '#D4A574' }}
+        >
+          HIDDEN SIDE
+        </p>
+        <h3
+          className="font-serif text-center font-medium mb-3"
+          style={{ fontSize: '22px', color: '#D4A574' }}
+        >
+          你不知道的自己
+        </h3>
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <span className="h-px w-5" style={{ background: '#D4A574' }} />
+          <span className="w-1 h-1 rounded-full" style={{ background: '#D4A574' }} />
+          <span className="h-px w-5" style={{ background: '#D4A574' }} />
+        </div>
+        <p
+          className="leading-relaxed mb-5"
+          style={{ fontSize: '15px', lineHeight: 1.75, color: 'rgba(212,165,116,0.9)' }}
+        >
+          {hidden.content}
+        </p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {hidden.traits.map((t) => (
+            <span
+              key={t}
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(212,165,116,0.12)', color: '#D4A574' }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+        <div
+          className="rounded-xl p-4 text-center"
+          style={{
+            background: 'rgba(212,165,116,0.10)',
+            border: '0.5px solid rgba(212,165,116,0.3)',
+          }}
+        >
+          <p style={{ fontSize: '14px', color: '#D4A574' }}>
+            试着这周做一件“不像你”的事
+          </p>
+        </div>
+      </section>
+
+      {/* ── 反差香 ── */}
+      <section className="px-6" aria-label="反差香">
+        {sectionTitle('反差香')}
+        <p className="text-center text-amber-700 mb-4" style={{ fontSize: '14px' }}>
+          你不会选，但值得试
+        </p>
+        <div className="flex justify-center">
+          <ContrastCard contrast={contrast} match={contrastMatch} direction={personality.direction} />
+        </div>
+      </section>
+
+      {/* ── 气味底稿 ── */}
+      <section className="px-6" aria-label="气味底稿">
+        {sectionTitle('气味底稿')}
+        <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
+          你的专属香方起点
+        </p>
+        <BlueprintRows blueprint={blueprint} />
+        <p
+          className="mt-5 flex items-start gap-2 text-sm text-amber-700 leading-relaxed"
+          style={{ lineHeight: 1.7 }}
+        >
+          <span>💡</span>
+          <span>你可以带着这份底稿去香水店，让调香师帮你找到最接近的那一支。</span>
+        </p>
+      </section>
+
+      {/* ── 订阅盒入口（与锁定页付费墙同款卡片） ── */}
+      <section className="px-6 pt-10 pb-4 border-t border-amber-100">
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">一封信</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
+        <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px', lineHeight: 1.6 }}>
+          完整版已解锁 · 把今天的故事，装进一支香
+        </p>
+
+        <article
+          className="relative rounded-3xl p-5 border border-amber-200"
+          style={{ background: '#FAF3EA' }}
+        >
+          <div
+            className="absolute right-3 top-3 rounded-lg px-2 py-0.5"
+            style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px' }}
+          >
+            ✦ 实物寄送
+          </div>
+          <h3
+            className="font-serif font-bold text-amber-950 mb-0.5"
+            style={{ fontSize: '18px' }}
+          >
+            香气订阅盒
+            <span
+              className="ml-1.5 rounded px-1.5 py-0.5"
+              style={{ background: '#F8EDD8', color: '#8B5E3C', fontSize: '11px', fontWeight: 500 }}
+            >
+              新品
+            </span>
+          </h3>
+          <p className="text-amber-700 mb-3" style={{ fontSize: '12px' }}>
+            为你而调的序章
+          </p>
+          <div className="flex items-baseline gap-2 mb-1 text-left">
+            <span
+              className="font-serif font-bold text-amber-950"
+              style={{ fontSize: '32px' }}
+            >
+              ¥59.9
+            </span>
+            <span className="text-amber-400 line-through" style={{ fontSize: '13px' }}>
+              ¥129.9
+            </span>
+          </div>
+          <span className="block text-left text-amber-700 mb-3" style={{ fontSize: '11px' }}>
+            <span className="block text-left mb-3" style={{ fontSize: '11px', fontWeight: 600, color: '#C2410C' }}>省 ¥70</span>
+          </span>
+
+          <ul className="text-left mb-4" role="list">
+            {['依你的人格，甄选一味小众孤香', '私享之选，不入俗流', '循香识己，启封专属香方'].map((item) => (
+              <li
+                key={item}
+                className="flex items-center gap-2 text-amber-800 py-1"
+                style={{ fontSize: '13px' }}
+              >
+                <span className="text-amber-600 font-bold" aria-hidden>✓</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <button
+            onClick={() => alert('订阅盒即将开放，敬请期待')}
+            className="w-full rounded-full transition-transform active:scale-[0.98]"
+            style={{
+              fontSize: '15px',
+              padding: '13px 0',
+              background: 'transparent',
+              border: '1.5px solid #8B5E3C',
+              color: '#8B5E3C',
+              fontWeight: 500,
+            }}
+          >
+            ¥59.9 领取订阅盒
+          </button>
+        </article>
+      </section>
+
+      {/* ── 支付信任标识 ── */}
+      <section className="px-6 pb-2 text-center">
+        <div className="flex items-center justify-center mb-2.5">
+          {/* 微信支付（simple-icons 官方 path） */}
+          <span className="inline-flex items-center gap-1.5" aria-label="支持微信支付">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z" fill="#07C160"/>
+            </svg>
+            <span style={{ color: '#07C160', fontSize: '14px', fontWeight: 500 }}>微信支付</span>
+          </span>
+
+          {/* 竖线分隔 */}
+          <span className="mx-4 block h-4 w-px bg-amber-300" aria-hidden="true" />
+
+          {/* 支付宝（simple-icons 官方 path） */}
+          <span className="inline-flex items-center gap-1.5" aria-label="支持支付宝">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809" fill="#1677FF"/>
+            </svg>
+            <span style={{ color: '#1677FF', fontSize: '14px', fontWeight: 500 }}>支付宝</span>
+          </span>
+        </div>
+        <p className="text-amber-600 mb-2 inline-flex items-center gap-1" style={{ fontSize: '11px', lineHeight: 1.6 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#D97706" aria-hidden="true">
+            <path d="M12 1l3.09 6.26L22 8.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 13.14 2 8.27l6.91-1.01L12 1z"/>
+          </svg>
+          安全加密支付 · 7 天不满意全额退款
+        </p>
+        <p
+          className="text-amber-700/80 mt-3 leading-6 text-center"
+          style={{ fontSize: '12px', fontFamily: '"Noto Serif SC", serif' }}
+        >
+          一份关于你的香气答案，值得被认真看见。
+        </p>
+      </section>
+    </div>
+  );
+}
+
+function getTopDimName(radarData: Record<RadarDim, number>): string {
+  return RADAR_DIMS.reduce((a, b) => ((radarData[a] ?? 0) > (radarData[b] ?? 0) ? a : b));
+}
+
+/** 三调分层色阶：前调（浅）→ 中调（中）→ 后调（深），每个 chip 不同色调 */
+const TIER_PALETTE: Record<'top' | 'heart' | 'base', { label: string; bg: string; text: string; labelColor: string }> = {
+  top:   { label: '前', bg: '#F8EFD9', text: '#9A7B4E', labelColor: '#B8956A' }, // 浅金
+  heart: { label: '中', bg: '#EFD9B8', text: '#8B5E3C', labelColor: '#9A6E3F' }, // 中琥珀
+  base:  { label: '后', bg: '#D4A574', text: '#FBF6EE', labelColor: '#FAEEDA' }, // 深金
+};
+
+function NoteTier({
+  tier,
+  notes,
+}: {
+  tier: 'top' | 'heart' | 'base';
+  notes: string[];
+}) {
+  const palette = TIER_PALETTE[tier];
+  const isDeep = tier === 'base';
+  return (
+    <div className="flex items-center gap-2">
+      {/* 左侧等级标 */}
+      <span
+        className="inline-flex items-center justify-center font-serif shrink-0"
+        style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          background: palette.bg,
+          color: palette.labelColor,
+          fontSize: '10px',
+          fontWeight: 600,
+        }}
+        aria-label={`${palette.label}调`}
+      >
+        {palette.label}
+      </span>
+      {/* chip 列表 */}
+      <div className="flex flex-wrap gap-1.5 flex-1">
+        {notes.map((note) => (
+          <span
+            key={note}
+            className="inline-block font-serif"
+            style={{
+              fontSize: '11px',
+              padding: '3px 8px',
+              borderRadius: '10px',
+              background: palette.bg,
+              color: palette.text,
+              fontWeight: isDeep ? 500 : 400,
+              border: isDeep ? 'none' : '0.5px solid rgba(154,123,78,0.18)',
+            }}
+          >
+            {note}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PerfumeCard({ perfume, direction }: { perfume: PerfumeDetail; direction: string }) {
+  const family = detectFamily(direction, perfume.top);
+  const color = FAMILY_COLORS[family];
+  const bg = FAMILY_BG[family];
+  const tierLabel =
+    perfume.tier === 'signature' ? '本命香' : perfume.tier === 'advanced' ? '进阶香' : '尝试香';
+  const isSignature = perfume.tier === 'signature';
+
+  return (
+    <article
+      className="flex-none text-center p-5 rounded-2xl"
+      style={{
+        width: '200px',
+        background: '#FDF8F3',
+        border: isSignature ? '1.5px solid #BA7517' : '0.5px solid #D3D1C7',
+      }}
+      aria-label={`${tierLabel}：${perfume.name}`}
+    >
+      <span
+        className="inline-block text-xs px-2.5 py-1 rounded-full mb-3"
+        style={{ background: '#FAEEDA', color: '#8B5E3C' }}
+      >
+        {tierLabel}
+      </span>
+      {perfume.match > 0 && (
+        <span className="inline-block text-xs px-2 py-0.5 rounded-full ml-1.5 mb-3" style={{ background: '#F5EDE0', color: '#8B5E3C' }}>
+          匹配 {perfume.match}%
+        </span>
+      )}
+      <div
+        className="w-full h-[120px] rounded-2xl flex items-center justify-center mb-3"
+        style={{ background: bg }}
+      >
+        <PerfumeBottle className="w-14 h-[90px]" stroke={color} />
+      </div>
+      <div className="font-serif font-medium text-amber-950 mb-1" style={{ fontSize: '16px' }}>
+        {perfume.brand}
+      </div>
+      <div className="text-amber-800 mb-2" style={{ fontSize: '14px' }}>
+        {perfume.name}
+      </div>
+
+      {/* 三调分层展示：渐进式色阶 + chip 药丸 */}
+      <div className="space-y-2 mb-3">
+        <NoteTier tier="top" notes={perfume.top} />
+        <NoteTier tier="heart" notes={perfume.heart} />
+        <NoteTier tier="base" notes={perfume.base} />
+      </div>
+
+      {/* 香调族 */}
+      <div className="text-amber-600 mb-2" style={{ fontSize: '12px' }}>
+        {family}调
+      </div>
+
+      {/* 价格区间 */}
+      <div className="text-amber-500 mb-2" style={{ fontSize: '11px' }}>
+        {perfume.priceRange}
+      </div>
+
+      {/* 扩散力 + 留香 */}
+      <div className="flex justify-center gap-3 mb-3" style={{ fontSize: '10px', color: '#8B6F5C' }}>
+        <span>扩散 {'●'.repeat(perfume.intensity)}{'○'.repeat(5 - perfume.intensity)}</span>
+        <span>留香 {'●'.repeat(perfume.longevity)}{'○'.repeat(5 - perfume.longevity)}</span>
+      </div>
+
+      <p
+        className="italic text-amber-700 leading-snug"
+        style={{
+          fontSize: '13px',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {perfume.quote}
+      </p>
+    </article>
+  );
+}
+
+function UsageCard({ tip }: { tip: UsageTip }) {
+  return (
+    <div className="bg-white border border-amber-100 rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <span style={{ fontSize: '18px' }}>{tip.icon}</span>
+        <h4 className="font-sans text-sm font-medium text-amber-950">{tip.scene}</h4>
+      </div>
+      <p className="text-sm text-amber-800 leading-relaxed">{tip.text}</p>
+    </div>
+  );
+}
+
+function ContrastCard({
+  contrast,
+  match,
+  direction,
+}: {
+  contrast: ContrastScent;
+  match: number;
+  direction: string;
+}) {
+  const family = detectFamily(direction, contrast.notes);
+  return (
+    <article
+      className="text-center p-6 rounded-2xl"
+      style={{ width: '260px', background: '#FDF8F3', border: '0.5px solid #D3D1C7' }}
+    >
+      <div
+        className="w-full h-[120px] rounded-2xl flex items-center justify-center mb-4"
+        style={{ background: FAMILY_BG[family] }}
+      >
+        <PerfumeBottle className="w-14 h-[90px]" stroke={FAMILY_COLORS[family]} />
+      </div>
+      {/* 品牌小标签（在产品名上方，与 PerfumeCard 风格一致） */}
+      <div
+        className="font-serif font-medium text-amber-950 mb-1"
+        style={{ fontSize: '14px' }}
+      >
+        {contrast.brand}
+      </div>
+      {/* 产品名（短名自动拼接 brandCn/brand 增强识别） */}
+      <h4
+        className="font-serif text-amber-800 mb-2"
+        style={{ fontSize: contrast.name.length <= 2 ? '20px' : '18px', fontWeight: 500 }}
+      >
+        {contrast.name.length <= 2
+          ? `${contrast.brand} · ${contrast.name}`
+          : contrast.name}
+      </h4>
+      {/* 香调截断（最多前 4 项，避免长列表压垮卡片） */}
+      <p className="text-xs text-amber-700 mb-3" style={{ lineHeight: 1.5 }}>
+        {truncateNotes(contrast.notes, 4)}
+      </p>
+      <p
+        className="italic text-amber-800 leading-relaxed mb-4"
+        style={{ fontSize: '14px' }}
+      >
+        {contrast.why}
+      </p>
+      <span
+        className="inline-block text-xs px-3 py-1.5 rounded-full"
+        style={{ background: '#F8EDD8', color: '#8B5E3C' }}
+      >
+        冒险匹配度：{match}%
+      </span>
+    </article>
+  );
+}
+
+function BlueprintRows({ blueprint }: { blueprint: { top: string; heart: string; base: string; signature: string } }) {
+  const rows = [
+    { label: '前调', value: blueprint.top },
+    { label: '中调', value: blueprint.heart },
+    { label: '后调', value: blueprint.base },
+  ];
+  return (
+    <div className="space-y-5">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <h4 className="font-serif text-base font-medium text-amber-950 mb-3">{row.label}</h4>
+          <div className="flex flex-wrap gap-2">
+            {row.value.split('·').map((m) => (
+              <span
+                key={m}
+                className="text-sm px-4 py-2 rounded-lg text-amber-800"
+                style={{ background: '#FAEEDA' }}
+              >
+                {m.trim()}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* ── 签名调性：拉开间距 + 装饰分隔符 ── */}
+      <div className="pt-8 pb-2">
+        {/* 装饰：渐隐短线 + 中央金色八角星 + 渐隐短线 */}
+        <div className="flex items-center justify-center gap-2.5 mb-5">
+          <span
+            className="h-px block"
+            style={{
+              width: '40px',
+              background: 'linear-gradient(90deg, transparent 0%, #D4A574 100%)',
+            }}
+          />
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path
+              d="M6 0L7 5L12 6L7 7L6 12L5 7L0 6L5 5L6 0Z"
+              fill="#BA7517"
+            />
+          </svg>
+          <span
+            className="h-px block"
+            style={{
+              width: '40px',
+              background: 'linear-gradient(90deg, #D4A574 0%, transparent 100%)',
+            }}
+          />
+        </div>
+
+        {/* 签名调性小标签 */}
+        <div className="text-center">
+          <span
+            className="text-amber-600/70 font-sans"
+            style={{ fontSize: '11px', letterSpacing: '0.2em' }}
+          >
+            签名调性
+          </span>
+          {/* 主文本：衬线大字号，强化仪式感 */}
+          <div
+            className="font-serif text-amber-950 mt-3"
+            style={{ fontSize: '24px', fontWeight: 500, letterSpacing: '0.08em', lineHeight: 1.3 }}
+          >
+            {blueprint.signature}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
