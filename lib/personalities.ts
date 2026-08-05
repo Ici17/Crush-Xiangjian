@@ -292,13 +292,13 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
   {
     name: 'Byredo Super Cedar',
     brand: 'Byredo',
-    brandCn: '拜最近',
+    brandCn: '百瑞德',
     notes: '雪松 / 玫瑰 / 岩兰草',
     notesStructured: { top: ['雪松'], heart: ['玫瑰'], base: ['岩兰草', '麝香'] },
     quote: '「你不必热烈，也足够被记住。」',
-    tier: 'budget',
+    tier: 'advanced',
     match: 68,
-    priceRange: '¥800-1200/50ml',
+    priceRange: '¥1400-1600/50ml',
     intensity: 2,
     longevity: 3,
   },
@@ -567,7 +567,7 @@ export type PerfumeDetail = {
   longevity: number;
 };
 
-const TIER_META: Record<'signature' | 'advanced' | 'budget', { lasting: string; lastingPct: number; scene: string }> = {
+export const TIER_META: Record<'signature' | 'advanced' | 'budget', { lasting: string; lastingPct: number; scene: string }> = {
   signature: { lasting: '8–10 小时', lastingPct: 90, scene: '重要场合 · 独处夜读' },
   advanced: { lasting: '6–8 小时', lastingPct: 70, scene: '通勤 · 深度工作' },
   budget: { lasting: '4–6 小时', lastingPct: 50, scene: '周末 · 轻松社交' },

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Crush香鉴 | 你的灵魂，藏在哪种香气里",
@@ -66,8 +67,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">
+      <body className="antialiased flex flex-col min-h-screen">
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

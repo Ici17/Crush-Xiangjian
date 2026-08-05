@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local scratch / build artifacts (not part of source)
+*.log
+*.result.json
+_*.cjs
+_*.mjs
+serve.mjs
+serve*.log
+build*.log
+gen_log.txt
+gen_summary.txt
+gens_*.txt
+verify-*.json
+verify-*.ts
+review-*.json
+compare-*.json
+server.*
+*length*)

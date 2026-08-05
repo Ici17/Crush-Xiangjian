@@ -16,7 +16,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "600-900 / 30ml",
+    priceRange: "¥650/30ml",
     description: "清透风铃草与柿子的水感花香，日常百搭",
   },
   "英国梨与小苍兰": {
@@ -31,8 +31,8 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     },
     intensity: 2,
     longevity: 3,
-    tier: "budget",
-    priceRange: "600-900 / 30ml",
+    tier: "advanced",
+    priceRange: "¥650/30ml",
     description: "清甜梨香叠小苍兰，温柔易亲近的入门香",
   },
   "碧海蓝": {
@@ -48,7 +48,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "500-800 / 50ml",
+    priceRange: "¥500-800/50ml",
     description: "地中海蓝风，清透海盐与香橙的夏日水感",
   },
   "光晕": {
@@ -64,7 +64,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "600-900 / 30ml",
+    priceRange: "¥600-900/30ml",
     description: "温柔日常的花果香，通勤约会不出错",
   },
   "雨后花园": {
@@ -80,7 +80,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "signature",
-    priceRange: "800-1200 / 50ml",
+    priceRange: "¥800-1200/50ml",
     description: "尼罗河花园的清透水感，莲叶与阳光的交织",
   },
   "流浪者之歌": {
@@ -96,7 +96,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "signature",
-    priceRange: "900-1400 / 50ml",
+    priceRange: "¥1200-1600/50ml",
     description: "Gypsy Water 柠檬松针的冷绿意境",
   },
   "水中影": {
@@ -112,7 +112,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "signature",
-    priceRange: "700-1100 / 50ml",
+    priceRange: "¥700-1100/50ml",
     description: "绿意玫瑰，黑醋栗叶的清冷绿意与湿漉花香",
   },
   "冷水": {
@@ -128,7 +128,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "budget",
-    priceRange: "200-400 / 100ml",
+    priceRange: "¥200-400/100ml",
     description: "经典水生调，平价清爽的入门冷水",
   },
   "光影": {
@@ -144,7 +144,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "budget",
-    priceRange: "300-500 / 50ml",
+    priceRange: "¥300-500/50ml",
     description: "Light Blue 的地中海清新，阳光与柑橘的假日",
   },
   "白苔": {
@@ -160,7 +160,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "budget",
-    priceRange: "200-350 / 50ml",
+    priceRange: "¥200-350/50ml",
     description: "洁净皂感的白麝香，伪体香的经典代表",
   },
   "白茶-祖玛珑": {
@@ -176,14 +176,14 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "advanced",
-    priceRange: "500-800 / 30ml",
+    priceRange: "¥500-800/30ml",
     description: "清雅的茶香叠白麝香，安静的书卷气质",
   },
   "暖暖椰奶": {
     id: "暖暖椰奶",
     name: "暖暖椰奶",
     brand: "Tom Ford",
-    brandCn: "汤姆福特",
+    brandCn: "汤姆·福特",
     notes: {
       top: ["柠檬","香橙","佛手柑"],
       heart: ["椰奶","橙花"],
@@ -192,7 +192,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "signature",
-    priceRange: "1200-1800 / 50ml",
+    priceRange: "¥1200-1800/50ml",
     description: "Soleil Blanc 的假日暖阳，椰香白花与琥珀的慵懒",
   },
   "真我": {
@@ -208,7 +208,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "signature",
-    priceRange: "800-1300 / 50ml",
+    priceRange: "¥800-1300/50ml",
     description: "Jadore 的华丽花香，金色水滴般璀璨的熟女气质",
   },
   "可可小姐": {
@@ -224,7 +224,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "signature",
-    priceRange: "1000-1500 / 50ml",
+    priceRange: "¥1000-1500/50ml",
     description: "Coco Mademoiselle 独立自信的现代女性香",
   },
   "花悦": {
@@ -240,7 +240,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "700-1100 / 50ml",
+    priceRange: "¥700-1100/50ml",
     description: "Miss Dior Blooming Bouquet 少女感的花束气息",
   },
   "黑鸦片": {
@@ -256,7 +256,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "800-1200 / 50ml",
+    priceRange: "¥800-1200/50ml",
     description: "Black Opium 甜酷的咖啡花香，夜店女王香",
   },
   "好事成双": {
@@ -272,7 +272,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "800-1200 / 50ml",
+    priceRange: "¥800-1200/50ml",
     description: "La Vie Est Belle 甜蜜鸢尾与美食调的人气经典",
   },
   "花之秘境": {
@@ -288,7 +288,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "600-1000 / 50ml",
+    priceRange: "¥600-1000/50ml",
     description: "LInterdit 禁忌之花的橙花茉莉，优雅而温柔",
   },
   "克洛伊": {
@@ -304,7 +304,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "600-900 / 50ml",
+    priceRange: "¥600-900/50ml",
     description: "Chloe EDP 温柔小女人的玫瑰花香",
   },
   "爱情故事": {
@@ -320,7 +320,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "600-900 / 50ml",
+    priceRange: "¥600-900/50ml",
     description: "Love Story 橙花与茉莉的缠绵，浪漫约会香",
   },
   "花宫娜": {
@@ -336,7 +336,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "budget",
-    priceRange: "200-400 / 50ml",
+    priceRange: "¥200-400/50ml",
     description: "法国老牌格拉斯玫瑰，平价入门的花香代表",
   },
   "紫丁香": {
@@ -352,30 +352,14 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "budget",
-    priceRange: "100-200 / 30ml",
+    priceRange: "¥100-200/30ml",
     description: "单一紫丁香，还原雨后的清透花香",
-  },
-  "大地-爱马仕": {
-    id: "大地-爱马仕",
-    name: "大地",
-    brand: "Hermes",
-    brandCn: "爱马仕",
-    notes: {
-      top: ["橙","葡萄柚"],
-      heart: ["胡椒","雪松"],
-      base: ["香根草","琥珀","广藿香"],
-    },
-    intensity: 4,
-    longevity: 4,
-    tier: "signature",
-    priceRange: "800-1200 / 50ml",
-    description: "Terre dHermes 葡萄柚与矿石感的成熟男香标杆",
   },
   "乌木沉香": {
     id: "乌木沉香",
     name: "乌木沉香",
     brand: "Tom Ford",
-    brandCn: "汤姆福特",
+    brandCn: "汤姆·福特",
     notes: {
       top: ["沉香","檀木"],
       heart: ["小豆蔻","胡椒"],
@@ -384,40 +368,8 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 5,
     tier: "signature",
-    priceRange: "1800-2500 / 50ml",
+    priceRange: "¥1800-2500/50ml",
     description: "Oud Wood 高级感乌木与檀香的完美融合",
-  },
-  "蔚蓝-香奈儿": {
-    id: "蔚蓝-香奈儿",
-    name: "蔚蓝",
-    brand: "Chanel",
-    brandCn: "香奈儿",
-    notes: {
-      top: ["柠檬","葡萄柚","薄荷"],
-      heart: ["姜","雪松","薰衣草"],
-      base: ["檀香","琥珀","麝香"],
-    },
-    intensity: 4,
-    longevity: 3,
-    tier: "advanced",
-    priceRange: "700-1100 / 50ml",
-    description: "Bleu de Chanel 清新木质调的现代男香经典",
-  },
-  "旷野-迪奥精纯": {
-    id: "旷野-迪奥精纯",
-    name: "旷野",
-    brand: "Dior",
-    brandCn: "迪奥",
-    notes: {
-      top: ["薄荷","胡椒"],
-      heart: ["薰衣草","小豆蔻"],
-      base: ["檀香","琥珀","雪松"],
-    },
-    intensity: 4,
-    longevity: 4,
-    tier: "advanced",
-    priceRange: "700-1100 / 60ml",
-    description: "Sauvage 辛辣木质调的爆款男香，野性又精致",
   },
   "墨恋": {
     id: "墨恋",
@@ -432,7 +384,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "budget",
-    priceRange: "200-350 / 100ml",
+    priceRange: "¥200-350/100ml",
     description: "Encre Noire 暗黑木质调，墨香与雨湿森林的意象",
   },
   "冥府之路": {
@@ -448,40 +400,8 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "signature",
-    priceRange: "700-1100 / 50ml",
+    priceRange: "¥700-1100/50ml",
     description: "幽冷焚香木质，教堂仪式感的阴郁禅意",
-  },
-  "超级雪松-百瑞德": {
-    id: "超级雪松-百瑞德",
-    name: "超级雪松",
-    brand: "Byredo",
-    brandCn: "百瑞德",
-    notes: {
-      top: ["玫瑰","雪松"],
-      heart: ["香根草"],
-      base: ["麝香","木质"],
-    },
-    intensity: 2,
-    longevity: 2,
-    tier: "advanced",
-    priceRange: "700-1100 / 50ml",
-    description: "Super Cedar 极简雪松木，清冷干净的木质男友香",
-  },
-  "檀木33": {
-    id: "檀木33",
-    name: "檀木33",
-    brand: "Le Labo",
-    brandCn: "勒拉博",
-    notes: {
-      top: ["檀木","鸢尾"],
-      heart: ["皮革","紫罗兰"],
-      base: ["木质","麝香","琥珀"],
-    },
-    intensity: 3,
-    longevity: 4,
-    tier: "signature",
-    priceRange: "1500-2200 / 50ml",
-    description: "Santal 33 从皮革到檀香的复杂层次，文艺感极强",
   },
   "灰烬": {
     id: "灰烬",
@@ -496,7 +416,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "800-1300 / 50ml",
+    priceRange: "¥1200-1600/50ml",
     description: "Accord Oud 焚香辛辣木质，暗夜行走的力量感",
   },
   "墨水-川久保玲": {
@@ -512,7 +432,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "500-800 / 50ml",
+    priceRange: "¥500-800/50ml",
     description: "Wonderwood 扩香极好的干燥木屑与焚香",
   },
   "一千零一夜": {
@@ -528,7 +448,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "900-1400 / 50ml",
+    priceRange: "¥900-1400/50ml",
     description: "Shalimar 百年经典东方香，香草琥珀的性感传奇",
   },
   "琥珀君王": {
@@ -544,7 +464,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 5,
     tier: "signature",
-    priceRange: "800-1300 / 50ml",
+    priceRange: "¥800-1300/50ml",
     description: "Ambre Sultan 浓郁琥珀树脂，暖甜奢华的东方丰碑",
   },
   "华丽之夜": {
@@ -560,7 +480,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "advanced",
-    priceRange: "700-1100 / 50ml",
+    priceRange: "¥700-1100/50ml",
     description: "Opium 经典辛香东方调，八十年代权力感的代表",
   },
   "沙漠孤烟": {
@@ -576,7 +496,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "signature",
-    priceRange: "900-1400 / 50ml",
+    priceRange: "¥900-1400/50ml",
     description: "L Air du Desert Marocain 辛香琥珀的沙漠之夜",
   },
   "极致琥珀": {
@@ -592,14 +512,14 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "signature",
-    priceRange: "1500-2200 / 70ml",
+    priceRange: "¥1500-2200/70ml",
     description: "Grand Soir 热烈琥珀配香草，聚会气场之王",
   },
   "烟草香草": {
     id: "烟草香草",
     name: "烟草香草",
     brand: "Tom Ford",
-    brandCn: "汤姆福特",
+    brandCn: "汤姆·福特",
     notes: {
       top: ["烟草","辛料"],
       heart: ["香草","可可"],
@@ -608,7 +528,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "1500-2200 / 50ml",
+    priceRange: "¥1500-2200/50ml",
     description: "Tobacco Vanille 烟熏甜暖，秋冬质感香的代表",
   },
   "红香": {
@@ -624,7 +544,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "600-1000 / 50ml",
+    priceRange: "¥600-1000/50ml",
     description: "经典辛香东方调，温暖香料与檀木的微醺感",
   },
   "罂粟": {
@@ -640,7 +560,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "advanced",
-    priceRange: "700-1200 / 50ml",
+    priceRange: "¥700-1200/50ml",
     description: "辛辣皮革调，不羁的暗黑质感",
   },
   "香道": {
@@ -656,14 +576,14 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "advanced",
-    priceRange: "600-1000 / 50ml",
+    priceRange: "¥600-1000/50ml",
     description: "焚香木质线，肃穆的寺庙感与冥想氛围",
   },
   "壁炉火光": {
     id: "壁炉火光",
     name: "壁炉火光",
     brand: "Maison Margiela",
-    brandCn: "梅森马吉拉",
+    brandCn: "梅森·马吉拉",
     notes: {
       top: ["焚香","胡椒"],
       heart: ["薰衣草","木质"],
@@ -672,7 +592,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "advanced",
-    priceRange: "700-1100 / 100ml",
+    priceRange: "¥700-1100/100ml",
     description: "By the Fireplace 燃烧木头的温暖与甜意",
   },
   "天使": {
@@ -688,7 +608,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 5,
     tier: "signature",
-    priceRange: "600-1000 / 50ml",
+    priceRange: "¥600-1000/50ml",
     description: "Angel 现代美食调的鼻祖，棉花糖与巧克力的甜疯",
   },
   "毒药": {
@@ -704,7 +624,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "advanced",
-    priceRange: "700-1100 / 50ml",
+    priceRange: "¥700-1100/50ml",
     description: "Hypnotic Poison 杏仁香草的温暖毒药，甜而不腻",
   },
   "粉色甜品": {
@@ -720,7 +640,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 3,
     tier: "budget",
-    priceRange: "100-200 / 100ml",
+    priceRange: "¥100-200/100ml",
     description: "Pink Sugar 极甜少女香，平价棉花糖炸弹",
   },
   "初恋": {
@@ -736,7 +656,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "1500-2200 / 50ml",
+    priceRange: "¥1500-2200/50ml",
     description: "Love Dont Be Shy 甜橙花与棉花糖，甜度爆表的情人节香",
   },
   "黑幽灵": {
@@ -752,7 +672,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "signature",
-    priceRange: "1500-2200 / 50ml",
+    priceRange: "¥1500-2200/50ml",
     description: "Black Phantom 朗姆咖啡的暗黑美食调，又甜又酷",
   },
   "蜂蜜乌木": {
@@ -768,7 +688,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 5,
     tier: "signature",
-    priceRange: "2000-3500 / 50ml",
+    priceRange: "¥2000-3500/50ml",
     description: "重度琥珀蜂蜜与乌木，极致奢华的甜暖",
   },
   "巧克力梦": {
@@ -784,7 +704,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "advanced",
-    priceRange: "500-800 / 50ml",
+    priceRange: "¥500-800/50ml",
     description: "浓郁巧克力美食调，甜的深渊单香成瘾",
   },
   "牛奶": {
@@ -800,7 +720,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "advanced",
-    priceRange: "500-800 / 100ml",
+    priceRange: "¥500-800/100ml",
     description: "Milk 暖甜椰奶檀木，拥抱感的舒适美食调",
   },
   "白晶": {
@@ -816,7 +736,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "500-800 / 40ml",
+    priceRange: "¥500-800/40ml",
     description: "Omnia Crystalline 清甜荔枝水汽，夏日淡雅白花香",
   },
   "安娜苏": {
@@ -832,7 +752,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "budget",
-    priceRange: "200-400 / 50ml",
+    priceRange: "¥200-400/50ml",
     description: "Fantasia 俏皮花果甜，少女入门首选",
   },
   "赤霞橘光": {
@@ -848,7 +768,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "500-800 / 30ml",
+    priceRange: "¥500-800/30ml",
     description: "Orange Sanguine 血橙爆汁感，元气十足的柑橘调",
   },
   "沁蓝": {
@@ -864,7 +784,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "advanced",
-    priceRange: "500-800 / 30ml",
+    priceRange: "¥500-800/30ml",
     description: "Cedrat Enivrant 清冽柠檬与佛手柑的极清爽",
   },
   "海盐柠檬": {
@@ -880,7 +800,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "advanced",
-    priceRange: "600-900 / 50ml",
+    priceRange: "¥600-900/50ml",
     description: "清冷柠檬海盐，清凉松弛的日常好搭",
   },
   "格调": {
@@ -896,7 +816,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "signature",
-    priceRange: "800-1300 / 50ml",
+    priceRange: "¥800-1300/50ml",
     description: "Colonia 百年经典古龙水，意大利绅士的优雅柑橘调",
   },
   "西柚天堂": {
@@ -912,7 +832,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "advanced",
-    priceRange: "500-800 / 30ml",
+    priceRange: "¥500-800/30ml",
     description: "Pomelo Paradis 葡萄柚的清爽微苦，夏日最提神",
   },
   "红结晶": {
@@ -928,7 +848,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "signature",
-    priceRange: "1800-2500 / 70ml",
+    priceRange: "¥1800-2500/70ml",
     description: "Baccarat Rouge 540 藏红花琥珀的冰糖葫芦香，仙气又致瘾",
   },
   "不朽之花": {
@@ -944,24 +864,8 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 2,
     tier: "signature",
-    priceRange: "900-1400 / 50ml",
+    priceRange: "¥1200-1600/50ml",
     description: "Inflorescence 清新白花与柑橘的优雅交织",
-  },
-  "荒漠玫瑰": {
-    id: "荒漠玫瑰",
-    name: "荒漠玫瑰",
-    brand: "Byredo",
-    brandCn: "百瑞德",
-    notes: {
-      top: ["柠檬","胡椒"],
-      heart: ["玫瑰","雪松"],
-      base: ["麝香","琥珀"],
-    },
-    intensity: 3,
-    longevity: 3,
-    tier: "signature",
-    priceRange: "900-1400 / 50ml",
-    description: "Rose of No Mans Land 粉红胡椒玫瑰，冷冽的荒漠玫瑰",
   },
   "香柠檬": {
     id: "香柠檬",
@@ -976,7 +880,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 1,
     longevity: 1,
     tier: "advanced",
-    priceRange: "500-800 / 30ml",
+    priceRange: "¥500-800/30ml",
     description: "清新佛手柑搭配橙花，干净的通勤香",
   },
   "自由之水": {
@@ -992,7 +896,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "signature",
-    priceRange: "1200-1800 / 50ml",
+    priceRange: "¥1200-1800/50ml",
     description: "清冷绿意桂花玫瑰，高级感的小众文艺香",
   },
 
@@ -1211,7 +1115,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3,
     longevity: 4,
     tier: "signature",
-    priceRange: "¥498-698/30ml",
+    priceRange: "¥498/30ml",
     description: "昆仑山巅的松雪，焚一支香，煮一壶茶的东方意境。",
   },
   三重茶: {
@@ -1227,7 +1131,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "advanced",
-    priceRange: "¥498-698/30ml",
+    priceRange: "¥498/30ml",
     description: "一壶茶的三重味道——清香、微苦、回甘。",
   },
   颐和金桂: {
@@ -1243,7 +1147,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "advanced",
-    priceRange: "¥498-698/30ml",
+    priceRange: "¥498/30ml",
     description: "颐和园的金桂落在青石板上，秋风里的甜。",
   },
 
@@ -1261,7 +1165,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "signature",
-    priceRange: "¥880-1280/30ml",
+    priceRange: "¥980/30ml",
     description: "桃子刚熟的那一刻，青涩与甜蜜的交界。",
   },
   柔韧荆棘: {
@@ -1277,7 +1181,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 4,
     tier: "advanced",
-    priceRange: "¥880-1280/30ml",
+    priceRange: "¥980/30ml",
     description: "荆棘丛中的玫瑰，柔软而锋利。",
   },
   夜漠回声: {
@@ -1293,7 +1197,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 4,
     longevity: 5,
     tier: "advanced",
-    priceRange: "¥880-1280/30ml",
+    priceRange: "¥980/30ml",
     description: "深夜沙漠的风，带回来的远方回声。",
   },
 
@@ -1311,7 +1215,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "signature",
-    priceRange: "¥298-498/50ml",
+    priceRange: "¥488/30ml",
     description: "研墨时第一缕松烟，文人书斋的气味记忆。",
   },
   桂: {
@@ -1327,7 +1231,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 2,
     longevity: 3,
     tier: "advanced",
-    priceRange: "¥298-498/50ml",
+    priceRange: "¥488/30ml",
     description: "雨后巷口的老桂树，中国式的清甜。",
   },
 
@@ -1341,7 +1245,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["玫瑰"], heart: ["牡丹", "茉莉"], base: ["麝香"] },
     intensity: 3, longevity: 3,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "清甜玫瑰叠牡丹，平价入门的花香。",
   },
   "白茉莉": {
@@ -1352,7 +1256,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["茉莉"], heart: ["铃兰"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "100-200 / 50ml",
+    priceRange: "¥100-200/50ml",
     description: "干净白花，茉莉与铃兰的清淡少女感。",
   },
   "紫罗兰心事": {
@@ -1363,7 +1267,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["紫罗兰"], heart: ["鸢尾"], base: ["麝香"] },
     intensity: 2, longevity: 3,
     tier: "budget",
-    priceRange: "120-260 / 50ml",
+    priceRange: "¥120-260/50ml",
     description: "粉感紫罗兰与鸢尾，温柔内向的花粉香。",
   },
   "桂花引": {
@@ -1374,7 +1278,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["桂花"], heart: ["白茶"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "80-180 / 50ml",
+    priceRange: "¥80-180/50ml",
     description: "清甜桂花配白茶，东方清润的平价茶花香。",
   },
   "檀木序曲": {
@@ -1385,7 +1289,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["檀香"], heart: ["雪松"], base: ["广藿香"] },
     intensity: 3, longevity: 4,
     tier: "budget",
-    priceRange: "120-240 / 50ml",
+    priceRange: "¥120-240/50ml",
     description: "温润檀木与雪松，沉稳木质的日常香。",
   },
   "雪松荒野": {
@@ -1396,7 +1300,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["雪松"], heart: ["香根草"], base: ["琥珀"] },
     intensity: 3, longevity: 4,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "干燥雪松与香根草，荒野木质调。",
   },
   "岩兰物语": {
@@ -1407,7 +1311,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["岩兰草"], heart: ["柏木"], base: ["木质"] },
     intensity: 3, longevity: 4,
     tier: "budget",
-    priceRange: "120-260 / 50ml",
+    priceRange: "¥120-260/50ml",
     description: "泥土感岩兰草与柏木，低调耐闻的木质。",
   },
   "海盐微光": {
@@ -1418,7 +1322,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["海盐", "薄荷"], heart: ["海洋"], base: ["麝香"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "海盐与薄荷的水感，夏日清爽便宜大碗。",
   },
   "雨后青苔": {
@@ -1429,7 +1333,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["青苔"], heart: ["绿叶"], base: ["苔藓"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "100-200 / 50ml",
+    priceRange: "¥100-200/50ml",
     description: "雨后被踩过的青苔与绿叶，森系清新。",
   },
   "无花果奶冻": {
@@ -1440,7 +1344,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["无花果"], heart: ["椰"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "80-180 / 50ml",
+    priceRange: "¥80-180/50ml",
     description: "奶感无花果配椰香，清新又带点甜。",
   },
   "绿茶醒": {
@@ -1451,7 +1355,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["茶叶", "柠檬"], heart: ["薄荷"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "100-200 / 50ml",
+    priceRange: "¥100-200/50ml",
     description: "绿茶与柠檬薄荷，醒神又干净的茶香。",
   },
   "琥珀夜行": {
@@ -1462,7 +1366,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["琥珀"], heart: ["香草"], base: ["麝香"] },
     intensity: 3, longevity: 4,
     tier: "budget",
-    priceRange: "120-260 / 50ml",
+    priceRange: "¥120-260/50ml",
     description: "暖琥珀裹香草与麝香，平价版慵懒东方调。",
   },
   "沉香迷雾": {
@@ -1473,7 +1377,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["沉香"], heart: ["檀香"], base: ["皮革"] },
     intensity: 4, longevity: 5,
     tier: "budget",
-    priceRange: "130-280 / 50ml",
+    priceRange: "¥130-280/50ml",
     description: "沉香与皮革的烟熏感，暗黑有故事的平价香。",
   },
   "焚香结界": {
@@ -1484,7 +1388,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["焚香"], heart: ["雪松"], base: ["檀香"] },
     intensity: 3, longevity: 4,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "寺庙焚香与木质的清冷禁欲感。",
   },
   "香橙假日": {
@@ -1495,7 +1399,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["香橙", "柠檬"], heart: ["佛手柑"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "一整颗香橙的明亮，元气柑橘入门香。",
   },
   "柚子少年": {
@@ -1506,7 +1410,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["柚子", "葡萄柚"], heart: ["薄荷"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "80-180 / 50ml",
+    priceRange: "¥80-180/50ml",
     description: "柚子与葡萄柚的酸爽，少年感的清爽。",
   },
   "青柠气泡": {
@@ -1517,7 +1421,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["青柠", "柠檬草"], heart: ["海盐"], base: ["木质"] },
     intensity: 2, longevity: 2,
     tier: "budget",
-    priceRange: "100-200 / 50ml",
+    priceRange: "¥100-200/50ml",
     description: "青柠气泡水般的清凉，夏日提神平价香。",
   },
   "香草奶昔": {
@@ -1528,7 +1432,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["香草"], heart: ["牛奶"], base: ["椰子"] },
     intensity: 3, longevity: 3,
     tier: "budget",
-    priceRange: "150-300 / 50ml",
+    priceRange: "¥150-300/50ml",
     description: "香草牛奶冰淇淋，甜而不腻的平价奶香。",
   },
   "焦糖布蕾": {
@@ -1539,7 +1443,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["焦糖"], heart: ["奶油"], base: ["杏仁"] },
     intensity: 3, longevity: 3,
     tier: "budget",
-    priceRange: "120-260 / 50ml",
+    priceRange: "¥120-260/50ml",
     description: "焦糖与奶油的甜点香，平价版的甜暖。",
   },
   "蜜桃软糖": {
@@ -1550,7 +1454,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["桃子"], heart: ["糖"], base: ["莓果"] },
     intensity: 3, longevity: 3,
     tier: "budget",
-    priceRange: "80-180 / 50ml",
+    priceRange: "¥80-180/50ml",
     description: "水蜜桃软糖，少女感果香平价香。",
   },
   "棉花糖星河": {
@@ -1561,7 +1465,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     notes: { top: ["棉花糖"], heart: ["香草"], base: ["麝香"] },
     intensity: 3, longevity: 3,
     tier: "budget",
-    priceRange: "100-200 / 50ml",
+    priceRange: "¥100-200/50ml",
     description: "蓬松棉花糖与香草，甜梦般的平价香。",
   },
 };
