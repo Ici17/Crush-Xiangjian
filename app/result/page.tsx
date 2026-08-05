@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import QRCode from 'qrcode';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -18,7 +18,9 @@ import {
   getSharePerfumeReason,
   getSimilarPersonalities,
   STORAGE_KEYS,
+  TIER_META,
   type Recommendation,
+  type PerfumeDetail,
 } from '@/lib/personalities';
 import { PERSONALITY_TYPES } from '@/lib/data';
 import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
@@ -343,6 +345,28 @@ function ResultInner() {
   useEffect(() => {
     getDynamicRecommendations(personalityName).then(setRecommendations);
   }, [personalityName]);
+
+  // 锁定版动态 Recommendation[] → 解锁版 PerfumeDetail[] 映射
+  // 目的：保留锁定版那 3 支香水，解锁后不换一批（与『同一批去模糊』承诺一致）
+  const displayPerfumes = useMemo<PerfumeDetail[]>(
+    () =>
+      recommendations.map((r) => ({
+        name: r.name,
+        brand: r.brand,
+        brandCn: r.brandCn,
+        tier: r.tier,
+        top: r.notesStructured.top,
+        heart: r.notesStructured.heart,
+        base: r.notesStructured.base,
+        quote: r.quote,
+        match: r.match,
+        priceRange: r.priceRange,
+        intensity: r.intensity,
+        longevity: r.longevity,
+        ...TIER_META[r.tier],
+      })),
+    [recommendations]
+  );
 
   const discounted = inviteStatus.canDiscount;
   const currentKey: PriceKey = discounted ? 'unlockDiscounted' : 'unlockFull';
@@ -784,7 +808,7 @@ function ResultInner() {
 
         {/* ━━━ 已解锁内容 / 付费墙（条件渲染）━━━ */}
         {paidLevel >= 2 ? (
-          <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} />
+          <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} perfumes={displayPerfumes} />
         ) : (
         /* ━━━ 内联付费墙 ━━━ */
         <section className="mx-6 my-6" aria-label="解锁完整报告">

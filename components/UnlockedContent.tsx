@@ -68,14 +68,19 @@ export default function UnlockedContent({
   radarData,
   shareLink,
   justPaid = false,
+  perfumes: providedPerfumes,
 }: {
   personalityName: string;
   radarData: Record<RadarDim, number>;
   shareLink: string;
   justPaid?: boolean;
+  perfumes?: PerfumeDetail[];
 }) {
   const personality = useMemo(() => getPersonality(personalityName), [personalityName]);
-  const perfumes = useMemo(() => getPerfumeDetails(personalityName), [personalityName]);
+  const perfumes = useMemo(
+    () => providedPerfumes ?? getPerfumeDetails(personalityName),
+    [providedPerfumes, personalityName]
+  );
   const hidden = useMemo(() => getHiddenFace(personalityName), [personalityName]);
   const blueprint = useMemo(() => getScentBlueprint(personalityName), [personalityName]);
   const contrast = useMemo(() => getContrastScent(personalityName), [personalityName]);
