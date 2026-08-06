@@ -63,6 +63,11 @@ export const PERSONALITY_ID_MAP: Record<string, string> = {
   烬生: 'jinsheng',
 };
 
+/** 反向映射：英文 ID → 中文人格名（用于 localStorage 存拼音 ID 时还原显示） */
+export const PERSONALITY_NAME_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(PERSONALITY_ID_MAP).map(([name, id]) => [id, name]),
+);
+
 // ─────────────────────────────────────────
 // 香水推荐（来自 data.ts，懒导入避免循环）
 // ─────────────────────────────────────────
