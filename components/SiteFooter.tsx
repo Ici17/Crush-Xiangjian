@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 /**
- * 全站页脚 — 满足 Waffo 自检：
- *   3. 客服联系方式（邮件）
- *   4. 定价摘要（免费测 + 解锁档 + 一次性香气盒）
+ * 全站页脚 - 满足 Waffo 自检:
+ *   3. 客服联系方式(邮件)
+ *   4. 定价摘要(免费测 + 解锁档)
  *   同时提供「服务条款 / 隐私政策」入口
  */
 export default function SiteFooter() {
@@ -22,13 +22,11 @@ export default function SiteFooter() {
           <p className="text-amber-800/85 text-[13px] leading-[1.85]">
             Crush 香鉴提供
             <strong className="text-amber-900"> 免费的 16 型香气人格测试</strong>
-            ，包含雷达图、本命香方向与好友匹配。
-            若希望解锁完整版（隐藏人格面、反差香、气味底稿、关系解读），
-            可选择一次性解锁：
-            <strong className="text-amber-900"> ¥6.6 / ¥9.9</strong>
-            ；或一次性领取香气盒（实物寄送）：
-            <strong className="text-amber-900"> ¥59.9</strong>
-            。支付完成后立即解锁，无自动续费。
+            ,包含雷达图、本命香方向与好友匹配。
+            若希望解锁完整版(隐藏人格面、反差香、气味底稿、关系解读),
+            可选择一次性解锁:
+            <strong className="text-amber-900"> ￥20.9 / ￥29.9</strong>
+            。支付完成后立即解锁,无自动续费。
           </p>
         </div>
 
@@ -39,7 +37,7 @@ export default function SiteFooter() {
               联系方式
             </h3>
             <p className="leading-[1.85]">
-              客服邮箱：
+              客服邮箱:
               <a
                 href="mailto:hi@crushxiangjian.com"
                 className="text-amber-900 underline underline-offset-2 hover:text-amber-700"
@@ -47,7 +45,7 @@ export default function SiteFooter() {
                 hi@crushxiangjian.com
               </a>
               <br />
-              反馈、申诉与退订请通过邮件联系，通常 1–2 个工作日内回复。
+              反馈、申诉与退订请通过邮件联系,通常 1-2 个工作日内回复。
             </p>
           </div>
 
