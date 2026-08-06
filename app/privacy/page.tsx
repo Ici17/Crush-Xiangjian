@@ -38,7 +38,7 @@ export default function PrivacyPage() {
             图片不经过我们的服务器中转。
           </li>
           <li>
-            <strong>支付信息</strong>：当您选择解锁或领取一次性香气盒时，付款流程由
+            <strong>支付信息</strong>：当您选择解锁完整版时，付款流程由
             <strong> Waffo Pancake</strong> 处理；我们仅接收支付结果（订单状态 + 档位）
             用于解锁内容，<strong>不接触您的银行卡、支付密码或账单明细</strong>。
           </li>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
         <ul className="list-disc pl-6 space-y-2">
           <li>
             <strong>支付</strong>：Waffo Pancake（api.waffo.ai）— 仅在您点击「去支付」时，
-            您的浏览器跳转到 Waffo 收银台，由 Waffo 处理支付；我们不接收卡号。
+            您的浏览器跳转到 Waffo 收银台完成支付；我们不接收卡号。
           </li>
           <li>
             <strong>网站部署</strong>：Vercel（vercel.com）— 静态资源 CDN，
