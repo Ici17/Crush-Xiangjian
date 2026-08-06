@@ -7,10 +7,9 @@ import { isWechatBrowser, PRICE_CONFIG, type PriceKey } from "@/lib/payment";
 export const WAFFO_PRODUCT_MAP: Record<PriceKey, string> = {
   unlockDiscounted: process.env.NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED ?? "",
   unlockFull: process.env.NEXT_PUBLIC_WAFFO_PRODUCT_FULL ?? "",
-  subscriptionBox: process.env.NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION ?? "",
 };
 
-export type PaymentContext = 'full' | 'perfume' | 'preference' | 'subscription';
+export type PaymentContext = 'full' | 'perfume' | 'preference';
 
 interface PaymentModalProps {
   priceKey: PriceKey;
@@ -38,12 +37,6 @@ const CONTEXT_COPY: Record<PaymentContext, { title: string; subtitle: string; be
     subtitle: '基于你的香气人格 × 雷达偏好，生成 4 个具体用香方向',
     benefits: ['你的香气舒适区分析', '进阶探索方向', '约会 / 办公 / 旅行场景建议', '与本命香的搭配逻辑'],
     cta: '解锁指南',
-  },
-  subscription: {
-    title: '领取一次性香气盒',
-    subtitle: '为你甄选一支 15ml 小众孤香小样，一次寄到家，无自动续费',
-    benefits: ['依人格甄选小众香', '私享之选不入俗流', '专属香方启封'],
-    cta: '去支付',
   },
 };
 
