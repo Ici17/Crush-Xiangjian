@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { STORAGE_KEYS } from './personalities';
+import { STORAGE_KEYS, PERSONALITY_NAME_MAP } from './personalities';
 
 const BRANCH_PROGRESS_KEY = 'crushxiangjian_branch_progress';
 
@@ -59,7 +59,7 @@ export function useMyTestStatus(): MyTestStatus {
         }
         setStatus({
           completed: !!pid,
-          personalityName: pid,
+          personalityName: pid ? (PERSONALITY_NAME_MAP[pid] ?? pid) : null,
           inProgress,
           answeredCount,
           totalCount: 10,
