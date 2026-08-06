@@ -1,7 +1,7 @@
 # Crush 香鉴 - 开发文档
 
 > 你的灵魂,藏在哪种香气里?
-> 10 道情境题 × 16 种人格 × 110 款本命香水
+> 10 道情境题 × 16 种人格 × 151 款本命香水
 
 一个纯前端的香气人格测试 H5(Next.js 16 + TypeScript + Tailwind v4)。无后端、无数据库、零 OpenID;支付通过 Waffo Pancake 匿名结账 + 本地乐观解锁完成。
 
@@ -12,7 +12,7 @@
 ### ✅ 已完成(骨架 + 核心逻辑 + 商业化)
 - [x] Next.js 16 + TypeScript + Tailwind CSS v4 项目初始化
 - [x] 16 种人格类型完整数据(名字、香调向量、隐藏人格面、反差香、气味底稿、香水推荐、性格报告)
-- [x] 110 款香水数据库(中英品牌名、三调香料、扩散力/留香评级)
+- [x] 151 款香水数据库(中英品牌名、三调香料、扩散力/留香评级)
 - [x] 10 道情境向量问卷(7 题分支 + 3 题校准,二叉树路径)
 - [x] 人格匹配算法(余弦相似度 + 频率去偏)
 - [x] 落地页(首页 + 社会证明 + CTA 脉冲动效)
@@ -77,7 +77,7 @@ WAFFO_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
 # Waffo 后台创建的三个产品 ID(分别对应三档)
 NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED=PROD_xxxxxxxx   # 完整版裂变价 ¥20.9
 NEXT_PUBLIC_WAFFO_PRODUCT_FULL=PROD_xxxxxxxx         # 完整版主推 ¥29.9
-NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION=PROD_xxxxxxxx # 香气产品实物寄送（待定，￥59.9）
+NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION=PROD_xxxxxxxx # 香气盒产品(前端已下架入口,后台产品保留)
 
 # 站点基础 URL(回调 / 分享链接用)
 NEXT_PUBLIC_BASE_URL=http://localhost:3456
@@ -142,9 +142,8 @@ crushxiangjian/
 |------|------|------|
 | 完整版解锁(裂变价) | ¥20.9 | 转发 3 人后解锁,原价 ¥29.9 |
 | 完整版解锁(主推) | ¥29.9 | 原价 ¥59.9,5 折 |
-| **香气产品（待定）** | **￥59.9** | 实物寄送：依人格甄选**一支 15ml 小众孤香小样**（不透露品牌，只匹配香调），附用香指南卡片，全国包邮，**一次付清，无自动续费** |
 
-支付完成后立即解锁,无自动续费。退款政策见 `/terms`(7 天内因技术故障可全额退款)。
+> 实物香气盒(￥59.9)已于 v1.1 下架,当前仅保留数字版付费墙。支付完成后立即解锁,无自动续费。退款政策见 `/terms`(7 天内因技术故障可全额退款)。
 客服邮箱:`hi@crushxiangjian.com`
 
 ---
