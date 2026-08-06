@@ -1,6 +1,7 @@
 // ============================================================
-// Crush香鉴 — 香水匹配引擎
-// 基于用户 6 维香调偏好向量，对所有香水做余弦相似度重排，挑 topN
+// Crush香鉴 — 香水匹配引擎 (18 维向量重构)
+// 基于用户 6 维香调偏好向量 × 香水 18 维调香结构（前/中/后调各 6 维），
+// 分阶段余弦相似度加权，对所有香水做精准重排，挑 topN
 // ============================================================
 
 import { PERFUMES, PERSONALITY_TYPES, type Perfume } from "./data";
@@ -15,6 +16,13 @@ export interface ScentVector {
   [key: string]: number;
 }
 
+/** 18 维香调结构：前调 + 中调 + 后调，各 6 维 */
+export interface ScentProfile18D {
+  top: ScentVector;
+  heart: ScentVector;
+  base: ScentVector;
+}
+
 export const DIMENSIONS: (keyof ScentVector)[] = [
   "floral",
   "woody",
@@ -23,6 +31,9 @@ export const DIMENSIONS: (keyof ScentVector)[] = [
   "citrus",
   "gourmand",
 ];
+
+/** 18 维各阶段权重（前调 0.20 + 中调 0.35 + 后调 0.45）*/
+const PHASE_WEIGHTS = { top: 0.20, heart: 0.35, base: 0.45 } as const;
 
 // 香料关键词 → 香调维度（一个香料可命中多个维度，这里取主维度）
 export const INGREDIENT_MAP: Record<string, keyof ScentVector> = {
@@ -104,32 +115,51 @@ export const INGREDIENT_MAP: Record<string, keyof ScentVector> = {
 };
 
 const profileCache = new Map<string, ScentVector>();
+const profile18DCache = new Map<string, ScentProfile18D>();
 
-// 由香水 notes（前/中/后调）推导 6 维向量
-export function getPerfumeProfile(perfume: Perfume): ScentVector {
-  const cached = profileCache.get(perfume.id);
-  if (cached) return cached;
-
+// 由一个 notes 数组推导 6 维向量
+function notesToVector(notes: string[]): ScentVector {
   const v: ScentVector = {
     floral: 0, woody: 0, fresh: 0, oriental: 0, citrus: 0, gourmand: 0,
   };
-
-  const allNotes = [
-    ...perfume.notes.top,
-    ...perfume.notes.heart,
-    ...perfume.notes.base,
-  ];
-
-  for (const note of allNotes) {
+  for (const note of notes) {
     for (const kw of Object.keys(INGREDIENT_MAP)) {
       if (note.includes(kw)) {
         v[INGREDIENT_MAP[kw]] += 1;
       }
     }
   }
+  return v;
+}
+
+// 由香水 notes（前/中/后调）推导 6 维向量（向后兼容）
+export function getPerfumeProfile(perfume: Perfume): ScentVector {
+  const cached = profileCache.get(perfume.id);
+  if (cached) return cached;
+
+  const v = notesToVector([
+    ...perfume.notes.top,
+    ...perfume.notes.heart,
+    ...perfume.notes.base,
+  ]);
 
   profileCache.set(perfume.id, v);
   return v;
+}
+
+// 由香水 notes 推导 18 维向量（前/中/后调各 6 维）
+export function getPerfumeProfile18D(perfume: Perfume): ScentProfile18D {
+  const cached = profile18DCache.get(perfume.id);
+  if (cached) return cached;
+
+  const profile: ScentProfile18D = {
+    top: notesToVector(perfume.notes.top),
+    heart: notesToVector(perfume.notes.heart),
+    base: notesToVector(perfume.notes.base),
+  };
+
+  profile18DCache.set(perfume.id, profile);
+  return profile;
 }
 
 // 余弦相似度（方向敏感，尺度无关）
@@ -144,6 +174,25 @@ export function cosineSimilarity(a: ScentVector, b: ScentVector): number {
   }
   if (na === 0 || nb === 0) return 0;
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+/**
+ * 18 维分阶段相似度：用户 6 维向量 × 香水 18 维结构
+ * 用户向量分别与香水的前调/中调/后调向量做余弦相似度，
+ * 再按 PHASE_WEIGHTS 加权求和（前调 0.20 + 中调 0.35 + 后调 0.45）
+ * 这比原来混合所有调的一团 6 维向量更精准：
+ * - 前调差异大的香水（如柑橘开场 vs 花香开场）会被区分开
+ * - 后调权重最高，因为后调决定了“留在皮肤上的最后印象”
+ */
+export function cosineSimilarity18D(userVec: ScentVector, perfumeProfile: ScentProfile18D): number {
+  const topSim = cosineSimilarity(userVec, perfumeProfile.top);
+  const heartSim = cosineSimilarity(userVec, perfumeProfile.heart);
+  const baseSim = cosineSimilarity(userVec, perfumeProfile.base);
+  return (
+    topSim * PHASE_WEIGHTS.top +
+    heartSim * PHASE_WEIGHTS.heart +
+    baseSim * PHASE_WEIGHTS.base
+  );
 }
 
 // 对所有香水重排，返回相似度最高的 n 支
@@ -261,14 +310,16 @@ function brandPenalty(perfume: Perfume, selectedBrands: Set<string>): number {
   return selectedBrands.has(perfume.brand) ? -15 : 0;
 }
 
-/** 单支香水的综合得分（雷达 0.35 + 校准气息 0.25 + 留香 0.20 + 场合 0.15 + 描述 0.05） */
+/** 单支香水的综合得分（雷达 0.35 + 校准气息 0.25 + 留香 0.20 + 场合 0.15 + 描述 0.05）
+ * 雷达相似度使用 18 维分阶段计算（前/中/后调各 6 维，加权求和）
+ */
 function totalScore(
   perfume: Perfume,
   radar: ScentVector,
   prefs: CalPreferences,
   pathLabels: string[],
 ): number {
-  const radarScore = cosineSimilarity(radar, getPerfumeProfile(perfume)) * 100;
+  const radarScore = cosineSimilarity18D(radar, getPerfumeProfile18D(perfume)) * 100;
   const calScent = calScentScore(perfume, prefs);
   const calLongevity = calLongevityScore(perfume, prefs);
   const calOccasion = calOccasionScore(perfume, prefs);
@@ -482,6 +533,10 @@ export function getCalibratedRecommendations(
     selectedNames.add(best.perfume.name);
     selectedProfiles.push(getPerfumeProfile(best.perfume));
 
+    // 匹配度显示：使用原始全局分数（真实匹配度）
+    // 范围通常在 55-85 之间，反映与用户的真实契合程度
+    const rawMatch = Math.round(best.totalScore);
+
     results.push({
       name: best.perfume.name,
       brand: best.perfume.brand,
@@ -494,7 +549,7 @@ export function getCalibratedRecommendations(
       notesStructured: { ...best.perfume.notes },
       quote: `「${best.perfume.description}」`,
       tier: best.perfume.tier,
-      match: Math.min(99, Math.round(best.totalScore)),
+      match: rawMatch,
       priceRange: best.perfume.priceRange,
       intensity: best.perfume.intensity,
       longevity: best.perfume.longevity,
@@ -510,6 +565,7 @@ export function getCalibratedRecommendations(
     const fixedPerfume = fixedName ? (PERFUMES as Record<string, Perfume>)[fixedName] : undefined;
     if (fixedPerfume && fixedPerfume.tier === 'budget') {
       const fixedScore = totalScore(fixedPerfume, radarScores, prefs!, pathLabels);
+      // 平价档使用原始全局分数
       const fixedRec: CalibratedRecommendation = {
         name: fixedPerfume.name,
         brand: fixedPerfume.brand,
@@ -522,7 +578,7 @@ export function getCalibratedRecommendations(
         notesStructured: { ...fixedPerfume.notes },
         quote: `「${fixedPerfume.description}」`,
         tier: fixedPerfume.tier,
-        match: Math.min(99, Math.round(fixedScore)),
+        match: Math.round(fixedScore),
         priceRange: fixedPerfume.priceRange,
         intensity: fixedPerfume.intensity,
         longevity: fixedPerfume.longevity,
