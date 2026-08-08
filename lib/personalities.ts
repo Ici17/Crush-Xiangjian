@@ -86,7 +86,8 @@ export type Recommendation = {
   notes: string;                      // 扁平字符串（向后兼容）
   notesStructured: NotesStructured;    // 结构化三调（推荐使用）
   quote: string;
-  tier: 'signature' | 'advanced' | 'budget';
+  tier: 'signature' | 'advanced' | 'budget';      // 真实数据档位
+  role: 'signature' | 'advanced' | 'budget';      // 展示角色（本命香/进阶香/尝试香）
   match: number;
   priceRange: string;                  // 价格区间，如 "¥800-1200/50ml"
   intensity: number;                   // 扩散力 1-5
@@ -123,6 +124,7 @@ function _getBaseRecommendations(id: string | undefined): readonly Omit<Recommen
         notesStructured: { ...type.signaturePerfume.notes },
         quote: `「${type.signaturePerfume.description}」`,
         tier: 'signature',
+        role: 'signature',
         priceRange: type.signaturePerfume.priceRange,
         intensity: type.signaturePerfume.intensity,
         longevity: type.signaturePerfume.longevity,
@@ -135,6 +137,7 @@ function _getBaseRecommendations(id: string | undefined): readonly Omit<Recommen
         notesStructured: { ...type.advancedPerfume.notes },
         quote: `「${type.advancedPerfume.description}」`,
         tier: 'advanced',
+        role: 'advanced',
         priceRange: type.advancedPerfume.priceRange,
         intensity: type.advancedPerfume.intensity,
         longevity: type.advancedPerfume.longevity,
@@ -147,6 +150,7 @@ function _getBaseRecommendations(id: string | undefined): readonly Omit<Recommen
         notesStructured: { ...type.budgetPerfume.notes },
         quote: `「${type.budgetPerfume.description}」`,
         tier: 'budget',
+        role: 'budget',
         priceRange: type.budgetPerfume.priceRange,
         intensity: type.budgetPerfume.intensity,
         longevity: type.budgetPerfume.longevity,
@@ -171,8 +175,9 @@ export function getRecommendations(personalityName: string): readonly Recommenda
  * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 151 支香水库动态推荐
  * @returns 校准推荐结果，若无校准数据则退回固定映射
  */
-/** 动态推荐缓存 schema 版本（Recommendation shape 变化时 +1，老缓存自动失效） */
-const DYNAMIC_RECS_SCHEMA_VERSION = 1;
+/** 动态推荐缓存 schema 版本（Recommendation shape 变化时 +1，老缓存自动失效）
+ * v3：本命香 match 改为 85-95 映射值（v2 缓存存的是 raw 分，需失效） */
+const DYNAMIC_RECS_SCHEMA_VERSION = 3;
 
 /**
  * 同步读取动态推荐缓存（跨刷新锁定同一批 3 支）
@@ -238,6 +243,7 @@ export async function getDynamicRecommendations(personalityName: string): Promis
       notesStructured: r.notesStructured,
       quote: r.quote,
       tier: r.tier,
+      role: r.role,
       match: r.match,
       priceRange: r.priceRange,
       intensity: r.intensity,
@@ -319,6 +325,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notesStructured: { top: ['小豆蔻'], heart: ['沉香', '檀木'], base: ['零陵香豆', '琥珀'] },
     quote: '「它和你一样，初见是距离，再闻是深度。」',
     tier: 'signature',
+    role: 'signature',
     match: 93,
     priceRange: '¥1500-2200/50ml',
     intensity: 4,
@@ -332,6 +339,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notesStructured: { top: ['小豆蔻'], heart: ['檀香', '纸莎草'], base: ['皮革', '雪松'] },
     quote: '「安静的人，往往最有故事。」',
     tier: 'advanced',
+    role: 'advanced',
     match: 82,
     priceRange: '¥1200-1800/50ml',
     intensity: 3,
@@ -345,6 +353,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notesStructured: { top: ['雪松'], heart: ['玫瑰'], base: ['岩兰草', '麝香'] },
     quote: '「你不必热烈，也足够被记住。」',
     tier: 'advanced',
+    role: 'advanced',
     match: 68,
     priceRange: '¥1400-1600/50ml',
     intensity: 2,
@@ -609,6 +618,7 @@ export function getScentAdvice(name: string): ScentAdvice {
 /** 本命香完整档案（解锁内容 ②）：从推荐香水程序化派生前/中/后调 */
 export type PerfumeDetail = {
   name: string; brand: string; brandCn: string; tier: 'signature' | 'advanced' | 'budget';
+  role: 'signature' | 'advanced' | 'budget';
   top: string[]; heart: string[]; base: string[];
   lasting: string; lastingPct: number; scene: string; quote: string;
   match: number;
@@ -638,7 +648,7 @@ export function getPerfumeDetails(name: string): PerfumeDetail[] {
   return recs.map((r) => {
     const meta = TIER_META[r.tier];
     return {
-      name: r.name, brand: r.brand, brandCn: r.brandCn, tier: r.tier,
+      name: r.name, brand: r.brand, brandCn: r.brandCn, tier: r.tier, role: r.role,
       top: r.notesStructured.top, heart: r.notesStructured.heart, base: r.notesStructured.base,
       lasting: meta.lasting, lastingPct: meta.lastingPct, scene: meta.scene, quote: r.quote,
       match: r.match,
