@@ -21,7 +21,7 @@ function getCompatibilityStory(score: number): { tier: string; copy: string } {
   if (score >= 80)
     return {
       tier: "灵魂伴侣",
-      copy: "你们的香气频率高度共振——灵魂香伴，靠近就像回家。",
+      copy: "你们的香气频率高度共振——靠近，就像回到了该在的地方。",
     };
   if (score >= 60)
     return {
@@ -47,7 +47,7 @@ const SHARE_TEMPLATES: Record<ShareTemplate, { label: string; emoji: string; sub
     label: '默契',
     emoji: '💫',
     subtitle: '天生一对',
-    copy: '你和 TA 的香气频率高度共振',
+    copy: '你和 TA 的香气频率，在此刻共振',
   },
   '挑战': {
     label: '挑战',
@@ -121,7 +121,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [shareTemplate, setShareTemplate] = useState<ShareTemplate>('默契');
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  // 「我的香气伴侣榜」名单（来自 localStorage 邀请记录）
+  // 「我的灵魂香气榜」名单（来自 localStorage 邀请记录）
   const [friendList, setFriendList] = useState<Array<{ name: string }>>([]);
 
   // 邀请态 stagger：0=header 1=inviter 2=inviteText 3=CTA 4=secondary
@@ -249,9 +249,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     const tier = getCompatibilityStory(result.score);
     const tpl = SHARE_TEMPLATES[shareTemplate];
     const copyMap: Record<ShareTemplate, string> = {
-      '默契': `测了测我们的灵魂香气，共鸣度 ${result.score}%。原来我们是「${tier.tier}」型。${shareA.name} × ${shareB.name}，你也来测测你和 TA？👇`,
-      '挑战': `${shareA.name} × ${shareB.name} = ${tier.tier}。评论区艾特一个你想测的人，不服来战👇`,
-      '稀有': `居然和 TA 有 ${result.score}% 共鸣，太离谱了。不服来战👇`,
+      '默契': `测了测我们的灵魂香气，共鸣度 ${result.score}%——原来我们是「${tier.tier}」。${shareA.name} × ${shareB.name}，你也来试试？👇`,
+      '挑战': `${shareA.name} × ${shareB.name} = ${tier.tier}。艾特一个你想测的人，不服来战 👇`,
+      '稀有': `居然和 TA 有 ${result.score}% 共鸣——罕见的香气组合。不服来战 👇`,
     };
     const text = copyMap[shareTemplate];
     navigator.clipboard.writeText(text).then(() => showToast("分享文案已复制 ✓"));
@@ -292,7 +292,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       <main className="min-h-dvh bg-cream flex flex-col items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <div className="text-4xl mb-4 opacity-50">🌫</div>
-          <h1 className="font-serif font-semibold text-amber-900 text-xl mb-2">香气匹配</h1>
+          <h1 className="font-serif font-semibold text-amber-900 text-xl mb-2">香气契合度</h1>
           <p className="text-amber-500/70 font-sans text-sm leading-relaxed">
             正在加载你的朋友匹配记录…
           </p>
@@ -331,7 +331,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
             }`}
           >
             <p className="text-amber-400/70 font-sans text-xs tracking-widest uppercase mb-6">
-              你收到了一个香气邀请
+              你收到了一份香气邀请
             </p>
 
             {/* 邀請函装饰 */}
@@ -408,7 +408,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
           {/* 底部装饰 */}
           <div className="mt-auto px-5 pb-8 text-center">
             <p className="text-amber-400/40 font-sans text-xs">
-              Crush香鉴 · 测测你们的灵魂香气
+              Crush 香鉴 · 测测你们的灵魂香气
             </p>
           </div>
         </div>
@@ -598,12 +598,12 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   朋友的<span className="font-bold">{shareB.name}</span>
                 </p>
                 <p className="font-serif text-amber-700/80 text-sm mb-4">
-                  = {result.score >= 85 ? '完美的灵魂档案' : result.score >= 70 ? '互补的探索搭档' : result.score >= 55 ? '有趣的香气碰撞' : '不同的香气世界'}
+                  = {result.score >= 85 ? '灵魂共振' : result.score >= 70 ? '互补搭档' : result.score >= 55 ? '有趣的碰撞' : '不同的香气世界'}
                 </p>
                 <p className="text-amber-700/90 font-sans text-sm leading-relaxed text-left">
                   你的<span className="font-medium">{shareA.name}</span>特质为这段关系提供定调，
                   朋友的<span className="font-medium">{shareB.name}</span>特质则打开你未曾留意的香气维度。
-                  两种香气的碰撞，让彼此独一无二的共鸣悄然发生。
+                  两种香气的交汇，让彼此独一无二的共鸣悄然发生。
                 </p>
               </div>
             </section>
@@ -801,8 +801,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               {friendList.length > 0
                 ? `已和你测过的 ${friendList.length} 位朋友 · 点开看契合度`
                 : myType
-                ? "邀请朋友测一测，你们的契合度就在这里出现"
-                : "先做测试，再看谁和你的香气频率共振"}
+                ? "邀请朋友来测，你们的契合度会出现在这里"
+                : "先完成测试，再看谁与你的香气频率共振"}
             </p>
           </div>
 
@@ -827,7 +827,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   className="w-full py-3 px-4 border border-amber-200 bg-white rounded-xl text-amber-700 font-sans text-sm hover:border-amber-500 hover:bg-amber-50/30 transition-colors flex items-center justify-between"
                   aria-label="选择我的灵魂人格"
                 >
-                  <span>选择我的灵魂人格</span>
+                  <span>选择你的人格</span>
                   <span className="text-amber-400 text-xs">▾</span>
                 </button>
               )}
@@ -847,8 +847,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 {friendList.length === 0 ? (
                   <div className="py-8 text-center">
                     <div className="text-4xl mb-3 opacity-40">🌫</div>
-                    <p className="text-amber-500/70 font-sans text-sm mb-1">还没有走过你链接的朋友</p>
-                    <p className="text-amber-400/50 font-sans text-xs">分享邀请，他们测完后会出现在这里</p>
+                    <p className="text-amber-500/70 font-sans text-sm mb-1">还没有朋友通过你的链接来测</p>
+                    <p className="text-amber-400/50 font-sans text-xs">分享邀请，朋友测完后会出现在这里</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -903,7 +903,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 disabled={!inviteLink}
                 className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand disabled:opacity-40"
               >
-                邀请朋友测一测 →
+                邀请朋友来测 →
               </button>
             )}
           </div>
@@ -915,7 +915,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 href="/question"
                 className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"
               >
-                先测我的香气人格 →
+                先测我的灵魂人格 →
               </Link>
             </div>
           )}
