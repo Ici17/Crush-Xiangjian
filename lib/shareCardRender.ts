@@ -227,8 +227,13 @@ export async function renderShareCard(
     },
     children: [
       JSX("span", { style: { color: C.AMBER_DARK, fontSize: "72px", fontWeight: 700, lineHeight: 1 }, children: String(data.score) }),
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px", marginTop: "4px" }, children: `% ${scoreLabel}` }),
     ],
+  });
+
+  // 百分比标签移出圆环，独立显示在圆环下方（避免被圆环描边遮挡）
+  const scoreLabelEl = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "20px" },
+    children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "24px", fontWeight: 600 }, children: `% ${scoreLabel}` })],
   });
 
   const ringContainer = JSX("div", {
@@ -256,7 +261,7 @@ export async function renderShareCard(
       })
     : null;
 
-  const centerChildren = [templateTag, nameRow, ringContainer, tierBadge];
+  const centerChildren = [templateTag, nameRow, ringContainer, scoreLabelEl, tierBadge];
   if (notesEl) centerChildren.push(notesEl);
 
   const center = JSX("div", {
