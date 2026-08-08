@@ -104,20 +104,20 @@ function RelationAdviceSection({ personalityName }: { personalityName: string })
       </div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white border border-amber-100 rounded-xl p-4 text-left">
-          <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初次见面</h4>
+          <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初见印象</h4>
           <p className="text-xs text-amber-800 leading-relaxed">
             {advice.firstMeeting}
           </p>
         </div>
         <div className="bg-white border border-amber-100 rounded-xl p-4 text-left">
-          <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">亲密关系</h4>
+          <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">亲密时刻</h4>
           <p className="text-xs text-amber-800 leading-relaxed">
             {advice.intimateRelation}
           </p>
         </div>
       </div>
       <p className="text-amber-800 leading-relaxed" style={{ fontSize: '14px' }}>
-        <span className="font-serif font-medium text-amber-950">香气建议：</span>
+        <span className="font-serif font-medium text-amber-950">用香建议：</span>
         {advice.relationAdvice}
       </p>
     </section>
@@ -439,7 +439,7 @@ function ResultInner() {
           <div className="relative z-10 flex flex-col items-center">
           {!revealed && (
             <p className="text-amber-700 mb-2.5" style={{ fontSize: '15px' }}>
-              你的灵魂香气，正在浮现……
+              你的灵魂香气，正在浮现…
             </p>
           )}
 
@@ -506,7 +506,7 @@ function ResultInner() {
             你的香气光谱
           </h3>
           <p className="text-center text-amber-700 mb-4" style={{ fontSize: '13px' }}>
-            六个维度，勾勒你的气质坐标。
+            六个维度，勾勒你独有的气质坐标
           </p>
           <div className="flex justify-center">
             <RadarChart values={radarData} />
@@ -522,7 +522,7 @@ function ResultInner() {
         {/* ━━━ 解析金句 ━━━ */}
         <div className="px-6 pb-2 text-center">
           <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
-            「香气不是面具，是未说出口的自我。」
+            「香气不是面具，是尚未被说出口的自我。」
           </p>
         </div>
 
@@ -558,7 +558,7 @@ function ResultInner() {
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
-            三支香气，与你的灵魂共振。
+            三支香气，与你的灵魂产生共振
           </p>
           <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1">
             {recommendations.map((rec) => {
@@ -726,7 +726,7 @@ function ResultInner() {
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-amber-800 italic text-center" style={{ fontSize: '16px', lineHeight: 1.75 }}>
-            「香气不是面具，是未说出口的自我。」闻香如识人，不在于它多贵，而在于它多像你。
+            「香气不是面具，是尚未被说出口的自我。」闻香如识人——不在于多贵，而在于多像你。
           </p>
         </section>
 
@@ -751,10 +751,10 @@ function ResultInner() {
               <h4 className="font-serif text-base font-medium text-amber-950 mb-2">推荐探索方向</h4>
               <ul className="space-y-1.5">
                 <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
-                  · {Object.entries(radarData).sort(([, a], [, b]) => b - a)[0]?.[0]} 是你的舒适区
+                  · {Object.entries(radarData).sort(([, a], [, b]) => b - a)[0]?.[0]} 是你的主型气质
                 </li>
                 <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
-                  · 加一点琥珀，增加温暖感
+                  · 加一点琥珀，为日常添一层温度
                 </li>
                 <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
                   · 试试皮革调，制造意外的反差
@@ -793,10 +793,10 @@ function ResultInner() {
                 <span style={{ fontSize: '22px' }}>💫</span>
                 <div className="flex-1 text-left">
                   <p className="font-serif text-amber-950" style={{ fontSize: '15px', fontWeight: 500 }}>
-                    找朋友比比香气契合度
+                    测测你们的香气契合度
                   </p>
                   <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
-                    发给 TA，一起测 → 看看你们的匹配等级
+                    发给 TA → 一起测，看看你们的灵魂匹配等级
                   </p>
                 </div>
                 <span className="text-amber-400" style={{ fontSize: '18px' }}>→</span>
@@ -819,7 +819,7 @@ function ResultInner() {
             完整报告
           </h4>
           <p className="text-amber-700 mb-5 text-center" style={{ fontSize: '13px', lineHeight: 1.6 }}>
-            还有 4 段关于你的真相，等你解开。
+            还有 4 段关于你的真相，等你揭开
           </p>
 
           {/* 稀缺性条：限时优惠倒计时 + 实时参与人数 */}
@@ -846,7 +846,7 @@ function ResultInner() {
               完整版
             </h5>
             <p className="text-amber-700 text-left mb-2" style={{ fontSize: '13px' }}>
-              {discounted ? '好友测试完成，全额抵扣中' : '解锁你的灵魂香气全档案'}
+              {discounted ? '好友已完成测试，已自动抵扣' : '解锁你的完整香气档案'}
             </p>
 
             <div className="flex items-baseline gap-2 mb-1 text-left">
@@ -864,7 +864,7 @@ function ResultInner() {
 
             <span className="inline-block text-left mb-5" style={{ fontSize: '12px', fontWeight: 600, color: '#C2410C' }}>
               {discounted
-                ? `已省 ¥${savePrice} · 好友测试完成自动抵扣`
+                ? `已省 ¥${savePrice} · 好友已完成自动抵扣`
                 : `省 ¥${savePrice}`}
             </span>
 
@@ -891,12 +891,12 @@ function ResultInner() {
               className="w-full rounded-full font-sans font-bold text-base text-amber-50 bg-gradient-to-r from-amber-800 to-amber-900 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] transition-all duration-200 py-4"
               aria-label={`¥${currentPrice} 解锁完整灵魂香气报告`}
             >
-              ¥{currentPrice} 解锁完整灵魂香气报告
+              ¥{currentPrice} 解锁完整报告
             </button>
             <span className="block mt-2 text-xs text-amber-700 text-center">
               {discounted
-                ? '好友测试完成 · 已自动抵扣'
-                : '限时 5 折 · 一次解锁全部内容'}
+                ? '好友已完成 · 已自动抵扣'
+                : '限时 5 折 · 一次解锁全部'}
             </span>
           </div>
 
@@ -907,7 +907,7 @@ function ResultInner() {
                 <span className="flex items-center gap-1.5" style={{ fontSize: '13px' }}>
                   <span style={{ fontSize: '14px' }}>🎁</span>
                   <span className="font-serif font-semibold text-amber-950">
-                    邀请好友享特惠
+                    邀请好友，立享特惠
                   </span>
                 </span>
                 <span className="font-serif font-bold text-amber-700" style={{ fontSize: '13px' }}>
@@ -931,7 +931,7 @@ function ResultInner() {
               </div>
               <p className="text-amber-700 text-left mb-3" style={{ fontSize: '12px', lineHeight: 1.6 }}>
                 {inviteStatus.totalCompleted === 0 ? (
-                  <>邀请 <strong className="text-amber-950">3 位</strong> 好友测试，立减 <strong className="text-amber-950">{'¥9'}</strong> → 实付 <strong className="text-amber-950">{'¥20.9'}</strong></>
+                  <>邀请 <strong className="text-amber-950">3 位</strong> 好友完成测试，立减 <strong className="text-amber-950">{'¥9'}</strong> → 实付 <strong className="text-amber-950">{'¥20.9'}</strong></>
                 ) : (
                   <>已邀请 <strong className="text-amber-950">{inviteStatus.totalCompleted}</strong> 位，再邀请 <strong className="text-amber-950">{3 - inviteStatus.totalCompleted}</strong> 位 → 解锁 <strong className="text-amber-950">{'¥20.9'}</strong></>
                 )}
@@ -940,7 +940,7 @@ function ResultInner() {
                 onClick={handleCopyInvite}
                 className="w-full bg-amber-50 border border-amber-700 text-amber-800 rounded-full active:scale-[0.98] transition-transform"
                 style={{ fontSize: '14px', padding: '12px 0' }}
-                aria-label="复制邀请链接，邀请 3 位好友测试后抵扣 9 元"
+                aria-label="复制邀请链接，邀请 3 位好友完成测试后抵扣 9 元"
               >
                 {copiedInvite
                   ? '已复制邀请链接 ✓'
@@ -955,7 +955,7 @@ function ResultInner() {
             className="text-amber-700/80 mt-3 leading-6 text-center"
             style={{ fontSize: '12px', fontFamily: '"Noto Serif SC", serif' }}
           >
-            一份关于你的香气答案，值得被认真看见。
+            一份关于你的香气答案，值得被认真看见
           </p>
         </section>
         )}
@@ -994,9 +994,9 @@ function ResultInner() {
                 padding: '15px 0',
                 background: 'linear-gradient(135deg, #b45309, #92400e)',
               }}
-              aria-label="分享你的灵魂香气"
+              aria-label="分享我的灵魂香气"
             >
-              分享你的灵魂香气 →
+              分享我的灵魂香气
             </button>
             <Link
               href="/friend"
@@ -1023,9 +1023,9 @@ function ResultInner() {
               padding: '16px 0',
               background: 'linear-gradient(135deg, #b45309, #92400e)',
             }}
-            aria-label="分享你的灵魂香气"
+            aria-label="分享我的灵魂香气"
           >
-            分享你的灵魂香气 →
+            分享我的灵魂香气
           </button>
         )}
       </div>
@@ -1136,15 +1136,15 @@ function ResultInner() {
             </div>
             {/* CTA 文字 */}
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '18px', color: '#3D2B1F', margin: '0 0 4px', fontWeight: 600, lineHeight: 1.3 }}>测测你的灵魂香气</p>
-              <p style={{ fontSize: '13px', color: '#6B4F3F', margin: '0 0 8px', lineHeight: 1.5 }}>3 分钟，找到与你共振的那支香</p>
-              <p style={{ fontSize: '11px', color: '#C8956B', margin: 0, letterSpacing: '0.02em' }}>长按识别 · 立即测试</p>
+              <p style={{ fontSize: '18px', color: '#3D2B1F', margin: '0 0 4px', fontWeight: 600, lineHeight: 1.3 }}>找到你的灵魂香气</p>
+              <p style={{ fontSize: '13px', color: '#6B4F3F', margin: '0 0 8px', lineHeight: 1.5 }}>3 分钟 · 找到与你共振的那支香</p>
+              <p style={{ fontSize: '11px', color: '#C8956B', margin: 0, letterSpacing: '0.02em' }}>长按识别二维码 · 立即开始</p>
             </div>
           </div>
         </div>
 
         {/* ── 页脚 ── */}
-        <p style={{ margin: '20px 28px 18px', fontSize: '11px', color: '#9E887A', textAlign: 'center', letterSpacing: '0.02em' }}>© Crush 香鉴 · 基于 12,000+ 用户香气测试</p>
+        <p style={{ margin: '20px 28px 18px', fontSize: '11px', color: '#9E887A', textAlign: 'center', letterSpacing: '0.02em' }}>© Crush 香鉴 · 12,000+ 人的灵魂香气测试</p>
 
       </div>
 
