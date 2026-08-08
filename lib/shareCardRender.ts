@@ -2,7 +2,7 @@
  * Crush香鉴 — 服务端分享图渲染
  *
  * 技术栈：satori（JSX→SVG）+ sharp（SVG→PNG）+ qrcode（带参二维码）
- * 字体：Noto Serif SC，运行时下载并缓存（避免大文件进部署包）
+ * 字体：Noto Serif SC（public/fonts 静态托管，运行时优先本地读、失败则同源 HTTP 拉取）
  * 输出：1080×1080 (1:1 朋友圈) / 1080×1440 (3:4 小红书)
  *
  * ⚠️ satori 布局规则（v0.29）：
@@ -62,17 +62,48 @@ const C = {
 
 let _fontData: Buffer | null = null;
 
-function getFontSync(): Buffer {
+async function getFont(): Promise<Buffer> {
   if (_fontData) return _fontData;
-  try {
-    const __dir = dirname(fileURLToPath(import.meta.url));
-    const FONT_PATH = join(__dir, "..", "public", "fonts", "NotoSerifSC.woff");
-    _fontData = readFileSync(FONT_PATH);
-    return _fontData;
-  } catch {
-    _fontData = Buffer.alloc(0);
-    return _fontData;
+  // 1) 先尝试本地磁盘（本地开发 / 某些部署形态）
+  const __dir = (() => { try { return dirname(fileURLToPath(import.meta.url)); } catch { return ""; } })();
+  const candidates = [
+    join(process.cwd(), "public", "fonts", "NotoSerifSC.woff"),
+    join(__dir, "..", "..", "..", "public", "fonts", "NotoSerifSC.woff"),
+    join(__dir, "..", "public", "fonts", "NotoSerifSC.woff"),
+    join(__dir, "public", "fonts", "NotoSerifSC.woff"),
+    "/var/task/public/fonts/NotoSerifSC.woff",
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try {
+      const buf = readFileSync(p);
+      if (buf.byteLength > 0) {
+        console.log("[shareCard] Font loaded (disk):", buf.byteLength, "bytes from", p);
+        _fontData = buf;
+        return _fontData;
+      }
+    } catch {
+      // try next candidate
+    }
   }
+  // 2) 兜底：从同源静态资源拉取（Vercel serverless 不一定挂载 public/）
+  try {
+    const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
+    const url = `${base}/fonts/NotoSerifSC.woff`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.byteLength > 0) {
+        console.log("[shareCard] Font loaded (http):", buf.byteLength, "bytes from", url);
+        _fontData = buf;
+        return _fontData;
+      }
+    }
+  } catch (e) {
+    console.error("[shareCard] Font HTTP fetch failed:", (e as Error).message);
+  }
+  console.error("[shareCard] Font NOT available; cwd=", process.cwd());
+  _fontData = Buffer.alloc(0);
+  return _fontData;
 }
 
 // ── 二维码生成 ─────────────────────────────────────────────────────────────
@@ -121,7 +152,7 @@ export async function renderShareCard(
   format: "1to1" | "3to4" = "1to1"
 ): Promise<Buffer> {
   // 加载字体和 QR（并行）
-  const fontData = getFontSync();
+  const fontData = await getFont();
   const qrBase64 = await generateQR(
     `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com"}/friend?inv=${data.inviteCode}`
   );
