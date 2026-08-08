@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { isWechatBrowser, PRICE_CONFIG, type PriceKey } from "@/lib/payment";
+import { isWechatBrowser, PRICE_CONFIG, initiatePayment, type PriceKey } from "@/lib/payment";
 
-/** Waffo 产品 ID 映射（Waffo 后台创建产品后填入）*/
-export const WAFFO_PRODUCT_MAP: Record<PriceKey, string> = {
-  unlockDiscounted: process.env.NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED ?? "",
-  unlockFull: process.env.NEXT_PUBLIC_WAFFO_PRODUCT_FULL ?? "",
-};
+// 支付产品 ID 映射已移除;未来接入微信/支付宝/Stripe 时在此登记。
 
 export type PaymentContext = 'full' | 'perfume' | 'preference';
 
@@ -18,7 +14,7 @@ interface PaymentModalProps {
   onClose: () => void;
 }
 
-/** Waffo 结账弹窗：创建 Checkout Session → 跳转收银台 → 支付后返回验单 */
+/** 支付弹窗：创建支付会话 → 跳转收银台 → 支付后返回解锁 */
 const CONTEXT_COPY: Record<PaymentContext, { title: string; subtitle: string; benefits: string[]; cta: string }> = {
   full: {
     title: '解锁完整版',
@@ -50,48 +46,25 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const productId = WAFFO_PRODUCT_MAP[priceKey];
-
-  // 点击「去支付」→ 创建 Waffo Checkout Session → 跳转
+  // 点击「去支付」→ 调用预留支付通道(当前未接入,显示敬请期待)
   const handleCheckout = async () => {
-    if (!productId) {
-      setError("产品未配置（请联系管理员）");
-      return;
-    }
     setLoading(true);
     setError(null);
-
     try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          currency: "CNY",
-          metadata: {
-            priceKey,
-            // 支付成功后返回到结果页，带上 orderId 和 priceKey
-            returnUrl: `${window.location.origin}/result`,
-          },
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.checkoutUrl) {
-        throw new Error(data.error ?? "创建订单失败");
+      const res = await initiatePayment({ priceKey });
+      if (res.ok) {
+        onSuccess(priceKey); // 未来真实支付成功后由后端回调解锁
+      } else {
+        setError("支付通道升级中,敬请期待开放 🚧");
       }
-
-      // 跳转到 Waffo 托管收银台
-      window.location.href = data.checkoutUrl;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "下单失败，请重试";
-      setError(msg);
+    } catch {
+      setError("支付通道升级中,敬请期待开放 🚧");
+    } finally {
       setLoading(false);
     }
   };
 
-  // 微信内打开：提示用浏览器打开（Waffo CNY 支持微信支付，但需在微信浏览器外跳转）
+  // 微信内打开：提示用浏览器打开(未来微信支付 JSAPI 需在此处理)
   if (inWechat) {
     return (
       <div
@@ -122,7 +95,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
               请点击右上角 <span className="font-bold">···</span> →{" "}
               <span className="font-bold">在浏览器打开</span>
               <br />
-              即可使用微信支付
+              支付通道即将开放
             </p>
             <button
               onClick={onClose}
@@ -204,7 +177,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
         </button>
 
         <p className="text-amber-500 text-xs text-center mt-3 leading-relaxed">
-          跳转至 Waffo 安全收银台 · 支持微信 / 支付宝 / 银行卡
+          支付通道升级中 · 敬请期待开放
         </p>
 
         <button
