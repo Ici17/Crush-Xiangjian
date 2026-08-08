@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
+import { TOTAL_PERFUMES } from '@/lib/data';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import PersonalityIcon from '@/components/PersonalityIcon';
 
@@ -19,7 +20,7 @@ import PersonalityIcon from '@/components/PersonalityIcon';
  * - 浮动光斑：5 颗（恢复）
  * - 香水瓶尺寸：160×220（恢复）
  * - "Crush / 香鉴" 双行大标题（恢复）
- * - 数据条 16/110/10（恢复）
+ * - 数据条 16/{TOTAL_PERFUMES}/10（恢复，香水数动态计算）
  * - 16 人格胶囊（保留）
  * - About Section（恢复）
  */
@@ -257,7 +258,7 @@ export default function LandingPage() {
             <div className="w-px h-8 bg-amber-300/60" aria-hidden />
             <div className="text-center px-4">
               <span className="block text-amber-950" style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '24px', fontWeight: 500 }}>
-                110
+                {TOTAL_PERFUMES}
               </span>
               <span className="block text-amber-700" style={{ fontFamily: 'Noto Sans SC, sans-serif', fontSize: '12px' }}>
                 香水
