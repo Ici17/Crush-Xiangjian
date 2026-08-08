@@ -121,7 +121,7 @@ export default function UnlockedContent({
             ✓
           </span>
           <span className="text-sm font-medium tracking-wide text-amber-50">
-            完整版已解锁 · 你的香气真相都在下面
+            完整版已解锁 · 你的香气真相，尽在以下
           </span>
         </div>
       )}
@@ -133,7 +133,7 @@ export default function UnlockedContent({
             你的香气光谱
           </h3>
           <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
-            六个维度 · 勾勒你的气质坐标
+            六个维度 · 勾勒你独有的气质坐标
           </p>
           <div className="flex justify-center">
             <RadarChart values={radarData} size={260} />
@@ -174,7 +174,7 @@ export default function UnlockedContent({
         </div>
 
         <p className="text-center italic text-amber-700 mt-4" style={{ fontSize: '14px' }}>
-          「香气不是面具，是未说出口的自我。」
+          「香气不是面具，是尚未被说出口的自我。」
         </p>
       </section>
 
@@ -183,7 +183,7 @@ export default function UnlockedContent({
         <div className="px-6">
           {sectionTitle('本命香水')}
           <p className="text-center text-amber-700 -mt-3 mb-4" style={{ fontSize: '14px' }}>
-            三支香气，与你的灵魂共振
+            三支香气，与你的灵魂产生共振
           </p>
         </div>
         <div className="flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2">
@@ -412,7 +412,7 @@ export default function UnlockedContent({
           className="text-amber-700/80 mt-3 leading-6 text-center"
           style={{ fontSize: '12px', fontFamily: '"Noto Serif SC", serif' }}
         >
-          一份关于你的香气答案，值得被认真看见。
+          一份关于你的香气答案，值得被认真看见
         </p>
       </section>
     </div>
