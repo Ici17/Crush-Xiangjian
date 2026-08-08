@@ -35,6 +35,28 @@ export const DIMENSIONS: (keyof ScentVector)[] = [
 /** 18 维各阶段权重（前调 0.20 + 中调 0.35 + 后调 0.45）*/
 const PHASE_WEIGHTS = { top: 0.20, heart: 0.35, base: 0.45 } as const;
 
+/** 用户雷达向量中文键 → 英文键（与 DIMENSIONS / notesToVector 输出对齐）
+ *  getRadarScores() 在 lib/personalities.ts 中使用 `木质/清新/东方/美食/柑橘/花香` 中文键，
+ *  但本模块的向量运算全部以英文键 (floral/woody/...) 为准；不转换会得到 NaN，导致匹配度全崩。*/
+const RADAR_CN_TO_EN: Record<string, keyof ScentVector> = {
+  花香: 'floral',
+  木质: 'woody',
+  清新: 'fresh',
+  东方: 'oriental',
+  柑橘: 'citrus',
+  美食: 'gourmand',
+};
+
+function normalizeRadarToEn(radar: Record<string, number>): ScentVector {
+  const out: ScentVector = { floral: 0, woody: 0, fresh: 0, oriental: 0, citrus: 0, gourmand: 0 };
+  for (const k of Object.keys(radar)) {
+    const en = RADAR_CN_TO_EN[k] ?? (k as keyof ScentVector);
+    if (out[en] === undefined) continue; // 防御未知键
+    out[en] = radar[k];
+  }
+  return out;
+}
+
 // 香料关键词 → 香调维度（一个香料可命中多个维度，这里取主维度）
 export const INGREDIENT_MAP: Record<string, keyof ScentVector> = {
   // 花香
@@ -319,14 +341,19 @@ function totalScore(
   prefs: CalPreferences,
   pathLabels: string[],
 ): number {
-  const radarScore = cosineSimilarity18D(radar, getPerfumeProfile18D(perfume)) * 100;
+  // 混合相似度：50% 18D（前/中/后调拆分，保留区分度）+ 50% 6D（整体印象，拉高绝对分）
+  // 单用 18D 会把绝对分压到 50 上下（用户只有 6D 向量，与拆分的稀疏段比对天然偏低）；
+  // 单用 6D 会虚高到 97 且失去区分度（历史教训：“都 99% 不正常”）。各取一半最稳。
+  const radarScore =
+    cosineSimilarity18D(radar, getPerfumeProfile18D(perfume)) * 100 * 0.5 +
+    cosineSimilarity(radar, getPerfumeProfile(perfume)) * 100 * 0.5;
   const calScent = calScentScore(perfume, prefs);
   const calLongevity = calLongevityScore(perfume, prefs);
   const calOccasion = calOccasionScore(perfume, prefs);
   const descBonus = descriptionBonus(perfume, pathLabels);
   return (
-    radarScore * 0.35 +
-    calScent * 0.25 +
+    radarScore * 0.45 +   // 雷达（最准信号）权重上调
+    calScent * 0.15 +     // 香调偏好下调（与雷达有重叠，避免重复计权）
     calLongevity * 0.20 +
     calOccasion * 0.15 +
     descBonus * 0.05
@@ -456,7 +483,8 @@ export interface CalibratedRecommendation {
   notes: string;
   notesStructured: { top: string[]; heart: string[]; base: string[] };
   quote: string;
-  tier: Perfume['tier'];
+  tier: Perfume['tier'];            // 真实数据档位（signature/advanced/budget）
+  role: 'signature' | 'advanced' | 'budget';  // 展示角色：本命香/进阶香/尝试香
   match: number;
   priceRange: string;
   intensity: number;
@@ -465,7 +493,45 @@ export interface CalibratedRecommendation {
 }
 
 /**
- * 校准匹配推荐：从 151 支香水库按用户偏好 + 雷达图打分，每个 tier 返回最佳匹配
+ * 解析 priceRange 的「单 ml 最低价」（如 "¥800-1100/50ml" → 800/50 = 16/ml，"¥650/30ml" → 21.7/ml）
+ * 注意：必须按单 ml 比价，不能比整瓶绝对价——否则 30ml 贵货(¥650/30ml=21.7/ml)会被 100ml 便宜货(¥1000/100ml=10/ml)
+ * 反超，导致「高定价」门槛反而放过桶装便宜货。无 ml 后缀时默认 50ml 兜底。
+ */
+function parseLowPricePerMl(priceRange: string): number {
+  const priceM = priceRange.match(/¥\s*(\d+)/);
+  const mlM = priceRange.match(/\/(\d+)\s*ml/i);
+  const price = priceM ? parseInt(priceM[1], 10) : 0;
+  const ml = mlM ? parseInt(mlM[1], 10) : 50;
+  if (price <= 0) return 0;
+  return price / ml;
+}
+
+/**
+ * 进阶香价格门槛（元/ml）：进阶香只从单 ml 价不低于该值的香里选，保证高定价定位。
+ * 数据分布（单 ml 中位）：signature ¥30、advanced ¥12、budget ¥2。
+ * 门槛设为 20 可将进阶香锁定在「轻奢/高端」区间（≥¥20/ml 的进阶香约 5 支，外加大批 signature 香），
+ * 与 ¥2/ml 尝试香、¥12/ml 普通进阶香拉开明显档次。
+ */
+const ADVANCED_MIN_PRICE_PER_ML = 20;
+
+/**
+ * 本命香展示匹配度映射：把原始总分（当前真实分布约 55-80）线性映射到 85-95。
+ * 用户要求本命香匹配度落在 85%~95% 区间（进阶/尝试保持真实分，梯度不乱：
+ * 本命香是 top1，映射后仍 ≥ 进阶香）。
+ * raw=55 → 85，raw=80 → 95；越界 clamp。
+ */
+function mapSignatureMatch(raw: number): number {
+  const MIN_RAW = 55;
+  const MAX_RAW = 80;
+  const MIN_DISP = 85;
+  const MAX_DISP = 95;
+  const clamped = Math.min(Math.max(raw, MIN_RAW), MAX_RAW);
+  const t = (clamped - MIN_RAW) / (MAX_RAW - MIN_RAW);
+  return Math.round(MIN_DISP + t * (MAX_DISP - MIN_DISP));
+}
+
+/**
+ * 校准匹配推荐：从香水库按用户偏好 + 雷达图打分，每个角色返回最佳匹配
  * @param radarScores 用户 6 维雷达分值 (0-1)
  * @param calChoices 校准题原始选择 ['cal1a','cal2b','cal3c']
  * @param pathLabels 全部 10 题路径标签
@@ -481,19 +547,25 @@ export function getCalibratedRecommendations(
   const prefs = parseCalPreferences(calChoices);
   if (!prefs) return [];
 
+  // 修复：用户雷达向量可能是中文键（来自 personalities.getRadarScores），
+  // 内部的 cosineSimilarity 使用英文键（floral/woody/...），混用会 NaN。
+  const radarEn = normalizeRadarToEn(radarScores as Record<string, number>);
+
   const selectedBrands = new Set<string>();
   const perfumes = Object.values(PERFUMES);
 
   // 对每支香水打分（综合得分）
   const scored2 = perfumes.map((perfume) => ({
     perfume,
-    totalScore: totalScore(perfume, radarScores, prefs!, pathLabels),
+    totalScore: totalScore(perfume, radarEn, prefs!, pathLabels),
   }));
 
-  // 每个 tier 挑最佳
-  const tiers: Perfume['tier'][] = ['signature', 'advanced', 'budget'];
+  // ═══ 推荐池结构（方案 B）═══
+  // 池 A（高端）：signature + advanced 合并，取 top 2 → 角色分别为 本命香 / 进阶香
+  // 池 B（平价）：budget 单独取 top 1 → 角色为 尝试香
+  // 本命香可来自 advanced（合并池 top1），tier 保留真实档位，role 表示展示位置
   const results: CalibratedRecommendation[] = [];
-  const selectedNames = new Set<string>();      // 跨档同名去重
+  const selectedNames = new Set<string>();      // 跨池同名去重
   const selectedProfiles: ScentVector[] = [];    // MMR：与已选香气的相似度惩罚
   const gen = budgetMonopoly();
   // 平价档多样性参数（仅作用于 budget 档，不影响本命/进阶的相关性）
@@ -502,69 +574,140 @@ export function getCalibratedRecommendations(
   const BUDGET_MONOPOLY_K = 9;       // 垄断去偏强度（惩罚上限约 9 分）
   const BUDGET_MMR_LAMBDA = 0.10;    // 与已选香气的相似度惩罚强度
 
-  for (const tier of tiers) {
-    const isBudget = tier === 'budget';
-    const candidates = scored2.filter((s) => s.perfume.tier === tier);
-    // 综合排序：总分 + 跨档品牌去重 + 跨档同名去重 + (平价档) 通用度去偏 + MMR
-    candidates.sort((a, b) => {
-      let aScore = a.totalScore + brandPenalty(a.perfume, selectedBrands);
-      let bScore = b.totalScore + brandPenalty(b.perfume, selectedBrands);
-      // 防御性跨档同名去重（tier 互斥下不会触发，但保持语义完整）
-      if (selectedNames.has(a.perfume.name)) aScore -= 1e6;
-      if (selectedNames.has(b.perfume.name)) bScore -= 1e6;
-      if (isBudget) {
-        // (1) 垄断去偏：对「在多个画像下都排第一」的通用香减分，促成分散
-        //     gen 为 0~1 的榜首频率，乘系数后作为惩罚
-        aScore -= (gen.get(a.perfume.id) ?? 0) * BUDGET_MONOPOLY_K;
-        bScore -= (gen.get(b.perfume.id) ?? 0) * BUDGET_MONOPOLY_K;
-        // (2) MMR：与已选（本命/进阶）香气越像，越不优先，拉开三档体验差异
-        for (const sp of selectedProfiles) {
-          aScore -= BUDGET_MMR_LAMBDA * 100 * cosineSimilarity(getPerfumeProfile(a.perfume), sp);
-          bScore -= BUDGET_MMR_LAMBDA * 100 * cosineSimilarity(getPerfumeProfile(b.perfume), sp);
-        }
-      }
-      return bScore - aScore;
-    });
+  // ── 池 A：高端合并（signature + advanced）取 top 2 ──
+  const premiumCandidates = scored2.filter(
+    (s) => s.perfume.tier === 'signature' || s.perfume.tier === 'advanced'
+  );
+  // 综合排序：总分 + 跨品牌去重 + 同名去重
+  premiumCandidates.sort((a, b) => {
+    let aScore = a.totalScore + brandPenalty(a.perfume, selectedBrands);
+    let bScore = b.totalScore + brandPenalty(b.perfume, selectedBrands);
+    if (selectedNames.has(a.perfume.name)) aScore -= 1e6;
+    if (selectedNames.has(b.perfume.name)) bScore -= 1e6;
+    return bScore - aScore;
+  });
 
-    const best = candidates[0];
-    if (!best) continue;
+  // 本命香：合并池 top1（价格不限，取最佳契合）
+  // 进阶香：合并池中价格 ≥ ADVANCED_MIN_PRICE 的香，排除本命香品牌/同名，取 top1
+  //         （保证进阶香高定价定位；若高价池为空则退回普通高端香，避免进阶香为空）
+  const pickPremium = (role: 'signature' | 'advanced', minPricePerMl: number): typeof premiumCandidates[number] | undefined => {
+    for (const cand of premiumCandidates) {
+      if (selectedNames.has(cand.perfume.name)) continue;
+      if (selectedBrands.has(cand.perfume.brand)) continue; // 本命/进阶不同品牌
+      if (parseLowPricePerMl(cand.perfume.priceRange) < minPricePerMl) continue;
+      return cand;
+    }
+    return undefined;
+  };
 
-    selectedBrands.add(best.perfume.brand);
-    selectedNames.add(best.perfume.name);
-    selectedProfiles.push(getPerfumeProfile(best.perfume));
-
-    // 匹配度显示：使用原始全局分数（真实匹配度）
-    // 范围通常在 55-85 之间，反映与用户的真实契合程度
-    const rawMatch = Math.round(best.totalScore);
-
+  // 1) 本命香（无价格门槛）
+  const signatureCand = pickPremium('signature', 0);
+  if (signatureCand) {
+    selectedBrands.add(signatureCand.perfume.brand);
+    selectedNames.add(signatureCand.perfume.name);
+    selectedProfiles.push(getPerfumeProfile(signatureCand.perfume));
+    const rawMatch = Math.round(signatureCand.totalScore);
     results.push({
-      name: best.perfume.name,
-      brand: best.perfume.brand,
-      brandCn: best.perfume.brandCn,
+      name: signatureCand.perfume.name,
+      brand: signatureCand.perfume.brand,
+      brandCn: signatureCand.perfume.brandCn,
       notes: [
-        ...best.perfume.notes.top,
-        ...best.perfume.notes.heart,
-        ...best.perfume.notes.base,
+        ...signatureCand.perfume.notes.top,
+        ...signatureCand.perfume.notes.heart,
+        ...signatureCand.perfume.notes.base,
       ].join(' / '),
-      notesStructured: { ...best.perfume.notes },
-      quote: `「${best.perfume.description}」`,
-      tier: best.perfume.tier,
-      match: rawMatch,
-      priceRange: best.perfume.priceRange,
-      intensity: best.perfume.intensity,
-      longevity: best.perfume.longevity,
-      score: best.totalScore,
+      notesStructured: { ...signatureCand.perfume.notes },
+      quote: `「${signatureCand.perfume.description}」`,
+      tier: signatureCand.perfume.tier,
+      role: 'signature',
+      match: mapSignatureMatch(rawMatch), // 本命香展示分映射到 85-95
+      priceRange: signatureCand.perfume.priceRange,
+      intensity: signatureCand.perfume.intensity,
+      longevity: signatureCand.perfume.longevity,
+      score: signatureCand.totalScore,
     });
   }
 
-  // 平价档全局去重：给定用户所属原型时，用预计算的分配表覆盖平价香，
+  // 2) 进阶香（单ml价格门槛 ADVANCED_MIN_PRICE_PER_ML，高价池为空则 fallback 到无门槛）
+  let advancedCand = pickPremium('advanced', ADVANCED_MIN_PRICE_PER_ML);
+  if (!advancedCand) advancedCand = pickPremium('advanced', 0); // 兜底：高价池空也不留空
+  if (advancedCand) {
+    selectedBrands.add(advancedCand.perfume.brand);
+    selectedNames.add(advancedCand.perfume.name);
+    selectedProfiles.push(getPerfumeProfile(advancedCand.perfume));
+    const rawMatch = Math.round(advancedCand.totalScore);
+    results.push({
+      name: advancedCand.perfume.name,
+      brand: advancedCand.perfume.brand,
+      brandCn: advancedCand.perfume.brandCn,
+      notes: [
+        ...advancedCand.perfume.notes.top,
+        ...advancedCand.perfume.notes.heart,
+        ...advancedCand.perfume.notes.base,
+      ].join(' / '),
+      notesStructured: { ...advancedCand.perfume.notes },
+      quote: `「${advancedCand.perfume.description}」`,
+      tier: advancedCand.perfume.tier,
+      role: 'advanced',
+      match: rawMatch,
+      priceRange: advancedCand.perfume.priceRange,
+      intensity: advancedCand.perfume.intensity,
+      longevity: advancedCand.perfume.longevity,
+      score: advancedCand.totalScore,
+    });
+  }
+
+  // ── 池 B：平价（budget）取 top 1 作为 尝试香 ──
+  const budgetCandidates = scored2.filter((s) => s.perfume.tier === 'budget');
+  budgetCandidates.sort((a, b) => {
+    let aScore = a.totalScore + brandPenalty(a.perfume, selectedBrands);
+    let bScore = b.totalScore + brandPenalty(b.perfume, selectedBrands);
+    if (selectedNames.has(a.perfume.name)) aScore -= 1e6;
+    if (selectedNames.has(b.perfume.name)) bScore -= 1e6;
+    // 垄断去偏 + MMR
+    aScore -= (gen.get(a.perfume.id) ?? 0) * BUDGET_MONOPOLY_K;
+    bScore -= (gen.get(b.perfume.id) ?? 0) * BUDGET_MONOPOLY_K;
+    for (const sp of selectedProfiles) {
+      aScore -= BUDGET_MMR_LAMBDA * 100 * cosineSimilarity(getPerfumeProfile(a.perfume), sp);
+      bScore -= BUDGET_MMR_LAMBDA * 100 * cosineSimilarity(getPerfumeProfile(b.perfume), sp);
+    }
+    return bScore - aScore;
+  });
+
+  const budgetBest = budgetCandidates[0];
+  if (budgetBest) {
+    selectedBrands.add(budgetBest.perfume.brand);
+    selectedNames.add(budgetBest.perfume.name);
+    const rawMatch = Math.round(budgetBest.totalScore);
+    results.push({
+      name: budgetBest.perfume.name,
+      brand: budgetBest.perfume.brand,
+      brandCn: budgetBest.perfume.brandCn,
+      notes: [
+        ...budgetBest.perfume.notes.top,
+        ...budgetBest.perfume.notes.heart,
+        ...budgetBest.perfume.notes.base,
+      ].join(' / '),
+      notesStructured: { ...budgetBest.perfume.notes },
+      quote: `「${budgetBest.perfume.description}」`,
+      tier: budgetBest.perfume.tier,
+      role: 'budget',
+      match: rawMatch,
+      priceRange: budgetBest.perfume.priceRange,
+      intensity: budgetBest.perfume.intensity,
+      longevity: budgetBest.perfume.longevity,
+      score: budgetBest.totalScore,
+    });
+  }
+
+  // 平价档全局去重：给定用户所属原型时，用预计算的分配表覆盖平价香（尝试香），
   // 使 16 个原型各拿到一支互不重复的平价香（彻底消除跨原型霸榜）。
   // 覆盖时按「用户本次真实校准」重算 match%，保证展示的匹配度对该用户诚实。
   if (archetypeId) {
     const fixedName = buildBudgetAssignment().get(archetypeId);
     const fixedPerfume = fixedName ? (PERFUMES as Record<string, Perfume>)[fixedName] : undefined;
     if (fixedPerfume && fixedPerfume.tier === 'budget') {
-      const fixedScore = totalScore(fixedPerfume, radarScores, prefs!, pathLabels);
+      const fixedScore = totalScore(fixedPerfume, radarEn, prefs!, pathLabels);
       // 平价档使用原始全局分数
       const fixedRec: CalibratedRecommendation = {
         name: fixedPerfume.name,
@@ -578,13 +721,14 @@ export function getCalibratedRecommendations(
         notesStructured: { ...fixedPerfume.notes },
         quote: `「${fixedPerfume.description}」`,
         tier: fixedPerfume.tier,
+        role: 'budget',
         match: Math.round(fixedScore),
         priceRange: fixedPerfume.priceRange,
         intensity: fixedPerfume.intensity,
         longevity: fixedPerfume.longevity,
         score: fixedScore,
       };
-      const budgetIdx = results.findIndex((r) => r.tier === 'budget');
+      const budgetIdx = results.findIndex((r) => r.role === 'budget');
       if (budgetIdx >= 0) results[budgetIdx] = fixedRec;
       else results.push(fixedRec);
     }
