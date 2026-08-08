@@ -168,10 +168,12 @@ export async function renderShareCard(
   // satori CJS 导入
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   // @ts-ignore - satori 无类型声明
-  const { default: satori } = require("satori") as any;
+  const satoriMod = require("satori") as any;
+  const satori = satoriMod.default ?? satoriMod;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   // @ts-ignore - satori/jsx/jsx-runtime 无类型声明
-  const { jsx: JSX } = require("satori/jsx/jsx-runtime") as any;
+  const jsxMod = require("satori/jsx/jsx-runtime") as any;
+  const JSX = jsxMod.jsx ?? (jsxMod.default && jsxMod.default.jsx) ?? jsxMod.default;
 
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVG(data.score, ringSize)).toString("base64")}`;
 
