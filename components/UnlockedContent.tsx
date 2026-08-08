@@ -485,9 +485,10 @@ function PerfumeCard({ perfume, direction }: { perfume: PerfumeDetail; direction
   const family = detectFamily(direction, perfume.top);
   const color = FAMILY_COLORS[family];
   const bg = FAMILY_BG[family];
+  // 展示角色用 role（方案 B：本命香可能来自 advanced 池，tier 是真实档位）
   const tierLabel =
-    perfume.tier === 'signature' ? '本命香' : perfume.tier === 'advanced' ? '进阶香' : '尝试香';
-  const isSignature = perfume.tier === 'signature';
+    perfume.role === 'signature' ? '本命香' : perfume.role === 'advanced' ? '进阶香' : '尝试香';
+  const isSignature = perfume.role === 'signature';
 
   return (
     <article
