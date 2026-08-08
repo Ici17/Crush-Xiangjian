@@ -9,23 +9,23 @@ import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import PersonalityIcon from '@/components/PersonalityIcon';
 
 /**
- * 落地页 — 保留设计师品牌符号 + 恢复原始结构，只压缩 hero 高度
+ * 落地页 - 保留设计师品牌符号 + 恢复原始结构,只压缩 hero 高度
  *
- * 设计师品牌符号（已保留）：CRUSH FRAGRANCE 文字标 + 上下琥珀色横线
- * - 左上导航：小号，深色
- * - hero 居中大标：大号，浅色（headline 角色）
- * - hero 底部：小号，浅色（呼应顶部）
+ * 设计师品牌符号(已保留):CRUSH FRAGRANCE 文字标 + 上下琥珀色横线
+ * - 左上导航:小号,深色
+ * - hero 居中大标:大号,浅色(headline 角色)
+ * - hero 底部:小号,浅色(呼应顶部)
  *
- * 本轮微调：仅 hero 高度 85vh → 60vh（Adam 反馈"压缩头部尺寸"）
- * - 浮动光斑：5 颗（恢复）
- * - 香水瓶尺寸：160×220（恢复）
- * - "Crush / 香鉴" 双行大标题（恢复）
- * - 数据条 16/{TOTAL_PERFUMES}/10（恢复，香水数动态计算）
- * - 16 人格胶囊（保留）
- * - About Section（恢复）
+ * 本轮微调:仅 hero 高度 85vh → 60vh(Adam 反馈"压缩头部尺寸")
+ * - 浮动光斑:5 颗(恢复)
+ * - 香水瓶尺寸:160×220(恢复)
+ * - "Crush / 香鉴" 双行大标题(恢复)
+ * - 数据条 16/{TOTAL_PERFUMES}/10(恢复,香水数动态计算)
+ * - 16 人格胶囊(保留)
+ * - About Section(恢复)
  */
 
-/** 人格主调色：由 direction 字段解析主导香调（零数据改动，语义对应「灵魂香调」） */
+/** 人格主调色:由 direction 字段解析主导香调(零数据改动,语义对应「灵魂香调」) */
 function personalityAromaColor(p: Personality): string {
   const d = p.direction;
   const rules: [RegExp, string][] = [
@@ -42,7 +42,7 @@ function personalityAromaColor(p: Personality): string {
   return '#8B5E3C';
 }
 
-/** 品牌符号：上下各一条两端渐变细线 + CRUSH FRAGRANCE 文字（设计师规范 v2） */
+/** 品牌符号:上下各一条两端渐变细线 + CRUSH FRAGRANCE 文字(设计师规范 v2) */
 function BrandSymbol({
   size = 'sm',
   variant = 'dark',
@@ -94,7 +94,7 @@ function BrandSymbol({
   );
 }
 
-/** 落地页 — 回退到原始结构，仅 hero 高度压缩 */
+/** 落地页 - 回退到原始结构,仅 hero 高度压缩 */
 export default function LandingPage() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -133,9 +133,9 @@ export default function LandingPage() {
       <div className="fixed inset-0 pointer-events-none z-50" style={{ filter: 'url(#noise)', mixBlendMode: 'multiply' }} aria-hidden />
 
       <div className="max-w-[430px] mx-auto relative">
-        {/* ─── ① Top Navigation 已删除（Adam 反馈，CRUSH FRAGRANCE 文字标 + 查看示例报告按钮全部移除） ─── */}
+        {/* ─── 1 Top Navigation 已删除(Adam 反馈,CRUSH FRAGRANCE 文字标 + 查看示例报告按钮全部移除) ─── */}
 
-        {/* ─── ② Atmosphere Hero — 高度 46vh（进一步压缩顶部留白） ─── */}
+        {/* ─── 2 Atmosphere Hero - 高度 46vh(进一步压缩顶部留白) ─── */}
         <div
           className="relative w-full animate-fadeIn"
           style={{ height: '46vh', minHeight: 320, animationDelay: '60ms' }}
@@ -150,7 +150,7 @@ export default function LandingPage() {
             aria-hidden
           />
 
-          {/* 浮动光斑（5 颗，恢复） */}
+          {/* 浮动光斑(5 颗,恢复) */}
           {[
             { top: '15%', left: '10%', size: 80, color: 'rgba(212,165,116,0.4)', blur: 12, delay: 0 },
             { top: '30%', right: '15%', size: 64, color: 'rgba(212,165,116,0.3)', blur: 10, delay: 1.5 },
@@ -177,7 +177,7 @@ export default function LandingPage() {
             />
           ))}
 
-          {/* 居中香水瓶（缩小+下移，远离顶部留白区） */}
+          {/* 居中香水瓶(缩小+下移,远离顶部留白区) */}
           <div
             className="absolute inset-0 flex items-end justify-center px-8"
             style={{ paddingBottom: '64px' }}
@@ -210,13 +210,13 @@ export default function LandingPage() {
             </svg>
           </div>
 
-          {/* hero 底部品牌符号（小）— 呼应顶部 */}
+          {/* hero 底部品牌符号(小)- 呼应顶部 */}
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-3">
             <BrandSymbol size="sm" variant="light" />
           </div>
         </div>
 
-        {/* ─── ③ Main Title Area（"Crush / 香鉴" 双行） ─── */}
+        {/* ─── 3 Main Title Area("Crush / 香鉴" 双行) ─── */}
         <div
           className="px-6 pt-6 pb-2 text-center animate-fadeIn"
           style={{ animationDelay: '180ms' }}
@@ -235,13 +235,14 @@ export default function LandingPage() {
           </h1>
           <p
             className="mt-5 text-amber-600"
-            style={{ fontFamily: 'Noto Sans SC, sans-serif', fontSize: '16px', lineHeight: 1.6, letterSpacing: '0.02em' }}
+            style={{ fontFamily: 'Noto Sans SC, sans-serif', fontSize: '15px', lineHeight: 1.8, letterSpacing: '0.04em' }}
           >
-            你的灵魂，藏在哪种香气里？
+            每个人身上，都藏着一种独一无二的香气。
+            找到它，就找到了自己。
           </p>
         </div>
 
-        {/* ─── ④ Data Strip（压缩视觉占比：字号↓ 间距↓） ─── */}
+        {/* ─── 4 Data Strip(压缩视觉占比:字号↓ 间距↓) ─── */}
         <div
           className="flex items-center justify-center px-4 mt-4 animate-fadeIn"
           style={{ animationDelay: '280ms' }}
@@ -276,7 +277,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* ─── ⑤ 16 Personality Capsule Scroll（边缘渐变提示可滑动） ─── */}
+        {/* ─── 5 16 Personality Capsule Scroll(边缘渐变提示可滑动) ─── */}
         <div
           className="mt-4 animate-fadeIn relative"
           style={{ animationDelay: '380ms' }}
@@ -302,7 +303,7 @@ export default function LandingPage() {
               </button>
             ))}
           </div>
-          {/* 右边缘渐变：暗示「可滑动」 */}
+          {/* 右边缘渐变:暗示「可滑动」 */}
           <div
             className="pointer-events-none absolute top-0 right-0 bottom-0 w-12"
             style={{ background: 'linear-gradient(270deg, #FAF3EA 0%, transparent 100%)' }}
@@ -310,13 +311,13 @@ export default function LandingPage() {
           />
         </div>
 
-        {/* ─── ⑥ 社会证明：已有 N 人测试 + 头像堆叠 ─── */}
+        {/* ─── 6 社会证明:已有 N 人测试 + 头像堆叠 ─── */}
         <div
           className="px-5 mt-6 flex items-center justify-center gap-2.5 animate-fadeIn"
           style={{ animationDelay: '440ms' }}
           aria-label="已有 12047 人完成测试"
         >
-          {/* 头像堆叠（静态占位，强调“真实用户参与”） */}
+          {/* 头像堆叠(静态占位,强调"真实用户参与") */}
           <div className="flex -space-x-2">
             {['#D4A574', '#9A4B2E', '#6B8E5A', '#B56B7A', '#8B5E3C'].map((c, i) => (
               <div
@@ -334,17 +335,17 @@ export default function LandingPage() {
               已有 <span style={{ color: '#B45309' }}>12,047</span> 人完成
             </p>
             <p className="text-amber-600" style={{ fontSize: '11px', lineHeight: 1.2 }}>
-              90% 表示“找到了自己没意识到的部分”
+              90% 的人说，「像被读懂了一次」
             </p>
           </div>
         </div>
 
-        {/* ─── ⑦ Main CTA Button（脉冲动画） ─── */}
+        {/* ─── 7 Main CTA Button(脉冲动画) ─── */}
         <div
           className="px-5 mt-5 animate-fadeIn relative"
           style={{ animationDelay: '480ms' }}
         >
-          {/* 已测用户：人格胶囊 + 双按钮 */}
+          {/* 已测用户:人格胶囊 + 双按钮 */}
           {myStatus.completed && myStatus.personalityName ? (
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-3 py-4 px-5 bg-white rounded-2xl border border-amber-200 shadow-sm">
@@ -363,7 +364,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => {
-                    if (typeof window !== 'undefined' && window.confirm(`重新测试将清除当前人格「${myStatus.personalityName}」，确定继续？`)) {
+                    if (typeof window !== 'undefined' && window.confirm(`重新测试将清除当前人格「${myStatus.personalityName}」,确定继续?`)) {
                       clearMyTestProgress();
                       router.push('/question');
                     }
@@ -376,7 +377,7 @@ export default function LandingPage() {
             </div>
           ) : (
             <div className="relative">
-              {/* 脉冲光环：两层叠加，营造“呼吸”感 */}
+              {/* 脉冲光环:两层叠加,营造"呼吸"感 */}
               <span
                 className="cta-pulse-ring absolute inset-0 rounded-[28px]"
                 aria-hidden
@@ -391,23 +392,23 @@ export default function LandingPage() {
                 style={{ fontFamily: 'Noto Sans SC, sans-serif' }}
                 aria-label="开始寻找我的本命香"
               >
-                开始寻找我的本命香 →
+                开始寻找我的本命香
               </button>
             </div>
           )}
         </div>
 
-        {/* ─── ⑦ Bottom Small Text（边距↓） ─── */}
+        {/* ─── 7 Bottom Small Text(边距↓) ─── */}
         <div
           className="text-center mt-3 pb-3 animate-fadeIn"
           style={{ animationDelay: '580ms' }}
         >
           <span className="text-amber-700 text-[12px]" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>
-            3 分钟 · 16 种人格 · 免费开始
+            3 分钟 · 16 种灵魂人格 · 免费
           </span>
         </div>
 
-        {/* ─── ⑧ About Section（边距↓ 内边距↓） ─── */}
+        {/* ─── 8 About Section(边距↓ 内边距↓) ─── */}
         <div
           className="bg-cream px-4 pt-8 pb-12 animate-fadeIn"
           style={{ animationDelay: '680ms' }}
@@ -426,7 +427,7 @@ export default function LandingPage() {
               className="text-amber-700 text-[14px] leading-[1.7]"
               style={{ fontFamily: 'Noto Sans SC, sans-serif' }}
             >
-              「Crush 香鉴」基于嗅觉心理学与人格特质理论，通过 10 道沉浸式情境题探索你的感官偏好与内心世界。我们将为你匹配 16 种灵魂人格之一，并推荐最适合你的本命香水。
+              「Crush 香鉴」融合嗅觉心理学与人格特质理论，通过 10 道沉浸式情境题，探索你的感官偏好与内心世界。我们将为你匹配 16 种灵魂人格之一，并找到那支与你共振的本命香。
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <span
@@ -452,7 +453,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ─── 人格 Bottom Sheet（保留 framer-motion） ─── */}
+      {/* ─── 人格 Bottom Sheet(保留 framer-motion) ─── */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -520,7 +521,7 @@ export default function LandingPage() {
                 style={{ fontSize: '14px', fontFamily: 'Noto Sans SC, sans-serif' }}
                 aria-label="关闭弹层"
               >
-                我已经测过了，看看我的 ›
+                我已经测过了，查看我的报告 ›
               </button>
             </motion.div>
           </>
