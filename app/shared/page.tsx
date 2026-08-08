@@ -10,12 +10,14 @@ export async function generateStaticParams() {
 
 // 服务器端生成 og: 标签，WeChat 爬虫可见
 export async function generateMetadata({
-  params,
+  searchParams,
 }: {
-  params: { p?: string[] };
+  searchParams: Promise<{ p?: string }>;
 }): Promise<Metadata> {
-  const name = params.p ? decodeURIComponent(params.p[0]) : '朋友';
-  const { getPersonality, PERSONALITIES } = await import('@/lib/personalities');
+  const rawName = (await searchParams).p ?? '朋友';
+  // 支持拼音 ID（如 chonglang）或中文名（如 冲浪）
+  const { PERSONALITY_NAME_MAP, PERSONALITIES } = await import('@/lib/personalities');
+  const name = PERSONALITY_NAME_MAP[rawName] || rawName;
   const p = PERSONALITIES.find((x) => x.name === name);
   const tagline = p?.tagline ?? '灵魂香气的秘密';
   const title = `${name}的香气人格 | Crush香鉴`;
@@ -49,16 +51,16 @@ function SharedFallback() {
   );
 }
 
-export default function SharedPage({
-  params,
+export default async function SharedPage({
+  searchParams,
 }: {
-  params: { p?: string[] };
+  searchParams: Promise<{ p?: string }>;
 }) {
-  const personalityName = params.p ? decodeURIComponent(params.p[0]) : '';
+  const rawName = (await searchParams).p ?? '';
 
   return (
     <Suspense fallback={<SharedFallback />}>
-      <SharedViewClient personalityName={personalityName} />
+      <SharedViewClient personalityName={rawName} />
     </Suspense>
   );
 }
