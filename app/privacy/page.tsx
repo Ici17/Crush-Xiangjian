@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "隐私政策 | Crush香鉴",
   description:
-    "Crush香鉴 隐私政策。我们不收集账号、不读取手机号，答题与雷达数据存储在您的设备本地，支付由 Waffo 处理。",
+    "Crush香鉴 隐私政策。我们不收集账号、不读取手机号，答题与雷达数据存储在您的设备本地，支付通道由第三方支付服务商处理（即将开放）。",
 };
 
 export default function PrivacyPage() {
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>支付信息</strong>：当您选择解锁完整版时，付款流程由
-            <strong> Waffo Pancake</strong> 处理；我们仅接收支付结果（订单状态 + 档位）
+            <strong>第三方支付服务商</strong> 处理；我们仅接收支付结果（订单状态 + 档位）
             用于解锁内容，<strong>不接触您的银行卡、支付密码或账单明细</strong>。
           </li>
           <li>
@@ -59,8 +59,8 @@ export default function PrivacyPage() {
       <Section title="3. 第三方共享">
         <ul className="list-disc pl-6 space-y-2">
           <li>
-            <strong>支付</strong>：Waffo Pancake（api.waffo.ai）— 仅在您点击「去支付」时，
-            您的浏览器跳转到 Waffo 收银台完成支付；我们不接收卡号。
+            <strong>支付</strong>：第三方支付服务商 — 仅在您点击「去支付」时，
+            我们会跳转至其收银台完成支付；我们不接收卡号。
           </li>
           <li>
             <strong>网站部署</strong>：Vercel（vercel.com）— 静态资源 CDN，
