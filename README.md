@@ -3,7 +3,7 @@
 > 你的灵魂,藏在哪种香气里?
 > 10 道情境题 × 16 种人格 × 151 款本命香水
 
-一个纯前端的香气人格测试 H5(Next.js 16 + TypeScript + Tailwind v4)。无后端、无数据库、零 OpenID;支付通过 Waffo Pancake 匿名结账 + 本地乐观解锁完成。
+一个纯前端的香气人格测试 H5(Next.js 16 + TypeScript + Tailwind v4)。无后端、无数据库、零 OpenID;支付走预留接口 + 本地乐观解锁完成。
 
 ---
 
@@ -19,8 +19,7 @@
 - [x] 问卷页(答题 + 进度保存 localStorage + 过渡动画 + 气味暗示加载页)
 - [x] 结果页(人格卡片 + 雷达图 + 本命香水 3 档推荐 + 香气探索路径)
 - [x] 解锁版内容(隐藏人格面 / 反差香 / 气味底稿 / 关系解读 / 使用场景指南)
-- [x] 付费墙（完整版 ￥20.9 裂变价 / ￥29.9 主推）
-- [x] Waffo Pancake 支付集成(匿名 checkout → 跳转收银台 → 回调查单乐观解锁)
+- [x] 付费墙(完整版 ￥20.9 裂变价 / ￥29.9 主推)+ 预留支付接口(initiatePayment,未来接微信/支付宝/Stripe)
 - [x] 朋友匹配页 `/friend`(雷达对比图 + 契合度计算 + 邀请闭环)
 - [x] 分享图生成(html2canvas 截图下载)
 - [x] 分享页 `/shared`(路由层转发,聊天卡片 meta 展示邀请方结果,进入即自己的测试页)
@@ -65,25 +64,17 @@ npm run serve       # 终端 B:serve.mjs 在 3456 反代 /api/* 到 3457
 
 ## 🔧 配置环境变量
 
-创建 `.env.local`(支付走 Waffo,无 Supabase):
+创建 `.env.local`(支付预留接口,无 Supabase):
 
 ```env
-# Waffo Pancake 支付(必需,否则支付按钮无法生成订单)
-WAFFO_MERCHANT_ID=MER_xxxxxxxxxxxxxxxx
-WAFFO_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
-...RSA PEM 私钥...
------END PRIVATE KEY-----
-
-# Waffo 后台创建的三个产品 ID(分别对应三档)
-NEXT_PUBLIC_WAFFO_PRODUCT_DISCOUNTED=PROD_xxxxxxxx   # 完整版裂变价 ¥20.9
-NEXT_PUBLIC_WAFFO_PRODUCT_FULL=PROD_xxxxxxxx         # 完整版主推 ¥29.9
-NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION=PROD_xxxxxxxx # 香气盒产品(前端已下架入口,后台产品保留)
+# 支付(当前未接入服务商;付费墙走预留接口 lib/payment.ts → initiatePayment)
+# 未来接入微信/支付宝/Stripe 时,在此登记对应服务商密钥与产品 ID
 
 # 站点基础 URL(回调 / 分享链接用)
 NEXT_PUBLIC_BASE_URL=http://localhost:3456
 ```
 
-> 微信/支付宝个人收款二维码方案(`lib/payment.ts` 中的 `PAYMENT_QR` / `isWechatBrowser`)为早期遗留占位,当前支付以 Waffo 跳转为主路径。
+> 微信/支付宝个人收款二维码方案(`lib/payment.ts` 中的 `PAYMENT_QR` / `isWechatBrowser`)为早期遗留占位,当前支付以预留接口为主路径。
 
 ---
 
@@ -110,8 +101,6 @@ crushxiangjian/
 │   ├── terms/page.tsx      # 服务条款
 │   ├── privacy/page.tsx    # 隐私政策
 │   └── api/
-│       ├── checkout/route.ts  # Waffo 匿名创建订单 → 返回 checkoutUrl
-│       ├── order/route.ts     # Waffo 查单 → 解析档位 → 解锁
 │       └── og/route.tsx       # 动态 OG 图
 ├── components/
 │   ├── PaymentModal.tsx       # 支付弹窗(跳转收银台)
@@ -121,8 +110,7 @@ crushxiangjian/
 ├── lib/
 │   ├── data.ts             # 16 人格 + 110 香水 + 问卷 + 匹配算法
 │   ├── personalities.ts    # 人格扩展数据(隐藏面/反差香/底稿/推荐缓存)
-│   ├── payment.ts          # 三档价格配置 + localStorage 解锁状态
-│   ├── waffo.ts            # Waffo Pancake SDK 单例
+│   ├── payment.ts          # 三档价格配置 + localStorage 解锁状态 + 预留支付接口
 │   ├── friendMatch.ts      # 朋友契合度计算
 │   ├── inviteState.ts      # 邀请状态同步(跨标签 + polling)
 │   └── useMyTestStatus.ts  # 读取本机测试状态
@@ -173,7 +161,7 @@ npm run serve       # 终端 B
 ```
 
 - 前端:可部署到 Vercel / 腾讯云 / 任意 Node 主机
-- 支付:Waffo Pancake(无需自有商户号,匿名结账)
+- 支付:预留接口(无需自有商户号,匿名结账;未来接入微信/支付宝/Stripe)
 - 域名:namesilo / 腾讯云(.com);国内访问需备案 + HTTPS
 
 > ⚠️ 微信内 H5 打开需完成域名备案;建议先海外/香港服务器验证,备案后再切换。
