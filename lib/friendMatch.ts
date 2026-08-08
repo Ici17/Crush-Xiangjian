@@ -50,21 +50,39 @@ export function calculateCompatibility(
     friend.radarScores.gourmand,
   ];
 
-  const dot = myVec.reduce((s, v, i) => s + v * friendVec[i], 0);
-  const mag1 = Math.sqrt(myVec.reduce((s, v) => s + v * v, 0));
-  const mag2 = Math.sqrt(friendVec.reduce((s, v) => s + v * v, 0));
-  const cosine = mag1 > 0 && mag2 > 0 ? dot / (mag1 * mag2) : 0;
-  const score = Math.round(((cosine + 1) / 2) * 100);
+  // 维度数量
+  const D = myVec.length;
+
+  // ── 复合打分：同频共鸣 + 互补吸引 ──
+  // 同频共鸣：双方都偏好的维度，取两者较小值累加（共享越多越高）
+  // 互补吸引：一方高、另一方低的维度，差值累加（反差越大越互补）
+  const RES_THRESH = 45; // 视为「偏好该香调」的下限
+  const LOW_THRESH = 28; // 视为「对该香调无感」的上限
+  let resSum = 0;
+  let compSum = 0;
+  for (let i = 0; i < D; i++) {
+    if (myVec[i] >= RES_THRESH && friendVec[i] >= RES_THRESH) {
+      resSum += Math.min(myVec[i], friendVec[i]);
+    }
+    if (myVec[i] >= RES_THRESH && friendVec[i] <= LOW_THRESH) {
+      compSum += myVec[i] - friendVec[i];
+    } else if (friendVec[i] >= RES_THRESH && myVec[i] <= LOW_THRESH) {
+      compSum += friendVec[i] - myVec[i];
+    }
+  }
+  const resonance = Math.min(resSum / 300, 1); // 3 个共享高分维度 ≈ 满分
+  const complementScore = Math.min(compSum / 300, 1); // 互补差值累计 300 ≈ 满分
+  const score = 20 + Math.round(100 * (0.7 * resonance + 0.3 * complementScore));
 
   const { grade, gradeColor } = (() => {
-    if (score >= 85) return { grade: "灵魂伴侣" as const, gradeColor: "#C4956A" };
-    if (score >= 70) return { grade: "天生一对" as const, gradeColor: "#8B6F5C" };
+    if (score >= 78) return { grade: "灵魂伴侣" as const, gradeColor: "#C4956A" };
+    if (score >= 68) return { grade: "天生一对" as const, gradeColor: "#8B6F5C" };
     if (score >= 55) return { grade: "互补有趣" as const, gradeColor: "#7DB9B6" };
-    if (score >= 40) return { grade: "各有所爱" as const, gradeColor: "#9BA8AB" };
+    if (score >= 42) return { grade: "各有所爱" as const, gradeColor: "#9BA8AB" };
     return { grade: "气质迥异" as const, gradeColor: "#C4A99E" };
   })();
 
-  const THRESH = 55;
+  const THRESH = 45;
   const dimensions = [
     { key: "floral" as const, label: "花香调", emoji: "🌹" },
     { key: "woody" as const, label: "木质调", emoji: "🪵" },
@@ -86,8 +104,12 @@ export function calculateCompatibility(
 
   const complements: string[] = [];
   for (const dim of dimensions) {
-    const diff = friend.radarScores[dim.key] - me.radarScores[dim.key];
-    if (diff >= 35) {
+    const meV = me.radarScores[dim.key];
+    const frV = friend.radarScores[dim.key];
+    if (
+      (meV >= RES_THRESH && frV <= LOW_THRESH) ||
+      (frV >= RES_THRESH && meV <= LOW_THRESH)
+    ) {
       const advice: Record<string, string> = {
         floral: "让对方带你体验花香调的浪漫，打开感性的另一面",
         woody: "对方的沉稳木质气息能平衡你的活力，带来内心安宁",
