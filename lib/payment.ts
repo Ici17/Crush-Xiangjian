@@ -103,3 +103,22 @@ export function getPaidLevel(): number {
 export function hasPaid(level: number): boolean {
   return getPaidLevel() >= level;
 }
+
+// ============================================================
+// 支付通道(预留接口:未来接入微信 / 支付宝 / Stripe)
+// ============================================================
+// 当前未接入任何支付服务商。点击「去支付」调用此处,返回 ok:false 时
+// 付费墙显示「支付通道升级中」。未来实现:根据 provider 调对应 SDK / 后端下单。
+export type PaymentProvider = "wechat" | "alipay" | "stripe";
+export interface PaymentRequest {
+  priceKey: PriceKey;
+  provider?: PaymentProvider;
+}
+export interface PaymentResult {
+  ok: boolean;
+  orderId?: string;
+}
+export async function initiatePayment(_req: PaymentRequest): Promise<PaymentResult> {
+  console.warn("[payment] 支付通道待接入", _req);
+  return { ok: false };
+}
