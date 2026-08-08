@@ -20,7 +20,7 @@ import RadarChart from "@/components/RadarChart";
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
   if (score >= 80)
     return {
-      tier: "宿命感",
+      tier: "灵魂伴侣",
       copy: "你们的香气频率高度共振——灵魂香伴，靠近就像回家。",
     };
   if (score >= 60)
@@ -38,6 +38,30 @@ function getCompatibilityStory(score: number): { tier: string; copy: string } {
     copy: "忍不住想靠近，再靠近一点——截然不同的香调，却莫名相互吸引。",
   };
 }
+
+/** 分享图三套模板 */
+export type ShareTemplate = '默契' | '挑战' | '稀有';
+
+const SHARE_TEMPLATES: Record<ShareTemplate, { label: string; emoji: string; subtitle: string; copy: string }> = {
+  '默契': {
+    label: '默契',
+    emoji: '💫',
+    subtitle: '天生一对',
+    copy: '你和 TA 的香气频率高度共振',
+  },
+  '挑战': {
+    label: '挑战',
+    emoji: '⚡',
+    subtitle: '不服来战',
+    copy: '评论区艾特一个你想测的人',
+  },
+  '稀有': {
+    label: '稀有',
+    emoji: '🌟',
+    subtitle: '稀有组合',
+    copy: '你们是少数派的香气实验',
+  },
+};
 
 /** 契合度颜色 */
 function getCompatibilityColor(score: number): string {
@@ -94,6 +118,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [pickerTarget, setPickerTarget] = useState<"me">("me");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
+  const [shareTemplate, setShareTemplate] = useState<ShareTemplate>('默契');
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // 「我的香气伴侣榜」名单（来自 localStorage 邀请记录）
@@ -222,9 +247,15 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const handleCopyShareText = useCallback(() => {
     if (!result || !shareA || !shareB) return;
     const tier = getCompatibilityStory(result.score);
-    const text = `我的灵魂香气是「${shareA.name}」，刚刚测到和「${shareB.name}」的契合度是 ${result.score}分（${tier.tier}）——你也来试试？`;
+    const tpl = SHARE_TEMPLATES[shareTemplate];
+    const copyMap: Record<ShareTemplate, string> = {
+      '默契': `测了测我们的灵魂香气，共鸣度 ${result.score}%。原来我们是「${tier.tier}」型。${shareA.name} × ${shareB.name}，你也来测测你和 TA？👇`,
+      '挑战': `${shareA.name} × ${shareB.name} = ${tier.tier}。评论区艾特一个你想测的人，不服来战👇`,
+      '稀有': `居然和 TA 有 ${result.score}% 共鸣，太离谱了。不服来战👇`,
+    };
+    const text = copyMap[shareTemplate];
     navigator.clipboard.writeText(text).then(() => showToast("分享文案已复制 ✓"));
-  }, [result, shareA, shareB, showToast]);
+  }, [result, shareA, shareB, shareTemplate, showToast]);
 
   async function generateShare() {
     if (!result || !shareA || !shareB) return;
@@ -449,12 +480,18 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               </div>
 
               {staggerResult[1] && (
-                <span
-                  className="inline-block text-amber-950 font-sans font-semibold text-xs rounded-full px-4 py-1.5"
-                  style={{ backgroundColor: '#F8EAD9', boxShadow: '0 4px 20px rgba(248,234,217,0.4)' }}
-                >
-                  ⭐ {getCompatibilityStory(result.score).tier}
-                </span>
+                <>
+                  <span
+                    className="inline-block text-amber-950 font-sans font-semibold text-xs rounded-full px-4 py-1.5 mb-2"
+                    style={{ backgroundColor: '#F8EAD9', boxShadow: '0 4px 20px rgba(248,234,217,0.4)' }}
+                  >
+                    ⭐ {getCompatibilityStory(result.score).tier}
+                  </span>
+                  {/* M1: 超越 XX% 的测试关系 */}
+                  <p className="font-sans text-amber-200/70 text-xs">
+                    超越 {Math.round(result.score + 3)}% 的测试关系
+                  </p>
+                </>
               )}
             </div>
           </div>
@@ -594,11 +631,18 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   <div className="h-px w-8 bg-gradient-to-l from-transparent to-amber-300" />
                 </div>
 
-                {/* 双人格 + × */}
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  <span className="font-serif font-bold text-amber-950 text-3xl">{shareA.name}</span>
-                  <span className="font-serif text-amber-400 text-2xl">×</span>
-                  <span className="font-serif font-bold text-amber-950 text-3xl">{shareB.name}</span>
+                {/* 双人格 + × + 模板标签 */}
+                <div className="flex flex-col items-center gap-2 mb-4">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xs">{SHARE_TEMPLATES[shareTemplate].emoji}</span>
+                    <span className="font-sans text-amber-500/70 text-xs font-medium">{SHARE_TEMPLATES[shareTemplate].subtitle}</span>
+                    <span className="text-xs">{SHARE_TEMPLATES[shareTemplate].emoji}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="font-serif font-bold text-amber-950 text-2xl">{shareA.name}</span>
+                    <span className="font-serif text-amber-400 text-xl">×</span>
+                    <span className="font-serif font-bold text-amber-950 text-2xl">{shareB.name}</span>
+                  </div>
                 </div>
 
                 {/* 契合度进度环 + 大数字 */}
@@ -645,7 +689,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                       </span>
                     </div>
                   </div>
-                  <p className="font-serif text-amber-600/80 text-xs mt-2">{result.grade}</p>
+                  <p className="font-serif text-amber-600/80 text-xs mt-2">{SHARE_TEMPLATES[shareTemplate].copy}</p>
                 </div>
 
                 {/* 共鸣气味 */}
@@ -678,19 +722,36 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 </div>
               </div>
 
-              {/* 平台双按钮 */}
+                      {/* 模板切换 Tab */}
               <div className="flex gap-2 mt-3">
+                {(Object.keys(SHARE_TEMPLATES) as ShareTemplate[]).map((tpl) => (
+                  <button
+                    key={tpl}
+                    onClick={() => setShareTemplate(tpl)}
+                    className={`flex-1 py-2 rounded-full font-sans font-medium text-xs transition-all ${
+                      shareTemplate === tpl
+                        ? 'bg-amber-800 text-amber-50 shadow-sm'
+                        : 'bg-amber-50 border border-amber-200 text-amber-600'
+                    }`}
+                  >
+                    {SHARE_TEMPLATES[tpl].emoji} {SHARE_TEMPLATES[tpl].label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 平台双按钮 */}
+              <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleCopyShareText}
                   className="flex-1 py-3 bg-amber-900 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
                   style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
                 >
-                  朋友圈 1:1
+                  发 1:1 朋友圈
                 </button>
                 <button
                   className="flex-1 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
                 >
-                  小红书 3:4
+                  发 3:4 小红书
                 </button>
               </div>
             </section>
@@ -706,23 +767,23 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 disabled={shareLoading}
                 className="flex-1 py-3 bg-white border-2 border-amber-700 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
               >
-                {shareLoading ? '生成中…' : '保存分享图'}
+                {shareLoading ? '生成中…' : '生成双人对比海报'}
               </button>
               <button
                 onClick={handleCopyShareText}
                 className="flex-1 py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
                 style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.25)' }}
               >
-                复制文案
+                复制朋友圈文案
               </button>
             </section>
 
-            {/* 7. 也发一份邀请 */}
+            {/* 7. 邀请 CTA */}
             <button
               onClick={handleCopyInvite}
               className="w-full py-2 text-amber-500/70 font-sans text-xs text-center hover:text-amber-600 transition-colors"
             >
-              也发一份邀请给懂你的人 →
+              @好友来测默契度 →
             </button>
           </div>
         </div>
@@ -959,7 +1020,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
             onClick={handleSaveCompareImage}
             className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"
           >
-            保存契合度对比图 →
+            生成双人对比海报 →
           </button>
         </div>
       )}
