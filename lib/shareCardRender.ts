@@ -165,15 +165,13 @@ export async function renderShareCard(
   const ringSize = format === "1to1" ? 220 : 240;
   const qrSize = format === "1to1" ? 130 : 150;
 
-  // satori CJS 导入
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // satori 动态导入（与 serve.mjs 验证过的写法一致）
   // @ts-ignore - satori 无类型声明
-  const satoriMod = require("satori") as any;
-  const satori = satoriMod.default ?? satoriMod;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const satoriMod: any = await import("satori");
+  const satori = satoriMod.default;
   // @ts-ignore - satori/jsx/jsx-runtime 无类型声明
-  const jsxMod = require("satori/jsx/jsx-runtime") as any;
-  const JSX = jsxMod.jsx ?? (jsxMod.default && jsxMod.default.jsx) ?? jsxMod.default;
+  const jsxMod: any = await import("satori/jsx/jsx-runtime");
+  const JSX = jsxMod.jsx;
 
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVG(data.score, ringSize)).toString("base64")}`;
 
