@@ -8,6 +8,7 @@ import {
   getRadarScores,
   getRecommendations,
   type Recommendation,
+  PERSONALITY_NAME_MAP,
 } from '@/lib/personalities';
 import RadarChart from '@/components/RadarChart';
 import PersonalityIcon from '@/components/PersonalityIcon';
@@ -67,19 +68,22 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     }
   };
 
-  const friendLink = personalityName
-    ? `/friend?inv=${encodeInvite(personalityName)}`
+  // 支持拼音 ID（如 chonglang）或中文名（如 冲浪）
+  const mappedName = personalityName ? (PERSONALITY_NAME_MAP[personalityName] || personalityName) : '';
+
+  const friendLink = mappedName
+    ? `/friend?inv=${encodeInvite(mappedName)}`
     : '/friend';
 
-  const personality = personalityName ? getPersonality(personalityName) : null;
-  const radarData = personalityName ? getRadarScores(personalityName) : null;
-  const recommendations: readonly Recommendation[] = personalityName
-    ? getRecommendations(personalityName)
+  const personality = mappedName ? getPersonality(mappedName) : null;
+  const radarData = mappedName ? getRadarScores(mappedName) : null;
+  const recommendations: readonly Recommendation[] = mappedName
+    ? getRecommendations(mappedName)
     : [];
 
   const shareLink =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/shared?p=${encodeURIComponent(personalityName)}`
+      ? `${window.location.origin}/shared?p=${encodeURIComponent(mappedName || personalityName)}`
       : '';
   const qrUrl = shareLink
     ? `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=8&data=${encodeURIComponent(shareLink)}`
@@ -98,7 +102,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     if (typeof window === 'undefined') return;
     const pid = localStorage.getItem('crushxiangjian_personality_id');
     if (!pid) {
-      const inv = personalityName ? `?inv=${encodeInvite(personalityName)}` : '';
+      const inv = mappedName ? `?inv=${encodeInvite(mappedName)}` : '';
       router.replace(`/question${inv}`);
     }
   }, [personalityName, router]);
@@ -197,7 +201,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             marginTop: '12px',
           }}
         >
-          {personalityName}
+          {mappedName || personalityName}
         </p>
         <p style={{ fontSize: '13px', color: '#8B6F5C', textAlign: 'center' }}>
           {personality.tagline}
@@ -272,11 +276,11 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
               className="w-20 h-20 rounded-2xl flex items-center justify-center border border-amber-200 bg-white shadow-sm"
               style={{ boxShadow: '0 4px 20px rgba(180,120,60,0.15)' }}
             >
-              <PersonalityIcon name={personalityName} className="w-12 h-12 text-amber-600" />
+              <PersonalityIcon name={mappedName || personalityName} className="w-12 h-12 text-amber-600" />
             </div>
           </div>
           <h1 className="font-serif font-bold text-4xl text-amber-950 mb-2" style={{ letterSpacing: '0.08em' }}>
-            {personalityName}
+            {mappedName || personalityName}
           </h1>
           <p className="text-amber-600/70 font-sans text-sm leading-relaxed">{personality.tagline}</p>
         </div>
@@ -440,7 +444,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
                 <span className="text-amber-700 font-sans text-xs font-medium">分享邀请</span>
               </div>
               <p className="font-serif font-bold text-xl text-amber-950" style={{ letterSpacing: '0.06em' }}>
-                {personalityName}
+                {mappedName || personalityName}
               </p>
               <p className="text-amber-600/70 font-sans text-xs mt-1">{personality.tagline}</p>
             </div>
