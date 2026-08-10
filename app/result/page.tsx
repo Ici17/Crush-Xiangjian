@@ -378,7 +378,7 @@ function ResultInner() {
 
   return (
     <main className="app-shell">
-      <div className="overflow-y-auto no-scrollbar pb-32 max-w-[430px] mx-auto">
+      <div className="overflow-y-auto no-scrollbar pb-20 max-w-[430px] mx-auto">
 
         {/* 顶部重新测试按钮 */}
         <div className="sticky top-0 z-50 px-4 py-2 flex justify-between items-center bg-cream/80 backdrop-blur-sm border-b border-amber-100/50">
@@ -981,7 +981,7 @@ function ResultInner() {
       {/* ━━━ 底部固定 CTA（智能单/双按钮）━━━ */}
       <div
         className="fixed left-0 right-0 bottom-0 px-[18px] pt-3 bg-cream/90 backdrop-blur-md border-t border-amber-100 z-10"
-        style={{ paddingBottom: 'calc(12px + var(--safe-bottom))' }}
+        style={{ paddingBottom: 'calc(8px + var(--safe-bottom))' }}
         role="toolbar"
         aria-label={hasFriend ? '分享和查看契合度' : '分享测试结果'}
       >
