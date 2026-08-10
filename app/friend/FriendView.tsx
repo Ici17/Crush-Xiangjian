@@ -119,6 +119,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareTemplate, setShareTemplate] = useState<ShareTemplate>('默契');
+  const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('1to1');
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // 「我的灵魂香气榜」名单（来自 localStorage 邀请记录）
@@ -590,7 +591,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   朋友的<span className="font-bold">{shareB.name}</span>
                 </p>
                 <p className="font-serif text-amber-700/80 text-sm mb-4">
-                  = {result.score >= 85 ? '灵魂共振' : result.score >= 70 ? '互补搭档' : result.score >= 55 ? '有趣的碰撞' : '不同的香气世界'}
+                  = {result.score >= 75 ? '灵魂共振' : result.score >= 65 ? '互补搭档' : result.score >= 55 ? '有趣的碰撞' : result.score >= 42 ? '气味互补' : '不同的香气世界'}
                 </p>
                 <p className="text-amber-700/90 font-sans text-sm leading-relaxed text-left">
                   你的<span className="font-medium">{shareA.name}</span>特质为这段关系提供定调，
@@ -600,27 +601,22 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               </div>
             </section>
 
-            {/* 5. 分享图预览（独立大卡，截图目标） */}
+            {/* 5. 分享图预览与下载 */}
             <section
               className={`transition-all duration-500 ${
                 staggerResult[4] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
               }`}
             >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-4 bg-amber-700 rounded-full" />
-                <h3 className="font-serif font-semibold text-amber-900 text-sm">◆ 分享图预览</h3>
-              </div>
-
-              {/* 模板切换 Tab */}
-              <div className="flex gap-2 mt-3">
+              {/* 模板切换 Tab：轻量胶囊 */}
+              <div className="flex gap-2 mb-3">
                 {(Object.keys(SHARE_TEMPLATES) as ShareTemplate[]).map((tpl) => (
                   <button
                     key={tpl}
                     onClick={() => setShareTemplate(tpl)}
                     className={`flex-1 py-2 rounded-full font-sans font-medium text-xs transition-all ${
                       shareTemplate === tpl
-                        ? 'bg-amber-800 text-amber-50 shadow-sm'
-                        : 'bg-amber-50 border border-amber-200 text-amber-600'
+                        ? 'bg-amber-900 text-amber-50 shadow-sm'
+                        : 'bg-amber-50/80 border border-amber-200 text-amber-700'
                     }`}
                   >
                     {SHARE_TEMPLATES[tpl].emoji} {SHARE_TEMPLATES[tpl].label}
@@ -628,55 +624,49 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 ))}
               </div>
 
-              {/* 平台双按钮 */}
-              <div className="flex gap-2 mt-2">
+              {/* 比例切换 */}
+              <div className="flex items-center justify-center gap-2 mb-3">
+                {(['1to1','3to4'] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    onClick={() => setShareFormat(fmt)}
+                    className={`px-3 py-1 rounded-full text-xs font-sans transition-all ${
+                      shareFormat === fmt
+                        ? 'bg-amber-200 text-amber-900 font-medium'
+                        : 'text-amber-500/70 hover:text-amber-700'
+                    }`}
+                  >
+                    {fmt === '1to1' ? '1:1 朋友圈' : '3:4 小红书'}
+                  </button>
+                ))}
+              </div>
+
+              {/* 主 CTA */}
+              <button
+                onClick={() => generateShare(shareFormat)}
+                disabled={shareLoading}
+                className="w-full py-3.5 bg-amber-900 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all disabled:opacity-50 mb-3"
+                style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
+              >
+                {shareLoading ? '生成中…' : `生成 ${shareFormat === '1to1' ? '1:1 朋友圈' : '3:4 小红书'} 分享图`}
+              </button>
+
+              {/* 次要操作 */}
+              <div className="flex items-center justify-center gap-4 text-xs font-sans text-amber-600/70">
                 <button
-                  onClick={() => generateShare('1to1')}
-                  disabled={shareLoading}
-                  className="flex-1 py-3 bg-amber-900 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
-                  style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
+                  onClick={handleCopyShareText}
+                  className="hover:text-amber-900 transition-colors underline underline-offset-2"
                 >
-                  {shareLoading ? '生成中…' : '发 1:1 朋友圈'}
+                  复制分享文案
                 </button>
                 <button
-                  onClick={() => generateShare('3to4')}
-                  disabled={shareLoading}
-                  className="flex-1 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
+                  onClick={handleCopyInvite}
+                  className="hover:text-amber-900 transition-colors underline underline-offset-2"
                 >
-                  {shareLoading ? '生成中…' : '发 3:4 小红书'}
+                  @好友来测默契度
                 </button>
               </div>
             </section>
-
-            {/* 6. 操作区 */}
-            <section
-              className={`flex gap-3 pt-2 transition-all duration-500 ${
-                staggerResult[4] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
-              }`}
-            >
-              <button
-                onClick={() => generateShare('1to1')}
-                disabled={shareLoading}
-                className="flex-1 py-3 bg-white border-2 border-amber-700 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
-              >
-                {shareLoading ? '生成中…' : '生成双人对比海报'}
-              </button>
-              <button
-                onClick={handleCopyShareText}
-                className="flex-1 py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
-                style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.25)' }}
-              >
-                复制朋友圈文案
-              </button>
-            </section>
-
-            {/* 7. 邀请 CTA */}
-            <button
-              onClick={handleCopyInvite}
-              className="w-full py-2 text-amber-500/70 font-sans text-xs text-center hover:text-amber-600 transition-colors"
-            >
-              @好友来测默契度 →
-            </button>
           </div>
         </div>
       )}
