@@ -75,8 +75,8 @@ export function calculateCompatibility(
   const score = 20 + Math.round(100 * (0.7 * resonance + 0.3 * complementScore));
 
   const { grade, gradeColor } = (() => {
-    if (score >= 78) return { grade: "灵魂伴侣" as const, gradeColor: "#C4956A" };
-    if (score >= 68) return { grade: "天生一对" as const, gradeColor: "#8B6F5C" };
+    if (score >= 75) return { grade: "灵魂伴侣" as const, gradeColor: "#C4956A" };
+    if (score >= 65) return { grade: "天生一对" as const, gradeColor: "#8B6F5C" };
     if (score >= 55) return { grade: "互补有趣" as const, gradeColor: "#7DB9B6" };
     if (score >= 42) return { grade: "各有所爱" as const, gradeColor: "#9BA8AB" };
     return { grade: "气质迥异" as const, gradeColor: "#C4A99E" };
