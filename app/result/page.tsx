@@ -948,7 +948,7 @@ function ResultInner() {
                   ? '已复制邀请链接 ✓'
                   : inviteStatus.canDiscount
                   ? '已邀请 3 位，继续分享'
-                  : `立即邀请好友（${3 - inviteStatus.totalCompleted} / 3）`}
+                  : `立即邀请好友（还需 ${3 - inviteStatus.totalCompleted} 位）`}
               </button>
             </div>
           )}
