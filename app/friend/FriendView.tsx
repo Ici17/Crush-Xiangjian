@@ -18,17 +18,17 @@ import RadarChart from "@/components/RadarChart";
 
 /** 契合度四档解读 */
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
-  if (score >= 80)
+  if (score >= 75)
     return {
       tier: "灵魂伴侣",
       copy: "你们的香气频率高度共振——靠近，就像回到了该在的地方。",
     };
-  if (score >= 60)
+  if (score >= 55)
     return {
       tier: "惊喜感",
       copy: "意外调出的好味道——你们的差异里，藏着彼此最缺的那一味。",
     };
-  if (score >= 40)
+  if (score >= 42)
     return {
       tier: "新鲜感",
       copy: "闻到陌生，也闻到新鲜——你们之间，总有还没说完的香气故事。",
@@ -208,24 +208,6 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const shareA = inviterType ?? myType;
   const shareB = inviterType ? myType : friendType;
 
-  // 保存对比图函数
-  const handleSaveCompareImage = useCallback(async () => {
-    const el = document.getElementById('compare-card');
-    if (!el) return;
-    try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(el, { backgroundColor: '#FAF3EA' });
-      const link = document.createElement('a');
-      link.download = `${shareA?.name ?? '我'}-${shareB?.name ?? '朋友'}-契合度.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      setToast('对比图已保存');
-      setTimeout(() => setToast(null), 2000);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [shareA, shareB]);
-
   const inviteLink =
     inviterId
       ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(inviterId)}`
@@ -257,24 +239,34 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     navigator.clipboard.writeText(text).then(() => showToast("分享文案已复制 ✓"));
   }, [result, shareA, shareB, shareTemplate, showToast]);
 
-  async function generateShare() {
+  async function generateShare(format: '1to1' | '3to4') {
     if (!result || !shareA || !shareB) return;
     setShareLoading(true);
     try {
-      const { generatePerfumeShareImage } = await import("@/lib/shareImage");
-      const dataUrl = await generatePerfumeShareImage("share-card", {
-        title: "香气匹配报告",
-        subtitle: `${shareA.name} × ${shareB.name}`,
-        score: result.score,
-        grade: result.grade,
+      const params = new URLSearchParams({
+        nameA: shareA.name,
+        nameB: shareB.name,
+        score: String(result.score),
+        tier: getCompatibilityStory(result.score).tier,
+        template: shareTemplate,
+        format,
+        inv: encodeInvite(shareA.name),
+        shared: result.sharedNotes.map(n => n.split(' ')[1]).join(','),
+        story: result.story,
       });
-      const link = document.createElement("a");
-      link.download = `crush香鉴-${shareA.name}x${shareB.name}.png`;
-      link.href = dataUrl;
+      const res = await fetch(`/api/share-card?${params}`);
+      if (!res.ok) throw new Error('render failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `crush香鉴-${shareA.name}x${shareB.name}-${format}.png`;
+      link.href = url;
       link.click();
-      showToast("分享图已下载 ✓");
+      URL.revokeObjectURL(url);
+      showToast(format === '1to1' ? '朋友圈分享图已下载 ✓' : '小红书分享图已下载 ✓');
     } catch (e) {
       console.error(e);
+      showToast('分享图生成失败，请重试');
     } finally {
       setShareLoading(false);
     }
@@ -619,110 +611,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 <h3 className="font-serif font-semibold text-amber-900 text-sm">◆ 分享图预览</h3>
               </div>
 
-              {/* 隐藏分享卡（html2canvas 截取目标） */}
-              <div
-                id="share-card"
-                className="bg-[#FAF3EA] rounded-3xl p-6 border-2 border-amber-200 shadow-md relative overflow-hidden"
-              >
-                {/* 品牌名 */}
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <div className="h-px w-8 bg-gradient-to-r from-transparent to-amber-300" />
-                  <span className="font-serif text-amber-500/70 text-xs tracking-[0.2em]">Crush 香鉴</span>
-                  <div className="h-px w-8 bg-gradient-to-l from-transparent to-amber-300" />
-                </div>
-
-                {/* 双人格 + × + 模板标签 */}
-                <div className="flex flex-col items-center gap-2 mb-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-xs">{SHARE_TEMPLATES[shareTemplate].emoji}</span>
-                    <span className="font-sans text-amber-500/70 text-xs font-medium">{SHARE_TEMPLATES[shareTemplate].subtitle}</span>
-                    <span className="text-xs">{SHARE_TEMPLATES[shareTemplate].emoji}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="font-serif font-bold text-amber-950 text-2xl">{shareA.name}</span>
-                    <span className="font-serif text-amber-400 text-xl">×</span>
-                    <span className="font-serif font-bold text-amber-950 text-2xl">{shareB.name}</span>
-                  </div>
-                </div>
-
-                {/* 契合度进度环 + 大数字 */}
-                <div className="flex flex-col items-center mb-4">
-                  <div className="relative w-[120px] h-[120px]">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
-                      {/* 背景环 */}
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="44"
-                        fill="none"
-                        stroke="rgba(180, 83, 9, 0.12)"
-                        strokeWidth="6"
-                      />
-                      {/* 进度环 */}
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="44"
-                        fill="none"
-                        stroke="url(#scoreGradient)"
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        strokeDasharray={`${(result.score / 100) * 276.46} 276.46`}
-                        style={{ transition: 'stroke-dasharray 1.2s ease-out' }}
-                      />
-                      <defs>
-                        <linearGradient id="scoreGradient" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#D4A574" />
-                          <stop offset="100%" stopColor="#9A4B2E" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span
-                        className="font-serif font-bold text-amber-950 tabular-nums leading-none"
-                        style={{ fontSize: '38px' }}
-                      >
-                        {result.score}
-                      </span>
-                      <span className="font-sans text-amber-500 mt-1" style={{ fontSize: '11px' }}>
-                        共鸣度
-                      </span>
-                    </div>
-                  </div>
-                  <p className="font-serif text-amber-600/80 text-xs mt-2">{SHARE_TEMPLATES[shareTemplate].copy}</p>
-                </div>
-
-                {/* 共鸣气味 */}
-                {result.sharedNotes.length > 0 && (
-                  <div className="text-center mb-4">
-                    <p className="font-sans text-amber-700/80 text-xs mb-2">
-                      共同偏爱：{result.sharedNotes.map(n => n.split(' ')[1]).join(' · ')}
-                    </p>
-                    <p className="font-serif italic text-amber-700/80 text-xs leading-relaxed px-2">
-                      「{result.story.slice(0, 50)}…」
-                    </p>
-                  </div>
-                )}
-
-                {/* 二维码 + 域名 */}
-                <div className="flex items-center justify-between pt-3 border-t border-amber-200">
-                  <p className="font-sans text-amber-500/70 text-[10px]">crushxiangjian.com</p>
-                  <div className="w-12 h-12 bg-white border border-amber-200 rounded-md flex items-center justify-center overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(
-                        typeof window !== 'undefined' ? `${window.location.origin}/friend?inv=${encodeInvite(shareA.name)}` : `/friend?inv=${encodeInvite(shareA.name)}`
-                      )}`}
-                      alt="扫码"
-                      width={48}
-                      height={48}
-                      className="block"
-                    />
-                  </div>
-                </div>
-              </div>
-
-                      {/* 模板切换 Tab */}
+              {/* 模板切换 Tab */}
               <div className="flex gap-2 mt-3">
                 {(Object.keys(SHARE_TEMPLATES) as ShareTemplate[]).map((tpl) => (
                   <button
@@ -742,16 +631,19 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               {/* 平台双按钮 */}
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={handleCopyShareText}
-                  className="flex-1 py-3 bg-amber-900 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
+                  onClick={() => generateShare('1to1')}
+                  disabled={shareLoading}
+                  className="flex-1 py-3 bg-amber-900 text-amber-50 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
                   style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
                 >
-                  发 1:1 朋友圈
+                  {shareLoading ? '生成中…' : '发 1:1 朋友圈'}
                 </button>
                 <button
-                  className="flex-1 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all"
+                  onClick={() => generateShare('3to4')}
+                  disabled={shareLoading}
+                  className="flex-1 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
                 >
-                  发 3:4 小红书
+                  {shareLoading ? '生成中…' : '发 3:4 小红书'}
                 </button>
               </div>
             </section>
@@ -763,7 +655,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               }`}
             >
               <button
-                onClick={generateShare}
+                onClick={() => generateShare('1to1')}
                 disabled={shareLoading}
                 className="flex-1 py-3 bg-white border-2 border-amber-700 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all disabled:opacity-50"
               >
@@ -960,70 +852,6 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         </div>
       )}
 
-      {/* ── 隐藏契合度对比卡（html2canvas 截取目标） ── */}
-      {result && shareA && shareB && (
-        <div
-          id="compare-card"
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            top: 0,
-            width: '420px',
-            padding: '40px 32px',
-            background: '#FAF3EA',
-          }}
-          aria-hidden
-        >
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <p style={{ fontFamily: 'Noto Serif SC, serif', fontSize: 14, color: '#D4A574', letterSpacing: '0.2em' }}>SOUL COMPATIBILITY</p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontFamily: 'Noto Serif SC, serif', fontSize: 36, color: '#2C1810', fontWeight: 700 }}>{shareA.name}</p>
-              <p style={{ fontSize: 12, color: '#8B6F5C', marginTop: 4 }}>{shareA.tagline}</p>
-            </div>
-            <span style={{ fontFamily: 'Noto Serif SC, serif', fontSize: 28, color: '#D4A574' }}>×</span>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontFamily: 'Noto Serif SC, serif', fontSize: 36, color: '#2C1810', fontWeight: 700 }}>{shareB.name}</p>
-              <p style={{ fontSize: 12, color: '#8B6F5C', marginTop: 4 }}>{shareB.tagline}</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <div style={{ width: 180, height: 180, position: 'relative' }}>
-              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-                <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(180,83,9,0.12)" strokeWidth="6" />
-                <circle cx="50" cy="50" r="44" fill="none" stroke="url(#gradCompare)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(result.score / 100) * 276.46} 276.46`} />
-                <defs>
-                  <linearGradient id="gradCompare" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#D4A574" />
-                    <stop offset="100%" stopColor="#9A4B2E" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Noto Serif SC, serif', fontSize: 42, color: '#2C1810', fontWeight: 700 }}>{result.score}</span>
-                <span style={{ fontSize: 11, color: '#8B6F5C', marginTop: 2 }}>共鸣度</span>
-              </div>
-            </div>
-          </div>
-          <p style={{ textAlign: 'center', fontFamily: 'Noto Serif SC, serif', fontSize: 18, color: '#2C1810', marginBottom: 32 }}>{getCompatibilityStory(result.score).tier}</p>
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <p style={{ fontSize: 11, color: '#D4A574' }}>Crush 香鉴 · 找到与你共振的那支香</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── 保存对比图按钮（结果态底部） ── */}
-      {result && (
-        <div className="fixed bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-md border-t border-amber-100 p-4 safe-bottom z-30">
-          <button
-            onClick={handleSaveCompareImage}
-            className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"
-          >
-            生成双人对比海报 →
-          </button>
-        </div>
-      )}
     </main>
   );
 }
