@@ -27,7 +27,7 @@ import {
 import { PERSONALITY_TYPES } from '@/lib/data';
 import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
 import PaymentModal, { type PaymentContext } from '@/components/PaymentModal';
-import UnlockedContent from '@/components/UnlockedContent';
+import UnlockedContent, { detectFamily, FAMILY_COLORS, FAMILY_BG } from '@/components/UnlockedContent';
 import ScarcityStrip from '@/components/ScarcityStrip';
 import { markPaid, getPaidLevel, PRICE_CONFIG, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
@@ -506,10 +506,10 @@ function ResultInner() {
             你的香气光谱
           </h3>
           <p className="text-center text-amber-700 mb-4" style={{ fontSize: '13px' }}>
-            六个维度，勾勒你独有的气质坐标
+            六个维度 · 勾勒你独有的气质坐标
           </p>
           <div className="flex justify-center">
-            <RadarChart values={radarData} />
+            <RadarChart values={radarData} size={260} />
           </div>
           {/* 无障碍文字版 */}
           <ul className="sr-only">
@@ -572,6 +572,8 @@ function ResultInner() {
                   : '尝试香';
               // 锁定态：本命香全展示，其余 blur
               const isLocked = paidLevel < 2 && !isSignature;
+              // 锁定态瓶型配色与解锁版统一：按香调族动态着色
+              const family = detectFamily(personality.direction, rec.notesStructured.top);
               return (
                 <article
                   key={`${rec.role}-${rec.name}`}
@@ -602,14 +604,14 @@ function ResultInner() {
                     </span>
                   )}
 
-                  {/* 香水图（与解锁版一致：白色 SVG 瓶型）*/}
+                  {/* 香水图（与解锁版一致：按香调族动态着色）*/}
                   <div
                     className="w-full h-[120px] rounded-2xl flex items-center justify-center mb-3"
-                    style={{ background: '#F5EDE0' }}
+                    style={{ background: FAMILY_BG[family] ?? '#F5EDE0' }}
                   >
                     <PerfumeBottle
                       className="w-14 h-[90px]"
-                      stroke="#5C3A24"
+                      stroke={FAMILY_COLORS[family] ?? '#5C3A24'}
                     />
                   </div>
 
