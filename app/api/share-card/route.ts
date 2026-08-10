@@ -21,14 +21,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { renderShareCardCached, type ShareCardData } from "@/lib/shareCardRender";
+import { PERSONALITY_NAME_MAP } from "@/lib/personalities";
 
 export const runtime = "nodejs";
+
+function normalizeName(raw: string): string {
+  return PERSONALITY_NAME_MAP[raw] ?? raw;
+}
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
 
-  const nameA = sp.get("nameA") ?? "";
-  const nameB = sp.get("nameB") ?? "";
+  const nameA = normalizeName(sp.get("nameA") ?? "");
+  const nameB = normalizeName(sp.get("nameB") ?? "");
   const scoreRaw = sp.get("score");
   const inv = sp.get("inv") ?? "";
   const template = (sp.get("template") as ShareCardData["template"]) ?? "默契";
