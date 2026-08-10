@@ -20,7 +20,7 @@ import PerfumeBottle from '@/components/PerfumeBottle';
 import RadarChart from '@/components/RadarChart';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 
-const FAMILY_COLORS: Record<string, string> = {
+export const FAMILY_COLORS: Record<string, string> = {
   木质: '#5C3A24',
   花香: '#C8849E',
   柑橘: '#E8A13A',
@@ -29,7 +29,7 @@ const FAMILY_COLORS: Record<string, string> = {
   美食: '#D9773E',
 };
 
-const FAMILY_BG: Record<string, string> = {
+export const FAMILY_BG: Record<string, string> = {
   木质: 'rgba(92,58,36,0.08)',
   花香: 'rgba(200,132,158,0.10)',
   柑橘: 'rgba(232,161,58,0.10)',
@@ -45,7 +45,7 @@ function truncateNotes(notes: string, max: number): string {
   return parts.slice(0, max).join(' / ') + ' …';
 }
 
-function detectFamily(direction: string, notes: string | string[]): string {
+export function detectFamily(direction: string, notes: string | string[]): string {
   const noteText = Array.isArray(notes) ? notes.join(' ') : notes;
   const text = `${direction} ${noteText}`;
   const order = ['木质', '东方', '花香', '美食', '柑橘', '清新'];
