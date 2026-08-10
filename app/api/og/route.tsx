@@ -49,6 +49,7 @@ export async function GET(request: Request) {
         {/* 人格名 */}
         <div
           style={{
+            display: 'flex',
             fontSize: 168,
             color: '#FAF3EA',
             fontWeight: 700,
@@ -63,6 +64,7 @@ export async function GET(request: Request) {
         {/* tagline */}
         <div
           style={{
+            display: 'flex',
             fontSize: 40,
             color: '#D4A574',
             marginBottom: 56,
@@ -76,6 +78,7 @@ export async function GET(request: Request) {
         {/* 分隔线 */}
         <div
           style={{
+            display: 'flex',
             width: 480,
             height: 2,
             background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)',
