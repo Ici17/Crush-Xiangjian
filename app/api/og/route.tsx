@@ -1,11 +1,13 @@
 import { ImageResponse } from 'next/og';
-import { PERSONALITIES, getRecommendations } from '@/lib/personalities';
+import { PERSONALITIES, getRecommendations, PERSONALITY_NAME_MAP } from '@/lib/personalities';
 
 export const runtime = 'edge';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const name = searchParams.get('p') ?? '暗流';
+  const rawName = searchParams.get('p') ?? '暗流';
+  const decoded = decodeURIComponent(rawName);
+  const name = PERSONALITY_NAME_MAP[decoded] || decoded;
   const p = PERSONALITIES.find((x) => x.name === name);
   const tagline = p?.tagline ?? '未知的灵魂香气';
   const firstRec = getRecommendations(name)[0];
