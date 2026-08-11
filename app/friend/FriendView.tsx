@@ -15,6 +15,7 @@ import {
 } from "@/lib/inviteState";
 import PersonalityIcon from "@/components/PersonalityIcon";
 import RadarChart from "@/components/RadarChart";
+import { PERSONALITY_NAME_MAP } from "@/lib/personalities";
 
 /** 契合度四档解读 */
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
@@ -176,8 +177,10 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     if (typeof window === 'undefined') return;
     const sp = new URLSearchParams(window.location.search);
     if (sp.get('demo') === '1') {
-      const aName = sp.get('a') ?? '暗流';
-      const bName = sp.get('b') ?? '残温';
+      const aRaw = sp.get('a') ?? '暗流';
+      const bRaw = sp.get('b') ?? '残温';
+      const aName = PERSONALITY_NAME_MAP[aRaw] || aRaw;
+      const bName = PERSONALITY_NAME_MAP[bRaw] || bRaw;
       const a = PERSONALITY_TYPES.find((t) => t.name === aName) ?? null;
       const b = PERSONALITY_TYPES.find((t) => t.name === bName) ?? null;
       setDemoA(a);
@@ -245,11 +248,13 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     setShareLoading(true);
     try {
       const params = new URLSearchParams({
+        scene: 'friend',
         nameA: shareA.name,
         nameB: shareB.name,
+        perfumeNameA: shareA.signaturePerfume.name,
+        perfumeNameB: shareB.signaturePerfume.name,
         score: String(result.score),
         tier: getCompatibilityStory(result.score).tier,
-        template: shareTemplate,
         format,
         inv: encodeInvite(shareA.name),
         shared: result.sharedNotes.map(n => n.split(' ')[1]).join(','),
