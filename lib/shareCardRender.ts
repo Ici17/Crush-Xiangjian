@@ -429,7 +429,7 @@ function buildFriendCard(
 
   // 双人名字行（60% / 40%）
   const nameRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "20px" : "16px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "20px" : "16px" },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flex: "0 0 60%" },
@@ -439,7 +439,7 @@ function buildFriendCard(
         ],
       }),
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "0 0 40%" },
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "0 0 36%" },
         children: [
           JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "60px" : "48px", fontWeight: 700, lineHeight: 1.1 }, children: d.nameB }),
           JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "18px", marginTop: "6px" }, children: d.perfumeNameB }),
@@ -605,7 +605,7 @@ function buildSharedCard(
     children: [
       JSX("span", {
         style: { color: C.AMBER_ACCENT, fontSize: is3to4 ? "30px" : "26px", fontWeight: 700, letterSpacing: "0.04em" },
-        children: "3 分钟测你的香气 →",
+        children: "3 分钟测你的香气 >",
       }),
     ],
   });
