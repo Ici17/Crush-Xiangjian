@@ -22,46 +22,32 @@ export default function MemorySceneSection({ personalityName }: Props) {
 
   return (
     <section
-      aria-label="令人心动的瞬间"
-      className="px-6 py-8"
+      aria-label="专属记忆"
+      className="px-6 py-10"
       style={{ background: "#FAF3EA" }}
     >
-      {/* 标题 */}
+      {/* 专属记忆描述 */}
       <p
-        className="text-center mb-7"
+        className="text-center mb-8"
         style={{
           fontFamily: '"Noto Serif SC", serif',
-          fontSize: "13px",
-          fontStyle: "italic",
-          letterSpacing: "0.18em",
-          color: "#8B6F5C",
-        }}
-      >
-        令人心动的瞬间
-      </p>
-
-      {/* 记忆画面 */}
-      <p
-        className="text-center mb-6"
-        style={{
-          fontFamily: '"Noto Serif SC", serif',
-          fontSize: "17px",
-          lineHeight: 1.9,
+          fontSize: "15px",
+          lineHeight: 2,
           color: "#2C1810",
-          letterSpacing: "0.03em",
+          letterSpacing: "0.02em",
         }}
       >
-        {scene.memory}
+        {scene.description}
       </p>
 
       {/* 分隔线 */}
       <div
-        className="mx-auto mb-5"
-        style={{ width: "1px", height: "24px", background: "#D4A57460" }}
+        className="mx-auto mb-6"
+        style={{ width: "1px", height: "20px", background: "#D4A57460" }}
       />
 
       {/* 三调：纵向带标签 */}
-      <div className="flex flex-col gap-2 mb-6">
+      <div className="flex flex-col gap-2.5 mb-6">
         {notes.map(({ label, note }) => (
           <div key={label} className="flex items-start gap-3">
             <span
@@ -93,8 +79,8 @@ export default function MemorySceneSection({ personalityName }: Props) {
 
       {/* 分隔线 */}
       <div
-        className="mx-auto mb-5"
-        style={{ width: "1px", height: "20px", background: "#D4A57450" }}
+        className="mx-auto mb-6"
+        style={{ width: "1px", height: "16px", background: "#D4A57450" }}
       />
 
       {/* 心动短句 */}
@@ -102,9 +88,9 @@ export default function MemorySceneSection({ personalityName }: Props) {
         className="text-center"
         style={{
           fontFamily: '"Noto Serif SC", serif',
-          fontSize: "14px",
+          fontSize: "13px",
           fontStyle: "italic",
-          lineHeight: 1.8,
+          lineHeight: 1.9,
           color: "#8B6F5C",
           letterSpacing: "0.02em",
         }}
