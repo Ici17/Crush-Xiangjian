@@ -1,17 +1,22 @@
 /**
- * Crush香鉴 — 服务端分享图渲染
+ * Crush香鉴 — 服务端分享图渲染 v2
  *
- * 技术栈：satori（JSX→SVG）+ sharp（SVG→PNG）+ qrcode（带参二维码）
- * 字体：Noto Serif SC（public/fonts 静态托管，运行时优先本地读、失败则同源 HTTP 拉取）
- * 输出：1080×1080 (1:1 朋友圈) / 1080×1440 (3:4 小红书)
+ * 三个场景：
+ *   self    结果页本人（人格名 + 三香横排 + tagline）
+ *   friend  朋友匹配页（A主B辅 + 圆环契合度）
+ *   shared  /shared 分享卡（拉新为主 + 强CTA）
+ *
+ * 技术栈：satori（JSX→SVG）+ sharp（SVG→PNG）+ qrcode
+ * 字体：Noto Serif SC（public/fonts，运行时读磁盘 / 失败则同源HTTP拉取）
+ * 输出：1:1 (1080×1080) / 3:4 (1080×1440)
  *
  * ⚠️ satori 布局规则（v0.29）：
- * 1. 所有 <div> 必须显式 display: flex / contents / none，否则报错
- * 2. inset（CSS shorthand）不支持 → 用 top/left/right/bottom
- * 3. gap 不支持 → 用 margin
- * 4. <p> / <ul> 等默认 display 不是 flex → 用 <div> 代替
- * 5. 分隔线/装饰线：用 <span> + border-top 代替 <div> 背景
- * 6. 绝对定位 overlay：父 div 需 display:flex，overlay 子 div 也需 display:flex
+ *   1. 所有 <div> 必须显式 display: flex / contents / none
+ *   2. inset shorthand 不支持 → 用 top/left/right/bottom
+ *   3. gap 不支持 → 用 margin
+ *   4. <p>/<ul> 等默认不是 flex → 用 <div>/<span> 代替
+ *   5. 分隔线：用 <span> + border-top
+ *   6. 绝对定位：父 div 需 display:flex，overlay 子 div 也需 display:flex
  */
 
 import sharp from "sharp";
@@ -22,28 +27,50 @@ import { fileURLToPath } from "node:url";
 
 // ── 类型定义 ───────────────────────────────────────────────────────────────
 
-export type ShareTemplate = "默契" | "挑战" | "稀有";
+export type ShareScene = "self" | "friend" | "shared";
 
-export interface ShareCardData {
-  nameA: string;
-  nameB: string;
-  taglineA: string;
-  taglineB: string;
-  score: number;
-  tier: string;
-  sharedNotes: string[];
-  story: string;
-  inviteCode: string;
-  template?: ShareTemplate;
+export interface PerfumeCard {
+  name: string;
+  tier: string; // 本命香 | 进阶香 | 尝试香
+  match: number; // 0-100
 }
 
-// ── 模板配置 ───────────────────────────────────────────────────────────────
+export interface SelfShareData {
+  scene: "self";
+  name: string;
+  tagline: string; // 人格扎心短句（SHARE_QUOTES）
+  perfumeA: PerfumeCard;
+  perfumeB: PerfumeCard;
+  perfumeC: PerfumeCard;
+  sharedNotes?: string[];
+  format?: "1to1" | "3to4";
+}
 
-const TEMPLATE_META: Record<ShareTemplate, { subtitle: string }> = {
-  默契: { subtitle: "天生一对" },
-  挑战: { subtitle: "不服来战" },
-  稀有: { subtitle: "稀有组合" },
-};
+export interface FriendShareData {
+  scene: "friend";
+  nameA: string;
+  nameB: string;
+  perfumeNameA: string; // A 的本命香名
+  perfumeNameB: string; // B 的本命香名
+  score: number;
+  tier: string;
+  story: string;
+  sharedNotes?: string[];
+  inviteCode: string;
+  format?: "1to1" | "3to4";
+}
+
+export interface SharedShareData {
+  scene: "shared";
+  sharerName: string; // 分享者名字（人格名）
+  name: string; // 人格名
+  description: string; // 人格 description
+  perfumeName: string; // 本命香名
+  inviteCode: string;
+  format?: "1to1" | "3to4";
+}
+
+export type ShareCardData = SelfShareData | FriendShareData | SharedShareData;
 
 // ── 颜色常量 ───────────────────────────────────────────────────────────────
 
@@ -58,13 +85,24 @@ const C = {
   WHITE: "#FFFFFF",
 };
 
-// ── 字体管理（运行时下载 + 进程级缓存）──────────────────────────────────────
+// tier 颜色
+const TIER_COLOR: Record<string, string> = {
+  本命香: "#C4956A",
+  进阶香: "#8B7A6B",
+  尝试香: "#9BA8AB",
+};
+const TIER_BG: Record<string, string> = {
+  本命香: "#FDF3E7",
+  进阶香: "#F5F0EB",
+  尝试香: "#F0F4F4",
+};
+
+// ── 字体管理 ───────────────────────────────────────────────────────────────
 
 let _fontData: Buffer | null = null;
 
 async function getFont(): Promise<Buffer> {
   if (_fontData) return _fontData;
-  // 1) 先尝试本地磁盘（本地开发 / 某些部署形态）
   const __dir = (() => { try { return dirname(fileURLToPath(import.meta.url)); } catch { return ""; } })();
   const candidates = [
     join(process.cwd(), "public", "fonts", "NotoSerifSC.woff"),
@@ -76,43 +114,31 @@ async function getFont(): Promise<Buffer> {
   for (const p of candidates) {
     try {
       const buf = readFileSync(p);
-      if (buf.byteLength > 0) {
-        console.log("[shareCard] Font loaded (disk):", buf.byteLength, "bytes from", p);
-        _fontData = buf;
-        return _fontData;
-      }
-    } catch {
-      // try next candidate
-    }
+      if (buf.byteLength > 0) { _fontData = buf; return _fontData; }
+    } catch { /* try next */ }
   }
-  // 2) 兜底：从同源静态资源拉取（Vercel serverless 不一定挂载 public/）
+  // HTTP 兜底
   try {
     const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
-    const url = `${base}/fonts/NotoSerifSC.woff`;
-    const res = await fetch(url);
+    const res = await fetch(`${base}/fonts/NotoSerifSC.woff`);
     if (res.ok) {
       const buf = Buffer.from(await res.arrayBuffer());
-      if (buf.byteLength > 0) {
-        console.log("[shareCard] Font loaded (http):", buf.byteLength, "bytes from", url);
-        _fontData = buf;
-        return _fontData;
-      }
+      if (buf.byteLength > 0) { _fontData = buf; return _fontData; }
     }
   } catch (e) {
-    console.error("[shareCard] Font HTTP fetch failed:", (e as Error).message);
+    console.error("[shareCard] Font HTTP failed:", (e as Error).message);
   }
-  console.error("[shareCard] Font NOT available; cwd=", process.cwd());
   _fontData = Buffer.alloc(0);
   return _fontData;
 }
 
 // ── 二维码生成 ─────────────────────────────────────────────────────────────
 
-async function generateQR(dataUrl: string): Promise<string> {
-  const buf = await QRCode.toBuffer(dataUrl, {
+async function generateQR(url: string, size: number): Promise<string> {
+  const buf = await QRCode.toBuffer(url, {
     errorCorrectionLevel: "M",
     type: "png",
-    width: 220,
+    width: size,
     margin: 2,
     color: { dark: C.AMBER_DARK, light: C.WHITE },
   });
@@ -122,13 +148,11 @@ async function generateQR(dataUrl: string): Promise<string> {
 // ── 渐变圆环 SVG ───────────────────────────────────────────────────────────
 
 function buildRingSVG(score: number, size: number): string {
-  const cx = size / 2;
-  const cy = size / 2;
+  const cx = size / 2, cy = size / 2;
   const r = Math.round(size * 0.2);
   const circumference = 2 * Math.PI * r;
   const dashOffset = circumference * (1 - score / 100);
   const strokeW = Math.round(size * 0.028);
-
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
     <defs>
       <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
@@ -145,163 +169,93 @@ function buildRingSVG(score: number, size: number): string {
   </svg>`;
 }
 
-// ── 核心渲染函数 ───────────────────────────────────────────────────────────
+// ── 香水瓶 SVG（代码画瓶型，无外部图片）────────────────────────────────────
+
+function buildBottleSVG(tier: string, size: number): string {
+  const color = TIER_COLOR[tier] ?? C.AMBER_ACCENT;
+  const dark = C.AMBER_DARK;
+  // 瓶型比例：总高 size，瓶身 68%，瓶盖 18%，瓶口 14%
+  const bodyH = Math.round(size * 0.68);
+  const capH = Math.round(size * 0.18);
+  const neckH = Math.round(size * 0.14);
+  const bodyW = Math.round(size * 0.58);
+  const capW = Math.round(size * 0.32);
+  const bodyX = (size - bodyW) / 2;
+  const bodyY = capH + neckH;
+  const capX = (size - capW) / 2;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <defs>
+      <linearGradient id="bottleGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.85"/>
+        <stop offset="40%" stop-color="${color}"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0.70"/>
+      </linearGradient>
+    </defs>
+    <!-- 瓶盖 -->
+    <rect x="${capX}" y="0" width="${capW}" height="${capH}" rx="${Math.round(capW*0.25)}" fill="${dark}"/>
+    <!-- 瓶颈 -->
+    <rect x="${(size-capW*0.5)/2}" y="${capH}" width="${Math.round(capW*0.5)}" height="${neckH}" fill="${color}" opacity="0.9"/>
+    <!-- 瓶身 -->
+    <rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="${Math.round(bodyW*0.12)}" fill="url(#bottleGrad)"/>
+    <!-- 高光 -->
+    <rect x="${bodyX+Math.round(bodyW*0.12)}" y="${bodyY+Math.round(bodyH*0.05)}" width="${Math.round(bodyW*0.12)}" height="${Math.round(bodyH*0.55)}" rx="${Math.round(bodyW*0.06)}" fill="${C.WHITE}" opacity="0.25"/>
+  </svg>`;
+}
+
+// ── 底部品牌行（共用）──────────────────────────────────────────────────────
+
+function brandRow(qrBase64: string, qrSize: number, showBrand = true) {
+  return {
+    type: "bottom",
+    qrBase64,
+    qrSize,
+    showBrand,
+  };
+}
+
+// ── 核心渲染函数（分发三场景）──────────────────────────────────────────────
 
 export async function renderShareCard(
   data: ShareCardData,
   format: "1to1" | "3to4" = "1to1"
 ): Promise<Buffer> {
-  // 加载字体和 QR（并行）
   const fontData = await getFont();
-  const qrBase64 = await generateQR(
-    `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com"}/friend?inv=${data.inviteCode}`
-  );
-
-  const template = data.template ?? "默契";
-  const tmpl = TEMPLATE_META[template];
   const W = 1080;
   const H = format === "1to1" ? 1080 : 1440;
   const pad = format === "3to4" ? "80px 64px" : "64px";
-  const ringSize = format === "1to1" ? 220 : 240;
   const qrSize = format === "1to1" ? 130 : 150;
 
-  // satori 动态导入（与 serve.mjs 验证过的写法一致）
-  // @ts-ignore - satori 无类型声明
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
+
+  // 动态导入 satori
+  // @ts-ignore
   const satoriMod: any = await import("satori");
   const satori = satoriMod.default;
-  // @ts-ignore - satori/jsx/jsx-runtime 无类型声明
+  // @ts-ignore
   const jsxMod: any = await import("satori/jsx/jsx-runtime");
   const JSX = jsxMod.jsx;
 
-  const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVG(data.score, ringSize)).toString("base64")}`;
+  // QR 目标 URL 按场景决定
+  let qrUrl = base;
+  if (data.scene === "friend" || data.scene === "shared") {
+    const code = (data as FriendShareData | SharedShareData).inviteCode;
+    if (code) qrUrl = `${base}/friend?inv=${code}`;
+  }
 
-  const scoreLabel = template === "挑战" ? "共鸣度" : template === "稀有" ? "稀有度" : "共鸣度";
-  const storyText = `「${data.story.slice(0, 40)}…」`;
-  const notesText = data.sharedNotes.length > 0 ? `共同偏爱：${data.sharedNotes.join(" · ")}` : null;
+  const qrBase64 = await generateQR(qrUrl, qrSize);
 
-  // ── JSX DSL（遵循 satori 规则）──────────────────────────────────────────
+  // 分场景渲染
+  let root: any;
+  if (data.scene === "self") {
+    root = buildSelfCard(JSX, data as SelfShareData, W, H, pad, qrBase64, qrSize, base, fontData);
+  } else if (data.scene === "friend") {
+    root = buildFriendCard(JSX, data as FriendShareData, W, H, pad, qrBase64, qrSize, base, satori, buildRingSVG, fontData);
+  } else {
+    root = buildSharedCard(JSX, data as SharedShareData, W, H, pad, qrBase64, qrSize, base, buildBottleSVG, fontData);
+  }
 
-  // 规则：所有 div 显式 display:flex；gap 用 margin 代替；inset 展开为 top/left/right/bottom
-  // 品牌线分隔：用 span + border-top 代替 gradient div
-
-  const brandLine = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "20px" },
-    children: [
-      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
-      JSX("span", {
-        style: { color: C.TEXT_MUTED, fontSize: "22px", letterSpacing: "0.2em", fontWeight: 400, whiteSpace: "nowrap", marginLeft: "8px", marginRight: "8px" },
-        children: "Crush 香鉴",
-      }),
-      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
-    ],
-  });
-
-  const templateTag = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", background: C.AMBER_PALE, borderRadius: "999px", padding: "10px 28px", marginBottom: "20px", border: `1px solid ${C.AMBER_ACCENT}40` },
-    children: [
-      JSX("span", { style: { color: C.AMBER_MID, fontSize: "26px", fontWeight: 700 }, children: tmpl.subtitle }),
-    ],
-  });
-
-  const nameRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", marginBottom: "24px" },
-    children: [
-      JSX("span", { style: { color: C.AMBER_DARK, fontSize: "62px", fontWeight: 700, lineHeight: 1.1 }, children: data.nameA }),
-      JSX("span", { style: { color: C.AMBER_ACCENT, fontSize: "48px", fontWeight: 400, marginLeft: "12px", marginRight: "12px" }, children: "×" }),
-      JSX("span", { style: { color: C.AMBER_DARK, fontSize: "62px", fontWeight: 700, lineHeight: 1.1 }, children: data.nameB }),
-    ],
-  });
-
-  // 圆环 overlay：父 div 需 display:flex（多子节点），overlay div 也需 display:flex
-  const ringOverlay = JSX("div", {
-    style: {
-      position: "absolute",
-      top: "0px",
-      left: "0px",
-      right: "0px",
-      bottom: "0px",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    children: [
-      JSX("span", { style: { color: C.AMBER_DARK, fontSize: "72px", fontWeight: 700, lineHeight: 1 }, children: String(data.score) }),
-    ],
-  });
-
-  // 百分比标签移出圆环，独立显示在圆环下方（避免被圆环描边遮挡）
-  const scoreLabelEl = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "20px" },
-    children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "24px", fontWeight: 600 }, children: `% ${scoreLabel}` })],
-  });
-
-  const ringContainer = JSX("div", {
-    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: "20px" },
-    children: [
-      JSX("img", { src: ringBase64, width: ringSize, height: ringSize, style: { position: "absolute", top: "0px", left: "0px" } }),
-      ringOverlay,
-    ],
-  });
-
-  const tierBadge = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", background: C.AMBER_PALE, borderRadius: "999px", padding: "10px 28px", marginBottom: "20px", border: `1px solid ${C.AMBER_ACCENT}30` },
-    children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "26px", fontWeight: 600 }, children: data.tier })],
-  });
-
-  // notes + story：用 div 代替 p（satori 中 div 默认 display:flex/column 无需显式）
-  const notesEl = notesText
-    ? JSX("div", {
-        key: "notes",
-        style: { display: "flex", flexDirection: "column", alignItems: "center" },
-        children: [
-          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px", textAlign: "center" }, children: notesText }),
-          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px", fontStyle: "italic", textAlign: "center", marginTop: "6px" }, children: storyText }),
-        ],
-      })
-    : null;
-
-  const centerChildren = [templateTag, nameRow, ringContainer, scoreLabelEl, tierBadge];
-  if (notesEl) centerChildren.push(notesEl);
-
-  const center = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexGrow: 1 },
-    children: centerChildren,
-  });
-
-  const bottom = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "20px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
-    children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
-      JSX("img", {
-        src: qrBase64,
-        width: qrSize,
-        height: qrSize,
-        style: { borderRadius: "12px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
-      }),
-    ],
-  });
-
-  const root = JSX("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "space-between",
-      width: `${W}px`,
-      height: `${H}px`,
-      background: C.BG,
-      padding: pad,
-      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
-    },
-    children: [brandLine, center, bottom],
-  });
-
-  // ── satori → SVG → PNG ──────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const svgRaw = await (satori as any)(root, {
-    width: W,
-    height: H,
+    width: W, height: H,
     fonts: fontData.byteLength > 0
       ? [
           { name: "Noto Serif SC", data: fontData, weight: 400 as const, style: "normal" as const },
@@ -314,6 +268,377 @@ export async function renderShareCard(
   return pngBuffer;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景一：结果页本人（self）
+// 布局：人格名大字 → 三香横排 → tagline → 品牌行+QR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildSelfCard(
+  JSX: any, d: SelfShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, fontData: Buffer
+) {
+  const is3to4 = H > W;
+
+  // 人格名大字
+  const nameBlock = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "28px" : "24px" },
+    children: [
+      JSX("span", {
+        style: { color: C.AMBER_DARK, fontSize: is3to4 ? "88px" : "72px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.08em" },
+        children: d.name,
+      }),
+    ],
+  });
+
+  // 三香横排卡
+  const perfumeCards = [d.perfumeA, d.perfumeB, d.perfumeC].map((p, i) => {
+    const bottleSize = is3to4 ? 140 : 120;
+    const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVG(p.tier, bottleSize)).toString("base64")}`;
+    const tierColor = TIER_COLOR[p.tier] ?? C.AMBER_ACCENT;
+    const tierBg = TIER_BG[p.tier] ?? C.AMBER_PALE;
+    const cardW = is3to4 ? 280 : 260;
+    const cardH = is3to4 ? 240 : 210;
+
+    return JSX("div", {
+      key: i,
+      style: {
+        display: "flex", flexDirection: "column", alignItems: "center",
+        width: `${cardW}px`, minHeight: `${cardH}px`,
+        background: C.WHITE,
+        borderRadius: "16px",
+        border: `1px solid ${C.AMBER_LIGHT}50`,
+        padding: `${is3to4 ? "18px" : "14px"} ${is3to4 ? "12px" : "10px"}`,
+        boxShadow: `0 2px 12px rgba(92,56,38,0.08)`,
+      },
+      children: [
+        // 瓶型图
+        JSX("img", {
+          src: bottleSVG, width: bottleSize, height: bottleSize,
+          style: { display: "block", marginBottom: "10px" },
+        }),
+        // 香水名
+        JSX("span", {
+          style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 700, textAlign: "center", marginBottom: "6px", lineHeight: 1.2 },
+          children: p.name,
+        }),
+        // tier 徽章
+        JSX("div", {
+          style: {
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: tierBg, borderRadius: "999px",
+            padding: "4px 14px", marginBottom: "6px",
+            border: `1px solid ${tierColor}40`,
+          },
+          children: [
+            JSX("span", { style: { color: tierColor, fontSize: "18px", fontWeight: 600 }, children: p.tier }),
+          ],
+        }),
+        // match%
+        JSX("span", {
+          style: { color: C.AMBER_ACCENT, fontSize: "20px", fontWeight: 700 },
+          children: `${p.match}%`,
+        }),
+      ],
+    });
+  });
+
+  const perfumesRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "stretch", justifyContent: "center", gap: is3to4 ? "16px" : "12px", marginBottom: is3to4 ? "24px" : "20px" },
+    children: perfumeCards,
+  });
+
+  // tagline 扎心句
+  const taglineEl = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "16px" : "12px" },
+    children: [
+      JSX("span", {
+        style: { color: C.AMBER_MID, fontSize: is3to4 ? "26px" : "22px", textAlign: "center", lineHeight: 1.5, fontStyle: "italic" },
+        children: d.tagline,
+      }),
+    ],
+  });
+
+  // 共享香调（仅 3:4 显示）
+  const sharedNotesEl = is3to4 && d.sharedNotes && d.sharedNotes.length > 0
+    ? JSX("div", {
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
+        children: [
+          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: d.sharedNotes.join(" · ") }),
+        ],
+      })
+    : null;
+
+  // 品牌行 + QR
+  const bottomRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
+    children: [
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("img", {
+        src: qrBase64, width: qrSize, height: qrSize,
+        style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
+      }),
+    ],
+  });
+
+  const centerChildren = [nameBlock, perfumesRow, taglineEl];
+  if (sharedNotesEl) centerChildren.push(sharedNotesEl);
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+      width: `${W}px`, height: `${H}px`,
+      background: C.BG, padding: pad,
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center" },
+        children: centerChildren,
+      }),
+      bottomRow,
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景二：朋友匹配页（friend）
+// 布局：A 60%左 / B 40%右 → 圆环居中契合度 → tier → 关系句 → 品牌行+QR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildFriendCard(
+  JSX: any, d: FriendShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, _satori: any, buildRingSVGFn: (score: number, size: number) => string, fontData: Buffer
+) {
+  const is3to4 = H > W;
+  const ringSize = is3to4 ? 260 : 220;
+
+  const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVGFn(d.score, ringSize)).toString("base64")}`;
+
+  // 顶部品牌行
+  const brandLine = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "24px" : "20px" },
+    children: [
+      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
+      JSX("span", {
+        style: { color: C.TEXT_MUTED, fontSize: "22px", letterSpacing: "0.2em", whiteSpace: "nowrap", marginLeft: "8px", marginRight: "8px" },
+        children: "Crush 香鉴",
+      }),
+      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
+    ],
+  });
+
+  // 双人名字行（60% / 40%）
+  const nameRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "20px" : "16px" },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flex: "0 0 60%" },
+        children: [
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "72px" : "58px", fontWeight: 700, lineHeight: 1.1 }, children: d.nameA }),
+          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px", marginTop: "6px" }, children: d.perfumeNameA }),
+        ],
+      }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "0 0 40%" },
+        children: [
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "60px" : "48px", fontWeight: 700, lineHeight: 1.1 }, children: d.nameB }),
+          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "18px", marginTop: "6px" }, children: d.perfumeNameB }),
+        ],
+      }),
+    ],
+  });
+
+  // 圆环 + 契合度（居中）
+  const ringOverlay = JSX("div", {
+    style: {
+      position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    },
+    children: [
+      JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "80px" : "68px", fontWeight: 700, lineHeight: 1 }, children: String(d.score) }),
+    ],
+  });
+  const ringContainer = JSX("div", {
+    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: "16px" },
+    children: [
+      JSX("img", { src: ringBase64, width: ringSize, height: ringSize, style: { position: "absolute", top: "0px", left: "0px" } }),
+      ringOverlay,
+    ],
+  });
+  const scoreLabelEl = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "20px" },
+    children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "24px", fontWeight: 600 }, children: `% 共鸣度` })],
+  });
+
+  // tier 徽章
+  const tierBadge = JSX("div", {
+    style: {
+      display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center",
+      background: C.AMBER_PALE, borderRadius: "999px",
+      padding: "10px 28px", marginBottom: is3to4 ? "20px" : "16px",
+      border: `1px solid ${C.AMBER_ACCENT}40`,
+    },
+    children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "26px", fontWeight: 600 }, children: d.tier })],
+  });
+
+  // 关系解读句
+  const storyEl = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "16px" : "12px" },
+    children: [
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px", textAlign: "center", lineHeight: 1.5 }, children: d.story }),
+    ],
+  });
+
+  // 共享香调（仅 3:4）
+  const sharedNotesEl = is3to4 && d.sharedNotes && d.sharedNotes.length > 0
+    ? JSX("div", {
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
+        children: [JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: `共享 ${d.sharedNotes.join(" · ")}` })],
+      })
+    : null;
+
+  // 品牌行 + QR
+  const bottomRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
+    children: [
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("img", {
+        src: qrBase64, width: qrSize, height: qrSize,
+        style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
+      }),
+    ],
+  });
+
+  const centerChildren: any[] = [nameRow, ringContainer, scoreLabelEl, tierBadge, storyEl];
+  if (sharedNotesEl) centerChildren.push(sharedNotesEl);
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+      width: `${W}px`, height: `${H}px`,
+      background: C.BG, padding: pad,
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center" }, children: [brandLine, ...centerChildren] }),
+      bottomRow,
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景三：/shared 分享卡（shared）
+// 布局：品牌行 → "这是 XXX 的香气" 副标题 → 人格名大字 → description → 本命香瓶+名 → CTA大字 → 品牌行+QR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildSharedCard(
+  JSX: any, d: SharedShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, buildBottleSVGFn: (tier: string, size: number) => string, fontData: Buffer
+) {
+  const is3to4 = H > W;
+  const bottleSize = is3to4 ? 200 : 170;
+  const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVGFn("本命香", bottleSize)).toString("base64")}`;
+
+  // 品牌行
+  const brandLine = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "24px" : "20px" },
+    children: [
+      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
+      JSX("span", {
+        style: { color: C.TEXT_MUTED, fontSize: "22px", letterSpacing: "0.2em", whiteSpace: "nowrap", marginLeft: "8px", marginRight: "8px" },
+        children: "Crush 香鉴",
+      }),
+      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
+    ],
+  });
+
+  // 副标题
+  const subtitle = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "12px" },
+    children: [
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px" }, children: `这是 ${d.sharerName} 的香气` }),
+    ],
+  });
+
+  // 人格名大字
+  const nameBlock = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "20px" : "16px" },
+    children: [
+      JSX("span", {
+        style: { color: C.AMBER_DARK, fontSize: is3to4 ? "96px" : "80px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" },
+        children: d.name,
+      }),
+    ],
+  });
+
+  // description
+  const descEl = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "28px" : "24px" },
+    children: [
+      JSX("span", { style: { color: C.AMBER_MID, fontSize: is3to4 ? "24px" : "22px", textAlign: "center", lineHeight: 1.5 }, children: d.description }),
+    ],
+  });
+
+  // 本命香瓶 + 名
+  const perfumeBlock = JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center",
+      background: C.WHITE, borderRadius: "20px",
+      border: `1px solid ${C.AMBER_LIGHT}50`,
+      padding: is3to4 ? "24px 32px" : "20px 28px",
+      marginBottom: is3to4 ? "28px" : "24px",
+      boxShadow: `0 4px 20px rgba(92,56,38,0.10)`,
+    },
+    children: [
+      JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", marginBottom: "12px" } }),
+      JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "24px" : "22px", fontWeight: 700, textAlign: "center", marginBottom: "8px" }, children: d.perfumeName }),
+      JSX("div", {
+        style: { display: "flex", alignItems: "center", justifyContent: "center", background: TIER_BG["本命香"], borderRadius: "999px", padding: "5px 18px", border: `1px solid ${TIER_COLOR["本命香"]}40` },
+        children: [JSX("span", { style: { color: TIER_COLOR["本命香"], fontSize: "18px", fontWeight: 600 }, children: "本命香" })],
+      }),
+    ],
+  });
+
+  // CTA
+  const ctaEl = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "20px" : "16px" },
+    children: [
+      JSX("span", {
+        style: { color: C.AMBER_ACCENT, fontSize: is3to4 ? "30px" : "26px", fontWeight: 700, letterSpacing: "0.04em" },
+        children: "3 分钟测你的香气 →",
+      }),
+    ],
+  });
+
+  // 品牌行 + QR
+  const bottomRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
+    children: [
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("img", {
+        src: qrBase64, width: qrSize, height: qrSize,
+        style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
+      }),
+    ],
+  });
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+      width: `${W}px`, height: `${H}px`,
+      background: C.BG, padding: pad,
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center" },
+        children: [brandLine, subtitle, nameBlock, descEl, perfumeBlock, ctaEl],
+      }),
+      bottomRow,
+    ],
+  });
+}
+
 // ── 内存缓存（LRU，50 条 / 5 分钟 TTL）────────────────────────────────────
 
 const _cache = new Map<string, { buffer: Buffer; ts: number }>();
@@ -321,7 +646,17 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX = 50;
 
 function _cacheKey(data: ShareCardData, format: string) {
-  return `${data.nameA}|${data.nameB}|${data.score}|${data.template ?? "默契"}|${format}`;
+  const base = `${data.scene}|${format}`;
+  if (data.scene === "self") {
+    const d = data as SelfShareData;
+    return `${base}|${d.name}|${d.perfumeA.match}|${d.perfumeB.match}|${d.perfumeC.match}`;
+  } else if (data.scene === "friend") {
+    const d = data as FriendShareData;
+    return `${base}|${d.nameA}|${d.nameB}|${d.score}`;
+  } else {
+    const d = data as SharedShareData;
+    return `${base}|${d.sharerName}|${d.name}`;
+  }
 }
 
 export async function renderShareCardCached(
