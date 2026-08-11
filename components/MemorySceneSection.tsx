@@ -14,33 +14,17 @@ export default function MemorySceneSection({ personalityName }: Props) {
       className="px-6 py-10"
       style={{ background: "#FAF3EA" }}
     >
-      {/* 专属记忆描述 */}
       <p
-        className="text-center mb-6"
+        className="text-center"
         style={{
           fontFamily: '"Noto Serif SC", serif',
           fontSize: "15px",
-          lineHeight: 2,
+          lineHeight: 2.1,
           color: "#2C1810",
           letterSpacing: "0.02em",
         }}
       >
         {scene.description}
-      </p>
-
-      {/* 洞察短句 */}
-      <p
-        className="text-center"
-        style={{
-          fontFamily: '"Noto Serif SC", serif',
-          fontSize: "13px",
-          fontStyle: "italic",
-          lineHeight: 1.9,
-          color: "#8B6F5C",
-          letterSpacing: "0.02em",
-        }}
-      >
-        {scene.insight}
       </p>
     </section>
   );
