@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import MemorySceneSection from './MemorySceneSection';
+
 import {
   getHiddenFace,
   getScentBlueprint,
@@ -177,6 +179,9 @@ export default function UnlockedContent({
           「香气不是面具，是尚未被说出口的自我。」
         </p>
       </section>
+
+      {/* ── 令人心动的瞬间 ── */}
+      <MemorySceneSection personalityName={personalityName} />
 
       {/* ── 本命香水：SVG 瓶型横滑 ── */}
       <section className="px-0" aria-label="本命香水完整档案">
