@@ -1,12 +1,24 @@
 "use client";
-import { getMemoryScene } from "@/lib/memoryScenes";
+import { getMemoryScene, type PerfumeSnapshot } from "@/lib/memoryScenes";
+
+interface PerfumeData {
+  name: string;
+  brand: string;
+  notesStructured?: { top: string[]; heart: string[]; base: string[] };
+  top?: string[];
+  heart?: string[];
+  base?: string[];
+}
 
 interface Props {
   personalityName: string;
+  perfume?: PerfumeData;
 }
 
-export default function MemorySceneSection({ personalityName }: Props) {
-  const scene = getMemoryScene(personalityName);
+export default function MemorySceneSection({ personalityName, perfume }: Props) {
+  const scene = perfume
+    ? getMemoryScene(personalityName, toSnapshot(perfume))
+    : { description: "你身上有种说不清的特别。像一阵路过却让人记住的风。" };
 
   return (
     <section
@@ -28,4 +40,17 @@ export default function MemorySceneSection({ personalityName }: Props) {
       </p>
     </section>
   );
+}
+
+function toSnapshot(p: PerfumeData): PerfumeSnapshot {
+  if (p.notesStructured) return p as PerfumeSnapshot;
+  return {
+    name: p.name,
+    brand: p.brand,
+    notesStructured: {
+      top: p.top || [],
+      heart: p.heart || [],
+      base: p.base || [],
+    },
+  };
 }

@@ -181,7 +181,10 @@ export default function UnlockedContent({
       </section>
 
       {/* ── 令人心动的瞬间 ── */}
-      <MemorySceneSection personalityName={personalityName} />
+      <MemorySceneSection
+          personalityName={personalityName}
+          perfume={perfumes.find(p => p.role === 'signature')}
+        />
 
       {/* ── 本命香水：SVG 瓶型横滑 ── */}
       <section className="px-0" aria-label="本命香水完整档案">

@@ -566,7 +566,10 @@ function ResultInner() {
         )}
 
         {/* ━━━ 令人心动的瞬间 ━━━ */}
-        <MemorySceneSection personalityName={personalityName} />
+        <MemorySceneSection
+          personalityName={personalityName}
+          perfume={displayPerfumes.find(p => p.role === 'signature')}
+        />
 
         {/* ━━━ 本命香水 ━━━ */}
         <section className="px-6 pt-4 pb-10" aria-label="本命香水推荐">

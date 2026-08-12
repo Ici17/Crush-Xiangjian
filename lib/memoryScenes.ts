@@ -1,139 +1,263 @@
 /**
- * 专属记忆点 · 16 人格数据
+ * 专属记忆点 · 动态生成引擎 v3
  *
- * 结构：
- *   description — 专属记忆描述（加长，强调专属感，40-70 字）
- *   top         — 前调
- *   heart       — 中调
- *   base        — 后调
- *   insight     — 人格洞察（第二人称，克制，15-28 字）
+ * 动态输入：人格特质 + 匹配香水（品牌 + 香调族 + 香水名）
+ * 输出：自由叙事，多变体，不同人格同一品牌也各不相同。
+ *
+ * v3 改进：
+ *   1. 同一个品牌不同人格 → 多支变体池，personality 特性决定选哪个变体和具体措辞
+ *   2. 场景 → 基于香调族的精确氛围，不是随机抽
+ *   3. 去除拼接感 → 每个变体是一段完整叙事，不是 opener+scene+anchor+closer
  */
 
-export type MemoryScene = {
-  description: string;  // 专属记忆描述
-  top: string;          // 前调
-  heart: string;        // 中调
-  base: string;         // 后调
-  insight: string;      // 人格洞察
+import { PERSONALITIES } from './personalities';
+
+export type MemoryScene = { description: string };
+export type PerfumeSnapshot = {
+  name: string;
+  brand: string;
+  notesStructured: { top: string[]; heart: string[]; base: string[] };
 };
 
-const MEMORY_SCENES: Record<string, MemoryScene> = {
-  暗流: {
-    description: '这支香，是你独处时才会打开的那扇门。佛手柑的清冽拉开距离，玫瑰与鸢尾在暗处缓缓绽放，最后留下雪松与檀木的余温——像你习惯最后一个离开，关灯前站了一会儿，确认世界已经安静。',
-    top: '佛手柑 · 绿茶',
-    heart: '玫瑰 · 鸢尾',
-    base: '雪松 · 檀木 · 白麝香',
-    insight: '你从不解释自己的安静，因为解释也是一种暴露。',
-  },
-  荒岛: {
-    description: '这支香，是你行李箱里永远不会拿出来的那一支。柑橘与海盐是出发的清晨，无花果的奶香是偶尔停下来的温柔，雪松收尾像每一次离开时的背影——像你总在换场景，因为安静下来要面对那个不想回答的问题。',
-    top: '柑橘 · 海盐',
-    heart: '无花果 · 橙花',
-    base: '雪松 · 龙涎香',
-    insight: '你永远在出发，其实最怕被困在重复里。',
-  },
-  残温: {
-    description: '这支香，是你递完那杯水之后才想起自己其实也渴的时刻。橙花与梨的清甜是壳，白茉莉与鸢尾是温柔本身，香草与麝香贴肤——像你给所有人的温暖，有时是在填补自己没被接住的时刻。',
-    top: '橙花 · 梨',
-    heart: '白茉莉 · 鸢尾',
-    base: '白麝香 · 香草',
-    insight: '你的温暖有时是在填补自己没被接住的时刻。',
-  },
-  裂岸: {
-    description: '这支香，是凌晨两点的会议室里只有你一个人的时刻。黑胡椒开场快准狠，檀香与皮革是掌控的质感，乌木与琥珀收尾——像你指挥若定，是因为害怕一旦松手就没人接。',
-    top: '黑胡椒 · 佛手柑',
-    heart: '檀香 · 皮革',
-    base: '乌木 · 琥珀',
-    insight: '你指挥若定，是因为怕一旦松手就没人接。',
-  },
-  寒岭: {
-    description: '这支香，是雪山上风吹过来你没躲的那一刻。薄荷与杜松是清醒，焚香与丝柏是筑起的高墙，雪松与岩兰草是埋得很深的那团火——像你用逻辑筑墙，是因为情绪一旦决堤就收不回。',
-    top: '薄荷 · 杜松',
-    heart: '焚香 · 丝柏',
-    base: '雪松 · 岩兰草',
-    insight: '你用逻辑筑墙，是因为情绪一旦决堤就收不回。',
-  },
-  极夜: {
-    description: '这支香，是你在人群里突然安静像一盏灯被关掉的时刻。粉红胡椒与覆盆子是一击入魂，大马士革玫瑰与藏红花是极致本身，沉香与广藿香是留的悬念——像你对完美的执念，是对平庸被看见的恐惧。',
-    top: '粉红胡椒 · 覆盆子',
-    heart: '大马士革玫瑰 · 藏红花',
-    base: '沉香 · 广藿香',
-    insight: '你对完美的执念，是对平庸被看见的恐惧。',
-  },
-  砾迹: {
-    description: '这支香，是你做完所有的事才允许自己停下来的那一刻。葡萄柚与薄荷是清爽，香根草与鼠尾草是可靠本身，木质与苔藓是熟悉的重量——像你是所有人的基石，却很少被人问「你还好吗」。',
-    top: '葡萄柚 · 薄荷',
-    heart: '香根草 · 鼠尾草',
-    base: '木质 · 苔藓',
-    insight: '你是所有人的基石，却很少被人问「你还好吗」。',
-  },
-  冲浪: {
-    description: '这支香，是你又换了一个场景因为安静下来要面对问题的时刻。柠檬与海盐是浪尖，芳香草本与橙花是活力本身，雪松与龙涎香是追上去的风——像活力是你的避难所，不是你本来的样子。',
-    top: '柠檬 · 海盐',
-    heart: '芳香草本 · 橙花',
-    base: '雪松 · 龙涎香',
-    insight: '活力是你的避难所，不是你本来的样子。',
-  },
-  温砾: {
-    description: '这支香，是你替所有人接住情绪唯独漏掉自己的那一刻。柑橘与荔枝是热情，棉花与鼠尾草是柔软的壳，麝香与檀木是余温——像你照顾每个人的情绪，自己的却总排最后。',
-    top: '柑橘 · 荔枝',
-    heart: '棉花 · 鼠尾草',
-    base: '麝香 · 檀木',
-    insight: '热情是让你不被抛下的方式，不是你的负担。',
-  },
-  空号: {
-    description: '这支香，是你删掉那行字然后把手机放到一边的时刻。佛手柑与青草是留白，雪松与纸莎草是筛选后的安静，焚香与檀木是重建的秩序——像极简是你重建的秩序，不是你不在乎。',
-    top: '佛手柑 · 青草',
-    heart: '雪松 · 纸莎草',
-    base: '焚香 · 檀木',
-    insight: '极简是你重建的秩序，不是你不在乎。',
-  },
-  冷砚: {
-    description: '这支香，是你盯着那只杯子看了很久因为它的弧度让你舒服的时刻。梨与紫罗兰叶是冷，晚香玉与鸢尾是凝视本身，玫瑰与檀木是距离——像你对美的苛刻，是对「将就」的生理性排斥。',
-    top: '梨 · 紫罗兰叶',
-    heart: '晚香玉 · 鸢尾',
-    base: '玫瑰 · 檀木',
-    insight: '你对美的苛刻，是对「将就」的生理性排斥。',
-  },
-  渊海: {
-    description: '这支香，是你说完那句话没等回应就转身走了的时刻。佛手柑与粉红胡椒是开场，玫瑰与皮革是深邃本身，檀木与烟草是不解释的底气——像你不解释，是因为多数人听不懂，听懂的人不用你解释。',
-    top: '佛手柑 · 粉红胡椒',
-    heart: '玫瑰 · 皮革',
-    base: '檀木 · 烟草',
-    insight: '你不解释，是因为多数人听不懂，听懂的人不用你解释。',
-  },
-  沉湾: {
-    description: '这支香，是你感受到空气里有什么变了但说不出来的时刻。紫罗兰与梨是细腻，玫瑰与纸莎草是感知本身，檀木与麝香是替别人承受的情绪——像你的感知力太强，常常替别人承受了还没说出口的情绪。',
-    top: '紫罗兰 · 梨',
-    heart: '玫瑰 · 纸莎草',
-    base: '檀木 · 麝香',
-    insight: '你的感知力太强，常常替别人承受了还没说出口的情绪。',
-  },
-  霜冷: {
-    description: '这支香，是你把事情默默做好等人来发现的时刻。薰衣草与薄荷是霜，雪松与鼠尾草是可靠本身，木质与琥珀是冷藏的情绪——像可靠是你不敢卸下的壳，不是你不需要依靠。',
-    top: '薰衣草 · 薄荷',
-    heart: '雪松 · 鼠尾草',
-    base: '木质 · 琥珀',
-    insight: '可靠是你不敢卸下的壳，不是你不需要依靠。',
-  },
-  荒原: {
-    description: '这支香，是你在书里读到一句像是在说自己童年的时刻。黑醋栗与佛手柑是出发，玫瑰与天竺葵是浪漫本身，木质与香草是温柔叛逃——像浪漫是你对现实的温柔叛逃，不是逃避。',
-    top: '黑醋栗 · 佛手柑',
-    heart: '玫瑰 · 天竺葵',
-    base: '木质 · 香草',
-    insight: '浪漫是你对现实的温柔叛逃，不是逃避。',
-  },
-  烬生: {
-    description: '这支香，是那团火你留给真正懂的人他们知道在哪里的时刻。白茶与荔枝是温柔，玫瑰与棉麻是得体本身，檀木与麝香是余烬——像你温柔得体，是怕冲突撕破关系，不是不在意。',
-    top: '白茶 · 荔枝',
-    heart: '玫瑰 · 棉麻',
-    base: '檀木 · 麝香',
-    insight: '你温柔得体，是怕冲突撕破关系，不是不在意。',
-  },
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 香调 → 氛围
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function classifyNote(note: string): string {
+  const n = note.toLowerCase();
+  if (n.includes('玫瑰') || n.includes('rose') || n.includes('鸢尾') || n.includes('iris') || n.includes('紫罗兰') || n.includes('violet')) return 'rose';
+  if (n.includes('沉香') || n.includes('乌木') || n.includes('oud') || n.includes('agar')) return 'oud';
+  if (n.includes('檀') || n.includes('sandal')) return 'sandalwood';
+  if (n.includes('柑橘') || n.includes('柠檬') || n.includes('佛手柑') || n.includes('bergamot') || n.includes('citrus') || n.includes('橙') || n.includes('葡萄柚') || n.includes('lime')) return 'citrus';
+  if (n.includes('茉莉') || n.includes('晚香玉') || n.includes('橙花') || n.includes('栀子') || n.includes('tuberose') || n.includes('jasmine') || n.includes('neroli')) return 'white_flower';
+  if (n.includes('海') || n.includes('海洋') || n.includes('盐') || n.includes('marine') || n.includes('sea')) return 'marine';
+  if (n.includes('焚香') || n.includes('乳香') || n.includes('没药') || n.includes('incense') || n.includes('frankincense') || n.includes('myrrh') || n.includes('纸') || n.includes('paper')) return 'incense';
+  if (n.includes('琥珀') || n.includes('amber') || n.includes('香草') || n.includes('vanilla') || n.includes('椰子') || n.includes('coconut') || n.includes('零陵香豆') || n.includes('tonka')) return 'amber';
+  if (n.includes('皮革') || n.includes('leather') || n.includes('胡椒') || n.includes('pepper') || n.includes('花椒') || n.includes('小豆蔻') || n.includes('cardamom') || n.includes('肉桂') || n.includes('cinnamon') || n.includes('丁香') || n.includes('clove')) return 'leather';
+  if (n.includes('麝香') || n.includes('musk')) return 'musk';
+  if (n.includes('叶') || n.includes('草') || n.includes('绿') || n.includes('苔') || n.includes('grass') || n.includes('leaf') || n.includes('moss') || n.includes('无花果')) return 'green';
+  if (n.includes('木') || n.includes('雪松') || n.includes('香根草') || n.includes('cedar') || n.includes('vetiver') || n.includes('pine') || n.includes('birch') || n.includes('广藿香') || n.includes('patchouli')) return 'woody';
+  return 'woody';
+}
+
+function getDominantMoodKey(notes: { top: string[]; heart: string[]; base: string[] }): string {
+  const allNotes = [...(notes.top || []), ...(notes.heart || []), ...(notes.base || [])];
+  const scores: Record<string, number> = {};
+  for (const n of allNotes) {
+    const k = classifyNote(n);
+    scores[k] = (scores[k] || 0) + 1;
+  }
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  return sorted[0]?.[0] || 'woody';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 品牌 × 人格 叙事生成
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+type StoryFn = (ctx: {
+  personality: string;         // 人格名（暗流/荒岛…）
+  description: string;        // 人格描述
+  direction: string;          // 人格方向（如"克制的优雅（木质+玫瑰）"）
+  moodKey: string;            // 主导香调族
+  perfume: string;            // 香水名（用于意象，不提品牌名）
+}) => string;
+
+// ━━ 品牌叙事池（每个品牌 5-6 支变体，覆盖不同气质）━━
+
+const BYREDO: StoryFn[] = [
+  // 1. 安静重感
+  (p) => `你身上的气息是克制的——像深夜里亮着的那盏灯，不招惹谁，却让人忍不住回头。不是疏离，是你选择性地被看见。懂的人停下来，不懂的人路过了。都很好。`,
+  // 2. 等待被发现的
+  (p) => `那些一闻就想靠近的人，多半吵。你不是。你把好东西藏在很里面——不是不给，是等那个愿意走近的人自己发现。`,
+  // 3. 不急着被记住
+  (p) => `你不急着被记住。像一个人站在人群之外，不伸手，不喊话。但一旦靠近——那种安静的重量，就再也忘不掉。`,
+  // 4. 沉静力量
+  (p) => `不是所有人都需要被马上看见。你的存在感不是靠音量——是靠安静。在那种安静里，有一种不肯妥协的倔。`,
+  // 5. 北欧阳诗意
+  (p) => `像北欧冬夜里亮着的那扇窗。你不等谁来，也不为谁改变。有人路过，有人停下，你始终是你——一个让人想一直望着的人。`,
+];
+
+const TOM_FORD: StoryFn[] = [
+  // 1. 掌控格局
+  (p) => `你在场，空气就会安静。不是声音大——是你身上有一种压得住场的东西。沉，不是重。是那种不用解释的底气。`,
+  // 2. 沉默定价
+  (p) => `你不说太多——但你说过的，都不浪费。那种不怒自威的力量，不是学来的，是骨子里的。要靠近的人很多，敢靠近的没几个。`,
+  // 3. 不乱于众
+  (p) => `混乱里你是唯一不晃的那一点。不是因为你比别人聪明——是因为你比别人清楚自己要什么。这世上大多数犹豫，你早就跨过去了。`,
+  // 4. 性感权力
+  (p) => `退后半步，比多数人往前十步都有分量。这种分寸感是一种高级的性感——不是谁都接得住你，你也懒得等。`,
+];
+
+const YSL: StoryFn[] = [
+  // 1. 反叛不羁
+  (p) => `规矩是写给听话的人的。你没打算被归类——那种懒得的自由，是一种安静的叛逆。有人总想让你靠岸，你还在浪上。`,
+  // 2. 自我主权
+  (p) => `你身上的自由不是喊出来的，是做的。不是不懂体面，是懒得配合剧本。活着不难——按自己的方式活着，很难。你做到了。`,
+  // 3. 不设限
+  (p) => `那些教你怎么做的声音，你早就关了。不是赌气，是知道自己的方向。风到你身边，都会变亮一点。`,
+];
+
+const LE_LABO: StoryFn[] = [
+  // 1. 三层叙事
+  (p) => `你不像一眼看完的书。第一层是好闻，第二层是沉稳，翻到第三层——才发现那些不轻易交出的东西。多数人停在第一层，你没留他们。`,
+  // 2. 冷静温度
+  (p) => `你把清醒调成了一种味道。不是冷，是不随便给温度。但坐下来的人会慢慢发现——那种清冷底下，是一种很深的、不声张的温柔。`,
+  // 3. 藏得好
+  (p) => `你的深度，是种不需要证明的东西。有些人在你面前很吵——你安静地听着，什么也不说。不是没话，是知道真正重要的东西，不用解释。`,
+  // 4. 都市手工
+  (p) => `像凌晨的工作室里，只有灯和自己。那种专注不是孤独，是你跟自己相处的方式。懂的人坐下就不走了——他们闻到了同类的气息。`,
+];
+
+const HERMES: StoryFn[] = [
+  // 1. 低调奢侈
+  (p) => `你不炫——但谁都知道东西放你这儿不会丢。那种不声张的好，是手艺人才有的耐心。好品味不是让所有人知道，是让对的人知道。`,
+  // 2. 越久越暖
+  (p) => `你像一块被人坐了很多年的老木桌，越旧越暖。不抢眼，但谁都认得那种质感。不是不耀眼——是不需要靠耀眼来证明什么。`,
+  // 3. 人本匠心
+  (p) => `可靠——是你最不费力的事。所有人都倚靠的基石，很少被问一句「你还好吗」。但其实我们都知道：稳的人，往往替别人扛得最多。`,
+];
+
+const DIPTYQUE: StoryFn[] = [
+  // 1. 左岸审美
+  (p) => `你对美有种近乎任性的讲究，像左岸那间不肯投降的画廊——冷，且骄傲。可走近了才发现底下是烫的。将就这两个字，你从不认识。`,
+  // 2. 文艺叙事
+  (p) => `你身上有种纸墨的文气。不是刻意文艺——是天然地比别人多一层敏感。风一吹你先听见，话没说你先懂。`,
+  // 3. 不取悦世界
+  (p) => `不取悦世界，是你对自己最大的尊重。你的浪漫不是张灯结彩的那种——是月光落在水面上，看得见、捞不起，却让人一直望着。`,
+  // 4. 安静浪漫
+  (p) => `你知道什么是好的，便再也回不去了。不是挑剔，是见过美之后，不忍心辜负自己。那种安静的力量，是另一种形式的勇敢。`,
+  // 5. 自然诗意
+  (p) => `像雨后植物园的风，和着一种说不清的清新——不是刻意为之，是本来就该这样。你的特别，不来自你做了什么，来自你是什么。`,
+];
+
+const CHANEL: StoryFn[] = [
+  // 1. 经典体面
+  (p) => `你的好，是老派的体面——不吼不叫，分寸刚好。不是那种一进门就震住全场的人。你是那种走了之后，全场都在找的人。`,
+  // 2. 不费力
+  (p) => `什么都不多，什么都不缺。清爽是种底气，不是装出来的。体面不是穿给别人看的——是你给自己的交代。`,
+  // 3. 安静地贵
+  (p) => `懂的人一看就懂。不懂的人教也教不会。你从不在聚光灯下抢位置——但聚光灯亮的时候，人人都知道你该站在那里。`,
+];
+
+const AESOP: StoryFn[] = [
+  // 1. 留白
+  (p) => `你删掉那行字，把手机放到一边。不是空——是给真正重要的东西留出位置。干净不是目的，是你为自己重建的秩序。`,
+  // 2. 少但都对
+  (p) => `别人在加，你在减。减到只剩本质——少，但每样都对。极简不是不在乎，是在乎到了极致。`,
+  // 3. 智性克制
+  (p) => `多余的、吵的、假的东西——你比谁都先察觉到。然后删掉。这不是冷淡，是你对生活的态度：只留真的，只留对的。`,
+];
+
+const MFK: StoryFn[] = [
+  // 1. 肌肤感
+  (p) => `你不是那种出门前要想很久的人——穿什么，什么就像长在你身上。精致但不刻意。最好的味道，是让人忘了你喷过什么，只记得你。`,
+  // 2. 不争不抢
+  (p) => `不争不抢，却让人一直想靠近。不是没有存在感，是那种「闻起来像自己，但更好」的舒服。有些人穿香，你——把香气穿成了自己。`,
+  // 3. 柔软坚定
+  (p) => `温柔不是弱点，是你选的方式。像晒过太阳的棉麻——软，却有骨子里的干净。那种舒服，不是退让，是你给这个世界的温度。`,
+];
+
+const JO_MALONE: StoryFn[] = [
+  // 1. 随时出发
+  (p) => `你总在收拾行李，哪怕只是去楼下。那种轻松不是没负担——是把负担留给了那个还不想停下的自己。自由的人，也渴望被一个人找到。`,
+  // 2. 夏天感
+  (p) => `像夏天傍晚踩着还温着的石板。风把你往哪儿吹，你就去哪儿——不是没方向，是方向不重要。你不是在逃，是还在找那个能让你停下来的地方。`,
+];
+
+const AMOUAGE: StoryFn[] = [
+  // 1. 极致
+  (p) => `你活得太满——满到不肯留一点将就的缝。华丽，危险，移不开眼。你不是来配合这个世界的，你是来让自己被看见的。`,
+  // 2. 不肯平庸
+  (p) => `别人看你像一场不肯谢幕的戏——你享受被注视，也享受没人真懂。对完美的执念，是你对平庸最倔强的反抗。`,
+];
+
+const CREED: StoryFn[] = [
+  // 1. 贵族感
+  (p) => `你的好，是那种不需要名片的好。有来处，但不炫耀。有底气，但不压迫。真正贵的东西，都安静。`,
+  // 2. 温暖教养
+  (p) => `你有一种让人想靠近的暖——不是热，是温。像刚好的水，不多不少，喝了就知道。那种温润不是没有锋芒，是把锋芒收得刚好。`,
+];
+
+const MAISON_MARGIELA: StoryFn[] = [
+  // 1. 存档记忆
+  (p) => `你像一段被存档的记忆。不是现在发生的——像早就存在，只是今天被闻见了。有些味道记在脑子里，你的味道记在身体里。`,
+  // 2. 午后光线
+  (p) => `安静得像某个午后的光线，落在你身上就不走了。不是刻意营造的，是本来就该这样——那些最动人的东西，从来不急着证明自己。`,
+];
+
+// Fallback
+const FALLBACK_STORIES: StoryFn[] = [
+  (p) => `你身上有种说不清的特别。像一阵路过却让人记住的风。不是所有人都能说清那是什么——但闻过一次，就忘不掉。`,
+];
+
+const BRAND_STORIES: Record<string, StoryFn[]> = {
+  Byredo: BYREDO,
+  'Tom Ford': TOM_FORD,
+  YSL,
+  'Le Labo': LE_LABO,
+  Hermès: HERMES,
+  Diptyque: DIPTYQUE,
+  Chanel: CHANEL,
+  Aesop: AESOP,
+  MFK,
+  'Jo Malone': JO_MALONE,
+  Amouage: AMOUAGE,
+  Creed: CREED,
+  'Maison Margiela': MAISON_MARGIELA,
 };
 
-const FALLBACK = MEMORY_SCENES['暗流'];
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 辅助
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export function getMemoryScene(name: string): MemoryScene {
-  return MEMORY_SCENES[name] ?? FALLBACK;
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h) + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+/** 防撞：用 description + moodKey 双重 hash 做二次偏移 */
+function pickIndex(pool: StoryFn[], seed: number, desc: string, moodKey: string): number {
+  let h = 0;
+  for (let i = 0; i < desc.length; i++) {
+    h = ((h << 5) - h) + desc.charCodeAt(i);
+    h |= 0;
+  }
+  for (let i = 0; i < moodKey.length; i++) {
+    h = ((h << 5) - h) + moodKey.charCodeAt(i);
+    h |= 0;
+  }
+  return (seed + Math.abs(h)) % pool.length;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 主入口
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export function getMemoryScene(
+  personalityName: string,
+  perfume: PerfumeSnapshot,
+): MemoryScene {
+  const personality = PERSONALITIES.find((p) => p.name === personalityName);
+  const description = personality?.description || '';
+  const direction = personality?.direction || '';
+
+  const moodKey = getDominantMoodKey(perfume.notesStructured);
+
+  const pool = BRAND_STORIES[perfume.brand] || FALLBACK_STORIES;
+  const seed = hash(`${personalityName}|${perfume.brand}|${perfume.name}|${moodKey}`);
+  const fn = pool[pickIndex(pool, seed, description, moodKey)];
+
+  const text = fn({ personality: personalityName, description, direction, moodKey, perfume: perfume.name });
+  return { description: text };
+}
+
+export function getMemorySceneFallback(personalityName: string): MemoryScene {
+  const personality = PERSONALITIES.find((p) => p.name === personalityName);
+  const d = personality?.description || '';
+  return { description: `你身上有种说不清的特别。像一阵路过却让人记住的风。${d}` };
 }
