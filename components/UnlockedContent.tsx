@@ -55,16 +55,6 @@ export function detectFamily(direction: string, notes: string | string[]): strin
   return '木质';
 }
 
-function sectionTitle(title: string) {
-  return (
-    <div className="flex items-center justify-center gap-3 mb-5">
-      <span className="h-px w-6 bg-amber-400" />
-      <h2 className="font-serif text-lg font-medium text-amber-950">{title}</h2>
-      <span className="h-px w-6 bg-amber-400" />
-    </div>
-  );
-}
-
 export default function UnlockedContent({
   personalityName,
   radarData,
@@ -128,57 +118,34 @@ export default function UnlockedContent({
         </div>
       )}
 
-      {/* ── 香气光谱：雷达图 + 数值网格 ── */}
-      <section className="px-6" aria-label="香气光谱">
-        <div className="rounded-3xl p-6" style={{ background: '#FDF8F3' }}>
-          <h3 className="font-serif text-2xl font-medium text-amber-950 text-center mb-1">
-            你的香气光谱
-          </h3>
-          <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
-            六个维度 · 勾勒你独有的气质坐标
-          </p>
-          <div className="flex justify-center">
-            <RadarChart values={radarData} size={260} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2.5 mt-6">
-            {radarGrid.map(({ dim, value }) => {
-              const tier = value >= 80 ? 'high' : value < 60 ? 'low' : 'mid';
-              return (
-                <div
-                  key={dim}
-                  className="text-center rounded-xl py-2.5 px-1"
-                  style={{
-                    background:
-                      tier === 'high' ? '#FAEEDA' : tier === 'low' ? '#F5EDE0' : 'transparent',
-                  }}
-                >
-                  <div
-                    className="text-xs mb-0.5"
-                    style={{ color: tier === 'high' ? '#BA7517' : '#854F0B' }}
-                  >
-                    {dim}
-                  </div>
-                  <div
-                    className="font-serif"
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: tier === 'high' ? 600 : 500,
-                      color: tier === 'high' ? '#2C1810' : tier === 'low' ? '#BA7517' : '#5C3A24',
-                    }}
-                  >
-                    {value}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* ── 香气光谱：雷达图 ── */}
+      <section className="px-6 pt-6 pb-8" aria-label="香气光谱">
+        <h3
+          className="font-serif text-amber-950 text-center mb-1"
+          style={{ fontSize: '24px' }}
+        >
+          你的香气光谱
+        </h3>
+        <p className="text-center text-amber-700 mb-4" style={{ fontSize: '13px' }}>
+          六个维度 · 勾勒你独有的气质坐标
+        </p>
+        <div className="flex justify-center">
+          <RadarChart values={radarData} size={260} />
         </div>
+        {/* 无障碍文字版 */}
+        <ul className="sr-only">
+          {Object.entries(radarData).map(([dim, val]) => (
+            <li key={dim}>{dim}：{Math.round((val ?? 0) * 100)}%</li>
+          ))}
+        </ul>
+      </section>
 
-        <p className="text-center italic text-amber-700 mt-4" style={{ fontSize: '14px' }}>
+      {/* ━━━ 解析金句 ━━━ */}
+      <div className="px-6 pb-2 text-center">
+        <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
           「香气不是面具，是尚未被说出口的自我。」
         </p>
-      </section>
+      </div>
 
       {/* ── 令人心动的瞬间 ── */}
       <MemorySceneSection
@@ -186,24 +153,30 @@ export default function UnlockedContent({
           perfume={perfumes.find(p => p.role === 'signature')}
         />
 
-      {/* ── 本命香水：SVG 瓶型横滑 ── */}
-      <section className="px-0" aria-label="本命香水完整档案">
-        <div className="px-6">
-          {sectionTitle('本命香水')}
-          <p className="text-center text-amber-700 -mt-3 mb-4" style={{ fontSize: '14px' }}>
-            三支香气，与你的灵魂产生共振
-          </p>
+      {/* ━━━ 本命香水 ━━━ */}
+      <section className="px-6 pt-4 pb-10" aria-label="本命香水推荐">
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">本命香水</h2>
+          <span className="h-px w-6 bg-amber-400" />
         </div>
-        <div className="flex gap-3 overflow-x-auto no-scrollbar px-6 pb-2">
+        <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
+          三支香气，与你的灵魂产生共振
+        </p>
+        <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1">
           {perfumes.map((p) => (
             <PerfumeCard key={p.name} perfume={p} direction={personality.direction} />
           ))}
         </div>
       </section>
 
-      {/* ── 性格解读：杂志排版 ── */}
+      {/* ━━━ 性格解读 ━━━ */}
       <section className="px-6" aria-label="性格解读">
-        {sectionTitle('性格解读')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">性格解读</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <div className="space-y-4">
           {descriptionParagraphs.map((para, i) => (
             <p
@@ -222,9 +195,13 @@ export default function UnlockedContent({
         </div>
       </section>
 
-      {/* ── 用香哲学：场景卡片 ── */}
+      {/* ━━━ 用香哲学 ━━━ */}
       <section className="px-6" aria-label="用香哲学">
-        {sectionTitle('用香哲学')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">用香哲学</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <p
           className="text-amber-800 italic text-center mb-5"
           style={{ fontSize: '16px', lineHeight: 1.75 }}
@@ -238,9 +215,13 @@ export default function UnlockedContent({
         </div>
       </section>
 
-      {/* ── 香调偏好：可视化条（共享组件）── */}
+      {/* ━━━ 香调偏好 ━━━ */}
       <section className="px-6" aria-label="香调偏好">
-        {sectionTitle('香调偏好')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">香调偏好</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <div className="mb-5">
           <ScentPreferenceBar
             data={Object.fromEntries(radarGrid.map(({ dim, value }) => [dim, value]))}
@@ -263,9 +244,13 @@ export default function UnlockedContent({
         </ul>
       </section>
 
-      {/* ── 关系解读 ── */}
+      {/* ━━━ 关系解读 ━━━ */}
       <section className="px-6" aria-label="关系解读">
-        {sectionTitle('关系解读')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">关系解读</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-white border border-amber-100 rounded-xl p-4">
             <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初次见面</h4>
@@ -361,9 +346,13 @@ export default function UnlockedContent({
         </div>
       </section>
 
-      {/* ── 反差香 ── */}
+      {/* ━━━ 反差香 ━━━ */}
       <section className="px-6" aria-label="反差香">
-        {sectionTitle('反差香')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">反差香</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <p className="text-center text-amber-700 mb-4" style={{ fontSize: '14px' }}>
           你不会选，但值得试
         </p>
@@ -372,9 +361,13 @@ export default function UnlockedContent({
         </div>
       </section>
 
-      {/* ── 气味底稿 ── */}
+      {/* ━━━ 气味底稿 ━━━ */}
       <section className="px-6" aria-label="气味底稿">
-        {sectionTitle('气味底稿')}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <span className="h-px w-6 bg-amber-400" />
+          <h2 className="font-serif text-lg font-medium text-amber-950">气味底稿</h2>
+          <span className="h-px w-6 bg-amber-400" />
+        </div>
         <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
           你的专属香方起点
         </p>
@@ -385,42 +378,6 @@ export default function UnlockedContent({
         >
           <span>💡</span>
           <span>你可以带着这份底稿去香水店，让调香师帮你找到最接近的那一支。</span>
-        </p>
-      </section>
-
-      {/* ── 支付信任标识 ── */}
-      <section className="px-6 pb-2 text-center">
-        <div className="flex items-center justify-center mb-2.5">
-          {/* 微信支付（simple-icons 官方 path） */}
-          <span className="inline-flex items-center gap-1.5" aria-label="支持微信支付">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z" fill="#07C160"/>
-            </svg>
-            <span style={{ color: '#07C160', fontSize: '14px', fontWeight: 500 }}>微信支付</span>
-          </span>
-
-          {/* 竖线分隔 */}
-          <span className="mx-4 block h-4 w-px bg-amber-300" aria-hidden="true" />
-
-          {/* 支付宝（simple-icons 官方 path） */}
-          <span className="inline-flex items-center gap-1.5" aria-label="支持支付宝">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M19.695 15.07c3.426 1.158 4.203 1.22 4.203 1.22V3.846c0-2.124-1.705-3.845-3.81-3.845H3.914C1.808.001.102 1.722.102 3.846v16.31c0 2.123 1.706 3.845 3.813 3.845h16.173c2.105 0 3.81-1.722 3.81-3.845v-.157s-6.19-2.602-9.315-4.119c-2.096 2.602-4.8 4.181-7.607 4.181-4.75 0-6.361-4.19-4.112-6.949.49-.602 1.324-1.175 2.617-1.497 2.025-.502 5.247.313 8.266 1.317a16.796 16.796 0 0 0 1.341-3.302H5.781v-.952h4.799V6.975H4.77v-.953h5.81V3.591s0-.409.411-.409h2.347v2.84h5.744v.951h-5.744v1.704h4.69a19.453 19.453 0 0 1-1.986 5.06c1.424.52 2.702 1.011 3.654 1.333m-13.81-2.032c-.596.06-1.71.325-2.321.869-1.83 1.608-.735 4.55 2.968 4.55 2.151 0 4.301-1.388 5.99-3.61-2.403-1.182-4.438-2.028-6.637-1.809" fill="#1677FF"/>
-            </svg>
-            <span style={{ color: '#1677FF', fontSize: '14px', fontWeight: 500 }}>支付宝</span>
-          </span>
-        </div>
-        <p className="text-amber-600 mb-2 inline-flex items-center gap-1" style={{ fontSize: '11px', lineHeight: 1.6 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#D97706" aria-hidden="true">
-            <path d="M12 1l3.09 6.26L22 8.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 13.14 2 8.27l6.91-1.01L12 1z"/>
-          </svg>
-          安全加密支付 · 7 天不满意全额退款
-        </p>
-        <p
-          className="text-amber-700/80 mt-3 leading-6 text-center"
-          style={{ fontSize: '12px', fontFamily: '"Noto Serif SC", serif' }}
-        >
-          一份关于你的香气答案，值得被认真看见
         </p>
       </section>
     </div>
