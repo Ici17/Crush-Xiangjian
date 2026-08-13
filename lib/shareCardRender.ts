@@ -42,7 +42,9 @@ export interface SelfShareData {
   perfumeA: PerfumeCard;
   perfumeB: PerfumeCard;
   perfumeC: PerfumeCard;
-  sharedNotes?: string[];
+  // 锁定版内容（2026-08-13 改：分享图=锁定版，不含解锁内容）
+  radar?: Record<string, number>; // 六维雷达 0~1（香气图谱）
+  memoryScene?: string; // 记忆点区块文案
   format?: "1to1" | "3to4";
 }
 
@@ -56,6 +58,11 @@ export interface FriendShareData {
   tier: string;
   story: string;
   sharedNotes?: string[];
+  // 新增 v2
+  perfumeTierA?: string; // A 的本命香 tier
+  perfumeTierB?: string; // B 的本命香 tier
+  hiddenA?: string; // A 隐藏人格面一句话 (3:4)
+  hiddenB?: string; // B 隐藏人格面一句话 (3:4)
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -66,6 +73,10 @@ export interface SharedShareData {
   name: string; // 人格名
   description: string; // 人格 description
   perfumeName: string; // 本命香名
+  // 新增 v2
+  perfumeTier?: string; // 本命香 tier
+  blueprint?: { top: string[]; heart: string[]; base: string[] }; // 气味底稿
+  radarTop3?: string[]; // 香调偏好 top 3 (3:4)
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -199,6 +210,76 @@ function buildBottleSVG(tier: string, size: number): string {
     <rect x="${bodyX}" y="${bodyY}" width="${bodyW}" height="${bodyH}" rx="${Math.round(bodyW*0.12)}" fill="url(#bottleGrad)"/>
     <!-- 高光 -->
     <rect x="${bodyX+Math.round(bodyW*0.12)}" y="${bodyY+Math.round(bodyH*0.05)}" width="${Math.round(bodyW*0.12)}" height="${Math.round(bodyH*0.55)}" rx="${Math.round(bodyW*0.06)}" fill="${C.WHITE}" opacity="0.25"/>
+  </svg>`;
+}
+
+// ── 香气图谱（六维雷达图）──────────────────────────────────────────────────
+// 维度顺序：上=木质，顺时针 → 清新 → 东方 → 美食 → 柑橘 → 花香
+const RADAR_DIM_LIST = ['木质', '清新', '东方', '美食', '柑橘', '花香'];
+
+function buildRadarSVG(values: Record<string, number>, size: number): string {
+  const VB = 280;
+  const CX = VB / 2;
+  const CY = VB / 2;
+  const R = 92;
+  const N = RADAR_DIM_LIST.length;
+  const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
+  const toXY = (radius: number, angleDeg: number): [number, number] => {
+    const a = (angleDeg * Math.PI) / 180;
+    return [CX + radius * Math.cos(a), CY + radius * Math.sin(a)];
+  };
+  const angleOf = (i: number) => -90 + i * (360 / N);
+  const VISUAL_FLOOR = 0.22;
+  const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
+  const ringPoints = (radius: number): string =>
+    RADAR_DIM_LIST.map((_, i) => toXY(radius, angleOf(i)).join(',')).join(' ');
+  const dataPoints = RADAR_DIM_LIST.map((dim, i) =>
+    toXY(R * visualValue(values[dim] ?? 0), angleOf(i)).join(',')
+  ).join(' ');
+
+  const labelPos = (i: number) => {
+    const angle = angleOf(i);
+    const rad = R + 22;
+    const [x, y] = toXY(rad, angle);
+    const anchor = Math.abs(Math.cos((angle * Math.PI) / 180)) < 0.25
+      ? 'middle'
+      : Math.cos((angle * Math.PI) / 180) > 0
+      ? 'start'
+      : 'end';
+    return { x, y, anchor };
+  };
+
+  const ringsSvg = RINGS.map((scale, idx) =>
+    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#D4A574" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.32}" stroke-width="${idx === RINGS.length - 1 ? 1.5 : 1.0}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="2 3"'}/>`
+  ).join('');
+
+  const axesSvg = RADAR_DIM_LIST.map((_, i) => {
+    const [x, y] = toXY(R, angleOf(i));
+    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#D4A574" stroke-opacity="0.32" stroke-width="0.8"/>`;
+  }).join('');
+
+  const dotsSvg = RADAR_DIM_LIST.map((dim, i) => {
+    const [x, y] = toXY(R * visualValue(values[dim] ?? 0), angleOf(i));
+    return `<circle cx="${x}" cy="${y}" r="2.6" fill="#B4783C" stroke="#FBF6EE" stroke-width="1.2"/>`;
+  }).join('');
+
+  const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
+    const pos = labelPos(i);
+    const yOffset =
+      Math.sin((angleOf(i) * Math.PI) / 180) < -0.5
+        ? pos.y - 2
+        : Math.sin((angleOf(i) * Math.PI) / 180) > 0.5
+        ? pos.y + 12
+        : pos.y + 4;
+    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F4E37" font-size="13" font-family="'Noto Serif SC', serif" font-weight="500">${dim}</text>`;
+  }).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${VB} ${VB}">
+    <g stroke="#D4A574" fill="none">${ringsSvg}</g>
+    <g>${axesSvg}</g>
+    <polygon points="${dataPoints}" fill="rgba(196,149,106,0.16)" stroke="#B4783C" stroke-width="2.0" stroke-linejoin="round"/>
+    <g>${dotsSvg}</g>
+    <g>${labelsSvg}</g>
   </svg>`;
 }
 
@@ -358,15 +439,37 @@ function buildSelfCard(
     ],
   });
 
-  // 共享香调（仅 3:4 显示）
-  const sharedNotesEl = is3to4 && d.sharedNotes && d.sharedNotes.length > 0
-    ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
+  // ━━ 香气图谱（六维雷达图）━━
+  const radarEl = d.radar ? (() => {
+    const radarSize = is3to4 ? 320 : 220;
+    const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
+    return JSX("div", {
+      style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "20px" : "16px" },
+      children: [
+        JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "16px", marginBottom: "8px" }, children: "香气图谱" }),
+        JSX("img", { src: radarSVG, width: radarSize, height: radarSize, style: { display: "block" } }),
+      ],
+    });
+  })() : null;
+
+  // ━━ 记忆点区块（令人心动的瞬间）━━
+  const memoryEl = d.memoryScene ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "20px" : "16px", paddingHorizontal: "16px" },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "10px", width: "100%" },
         children: [
-          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: d.sharedNotes.join(" · ") }),
+          JSX("span", { style: { flexGrow: 1, height: "1px", background: C.AMBER_LIGHT }, children: "" }),
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 500, marginLeft: "12px", marginRight: "12px", whiteSpace: "nowrap" }, children: "令人心动的瞬间" }),
+          JSX("span", { style: { flexGrow: 1, height: "1px", background: C.AMBER_LIGHT }, children: "" }),
         ],
-      })
-    : null;
+      }),
+      JSX("span", {
+        style: { color: C.AMBER_MID, fontSize: is3to4 ? "20px" : "17px", textAlign: "center", lineHeight: 1.7 },
+        children: d.memoryScene.slice(0, is3to4 ? 80 : 50) + (d.memoryScene.length > (is3to4 ? 80 : 50) ? "..." : ""),
+      }),
+    ],
+  }) : null;
 
   // 品牌行 + QR
   const bottomRow = JSX("div", {
@@ -380,8 +483,9 @@ function buildSelfCard(
     ],
   });
 
-  const centerChildren = [nameBlock, perfumesRow, taglineEl];
-  if (sharedNotesEl) centerChildren.push(sharedNotesEl);
+  const centerChildren: any[] = [nameBlock, perfumesRow, taglineEl];
+  if (radarEl) centerChildren.push(radarEl);
+  if (memoryEl) centerChildren.push(memoryEl);
 
   return JSX("div", {
     style: {
