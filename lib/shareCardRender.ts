@@ -464,7 +464,7 @@ function buildSelfCard(
       }),
       JSX("span", {
         style: { color: C.AMBER_MID, fontSize: is3to4 ? "20px" : "17px", textAlign: "center", lineHeight: 1.7 },
-        children: d.memoryScene.slice(0, is3to4 ? 80 : 50) + (d.memoryScene.length > (is3to4 ? 80 : 50) ? "..." : ""),
+        children: d.memoryScene,
       }),
     ],
   }) : null;
@@ -473,7 +473,13 @@ function buildSelfCard(
   const bottomRow = JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
     children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center" },
+        children: [
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 600, letterSpacing: "0.04em" }, children: "Crush 香鉴" }),
+          JSX("span", { style: { color: C.AMBER_MID, fontSize: "14px", fontStyle: "italic", lineHeight: 1.4, marginTop: "4px" }, children: "你身上，藏着哪种香气？" }),
+        ],
+      }),
       JSX("img", {
         src: qrBase64, width: qrSize, height: qrSize,
         style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
@@ -481,9 +487,8 @@ function buildSelfCard(
     ],
   });
 
-  const centerChildren: any[] = [nameBlock, perfumesRow, taglineEl];
-  if (radarEl) centerChildren.push(radarEl);
-  if (memoryEl) centerChildren.push(memoryEl);
+  const centerChildren: any[] = [nameBlock, taglineEl, memoryEl, perfumesRow];
+  if (radarEl && is3to4) centerChildren.push(radarEl);
 
   return JSX("div", {
     style: {
