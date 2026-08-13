@@ -61,8 +61,6 @@ export interface FriendShareData {
   // 新增 v2
   perfumeTierA?: string; // A 的本命香 tier
   perfumeTierB?: string; // B 的本命香 tier
-  hiddenA?: string; // A 隐藏人格面一句话 (3:4)
-  hiddenB?: string; // B 隐藏人格面一句话 (3:4)
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
