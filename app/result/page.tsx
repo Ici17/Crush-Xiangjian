@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MemorySceneSection from '@/components/MemorySceneSection';
+import { getMemoryScene, type PerfumeSnapshot } from '@/lib/memoryScenes';
 import {
   getPersonality,
   getRadarScores,
@@ -310,6 +311,27 @@ function ResultInner() {
     const dims = shareRadarRaw
       ? Object.entries(shareRadarRaw).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([d]) => d)
       : [];
+
+    // 锁定版内容（2026-08-13 改：分享图=锁定版，不含解锁内容）
+    const personality = getPersonality(personalityName);
+    // 香气图谱：六维雷达 0~1
+    const radar: Record<string, number> = {};
+    if (shareRadarRaw) {
+      Object.entries(shareRadarRaw).forEach(([dim, val]) => {
+        radar[dim] = Math.max(0, Math.min(1, val / 100));
+      });
+    }
+    // 记忆点区块：基于本命香（recs[0]）
+    let memoryScene: string | undefined;
+    if (recs[0]) {
+      const snapshot: PerfumeSnapshot = {
+        name: recs[0].name,
+        brand: recs[0].brand,
+        notesStructured: recs[0].notesStructured,
+      };
+      memoryScene = getMemoryScene(personalityName, snapshot).description;
+    }
+
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://crushxiangjian.com';
     const params = new URLSearchParams({
       scene: 'self', format,
@@ -319,6 +341,9 @@ function ResultInner() {
       perfumeB: recs[1]?.name ?? '', matchB: String(recs[1]?.match ?? 0),
       perfumeC: recs[2]?.name ?? '', matchC: String(recs[2]?.match ?? 0),
       shared: dims.join(','),
+      // 锁定版内容
+      radar: JSON.stringify(radar),
+      memoryScene: memoryScene ?? '',
     });
     const res = await fetch(`/api/share-card?${params}`);
     if (!res.ok) return;
@@ -1078,8 +1103,8 @@ function ResultInner() {
           navigator.clipboard.writeText(shareLink).catch(() => {});
           setShareHint('链接已复制 ✓');
         }}
-        onSaveImage={() => {
-          handleSaveShareImage();
+        onSaveImage={(format) => {
+          handleSaveShareImage(format);
           setShareHint('分享图已保存 ✓');
         }}
         isInWeChat={isInWeChat()}
