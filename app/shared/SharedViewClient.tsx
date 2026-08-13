@@ -121,18 +121,30 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
   }
 
   async function handleSaveImage() {
-    const el = document.getElementById('share-card');
-    if (!el) return;
+    if (!mappedName || !personality || !firstRec) return;
     try {
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(el, { backgroundColor: '#FAF3EA' });
+      const params = new URLSearchParams({
+        scene: 'shared',
+        sharerName: mappedName,
+        name: mappedName,
+        description: personality.description,
+        perfumeName: firstRec.name,
+        inv: encodeInvite(mappedName),
+        format: '3to4',
+      });
+      const res = await fetch(`/api/share-card?${params}`);
+      if (!res.ok) throw new Error('render failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.download = `${personalityName}的香气人格.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = url;
       link.click();
+      URL.revokeObjectURL(url);
       showToast('分享图已保存');
     } catch (e) {
       console.error(e);
+      showToast('分享图生成失败，请重试');
     }
   }
 
@@ -168,69 +180,6 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
       `}</style>
 
       {toast && <Toast message={toast} />}
-
-      {/* 隐藏分享卡（html2canvas 截取目标） */}
-      <div
-        id="share-card"
-        style={{
-          position: 'absolute',
-          left: '-9999px',
-          top: 0,
-          width: '375px',
-          padding: '32px 24px',
-          background: '#FAF3EA',
-        }}
-        aria-hidden
-      >
-        <p
-          style={{
-            fontFamily: 'Noto Serif SC, Georgia, serif',
-            fontSize: '18px',
-            color: '#2C1810',
-            textAlign: 'center',
-          }}
-        >
-          朋友分享了他的灵魂人格
-        </p>
-        <p
-          style={{
-            fontFamily: 'Noto Serif SC, Georgia, serif',
-            fontSize: '40px',
-            color: '#2C1810',
-            textAlign: 'center',
-            marginTop: '12px',
-          }}
-        >
-          {mappedName || personalityName}
-        </p>
-        <p style={{ fontSize: '13px', color: '#8B6F5C', textAlign: 'center' }}>
-          {personality.tagline}
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <RadarChart values={radarData} size={160} />
-        </div>
-        {firstRec && (
-          <p style={{ fontSize: '12px', color: '#8B6F5C', textAlign: 'center', marginTop: '12px' }}>
-            本命香水 · {firstRec.name}
-          </p>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '16px' }}>
-          <img
-            src={qrUrl}
-            alt="扫码测试"
-            width={100}
-            height={100}
-            style={{ borderRadius: '10px', display: 'block' }}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-          <p style={{ fontSize: '10px', color: '#D4A574', textAlign: 'center', marginTop: '6px' }}>
-            扫码测试你的灵魂香气
-          </p>
-        </div>
-        <p style={{ fontSize: '11px', color: '#D4A574', textAlign: 'center', marginTop: '16px' }}>
-          Crush 香鉴
-        </p>
-      </div>
 
       {/* 顶部区域 */}
       <div className="bg-gradient-to-b from-amber-50 to-cream px-5 pt-safe-top pt-6 pb-6">
