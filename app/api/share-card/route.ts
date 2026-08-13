@@ -75,13 +75,31 @@ export async function GET(req: NextRequest) {
     const matchB = parseInt(sp.get("matchB") ?? "", 10);
     const perfumeC = sp.get("perfumeC") ?? "";
     const matchC = parseInt(sp.get("matchC") ?? "", 10);
-    const shared = sp.get("shared") ? sp.get("shared")!.split(",").filter(Boolean) : undefined;
+    // 锁定版内容（2026-08-13 改：分享图=锁定版，不含解锁内容）
+    const radarRaw = sp.get("radar"); // JSON: {"木质":0.8,...} 或 逗号分隔 6 值
+    const memoryScene = sp.get("memoryScene");
 
     if (!name || !tagline || !perfumeA || !perfumeB || !perfumeC) {
       return NextResponse.json({ error: "self: name, tagline, perfumeA/B/C are required" }, { status: 400 });
     }
     if (isNaN(matchA) || isNaN(matchB) || isNaN(matchC)) {
       return NextResponse.json({ error: "self: matchA/B/C must be numbers 0-100" }, { status: 400 });
+    }
+
+    // 解析雷达数据
+    let radar: Record<string, number> | undefined;
+    if (radarRaw) {
+      try {
+        radar = JSON.parse(radarRaw);
+      } catch {
+        // 兜底：逗号分隔 6 值
+        const vals = radarRaw.split(",").map(Number).filter((v) => !isNaN(v));
+        if (vals.length === 6) {
+          const dims = ["木质", "清新", "东方", "美食", "柑橘", "花香"];
+          radar = {};
+          dims.forEach((dim, i) => { radar![dim] = vals[i]; });
+        }
+      }
     }
 
     const d: SelfShareData = {
@@ -91,7 +109,8 @@ export async function GET(req: NextRequest) {
       perfumeA: { name: perfumeA, tier: "本命香", match: matchA },
       perfumeB: { name: perfumeB, tier: "进阶香", match: matchB },
       perfumeC: { name: perfumeC, tier: "尝试香", match: matchC },
-      sharedNotes: shared,
+      radar,
+      memoryScene: memoryScene || undefined,
     };
     data = d;
 
