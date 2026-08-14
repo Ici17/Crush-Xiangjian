@@ -40,29 +40,6 @@ function getCompatibilityStory(score: number): { tier: string; copy: string } {
   };
 }
 
-/** 分享图三套模板 */
-export type ShareTemplate = '默契' | '挑战' | '稀有';
-
-const SHARE_TEMPLATES: Record<ShareTemplate, { label: string; emoji: string; subtitle: string; copy: string }> = {
-  '默契': {
-    label: '默契',
-    emoji: '💫',
-    subtitle: '天生一对',
-    copy: '你和 TA 的香气频率，在此刻共振',
-  },
-  '挑战': {
-    label: '挑战',
-    emoji: '⚡',
-    subtitle: '不服来战',
-    copy: '评论区艾特一个你想测的人',
-  },
-  '稀有': {
-    label: '稀有',
-    emoji: '🌟',
-    subtitle: '稀有组合',
-    copy: '你们是少数派的香气实验',
-  },
-};
 
 /** 契合度颜色 */
 function getCompatibilityColor(score: number): string {
@@ -119,8 +96,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [pickerTarget, setPickerTarget] = useState<"me">("me");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
-  const [shareTemplate, setShareTemplate] = useState<ShareTemplate>('默契');
   const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('1to1');
+  const [showSharePicker, setShowSharePicker] = useState(false);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // 「我的灵魂香气榜」名单（来自 localStorage 邀请记录）
@@ -233,15 +210,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const handleCopyShareText = useCallback(() => {
     if (!result || !shareA || !shareB) return;
     const tier = getCompatibilityStory(result.score);
-    const tpl = SHARE_TEMPLATES[shareTemplate];
-    const copyMap: Record<ShareTemplate, string> = {
-      '默契': `测了测我们的灵魂香气，共鸣度 ${result.score}%——原来我们是「${tier.tier}」。${shareA.name} × ${shareB.name}，你也来试试？👇`,
-      '挑战': `${shareA.name} × ${shareB.name} = ${tier.tier}。艾特一个你想测的人，不服来战 👇`,
-      '稀有': `居然和 TA 有 ${result.score}% 共鸣——罕见的香气组合。不服来战 👇`,
-    };
-    const text = copyMap[shareTemplate];
+    const text = `测了测我们的灵魂香气，共鸣度 ${result.score}%——原来我们是「${tier.tier}」。${shareA.name} × ${shareB.name}，你也来试试？👇`;
     navigator.clipboard.writeText(text).then(() => showToast("分享文案已复制 ✓"));
-  }, [result, shareA, shareB, shareTemplate, showToast]);
+  }, [result, shareA, shareB, showToast]);
 
   async function generateShare(format: '1to1' | '3to4') {
     if (!result || !shareA || !shareB) return;
@@ -260,6 +231,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         shared: result.sharedNotes.map(n => n.split(' ')[1]).join(','),
         story: result.story,
       });
+      // 加 cache-buster 避免旧图缓存
+      params.append('_t', String(Date.now()));
       const res = await fetch(`/api/share-card?${params}`);
       if (!res.ok) throw new Error('render failed');
       const blob = await res.blob();
@@ -276,6 +249,12 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     } finally {
       setShareLoading(false);
     }
+  }
+
+  function pickFormatAndShare(format: '1to1' | '3to4') {
+    setShareFormat(format);
+    setShowSharePicker(false);
+    generateShare(format);
   }
 
   // 有邀请者 + 双方都测过 → 结果态
@@ -606,54 +585,20 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               </div>
             </section>
 
-            {/* 5. 分享图预览与下载 */}
+            {/* 5. 分享图下载 */}
             <section
               className={`transition-all duration-500 ${
                 staggerResult[4] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
               }`}
             >
-              {/* 模板切换 Tab：轻量胶囊 */}
-              <div className="flex gap-2 mb-3">
-                {(Object.keys(SHARE_TEMPLATES) as ShareTemplate[]).map((tpl) => (
-                  <button
-                    key={tpl}
-                    onClick={() => setShareTemplate(tpl)}
-                    className={`flex-1 py-2 rounded-full font-sans font-medium text-xs transition-all ${
-                      shareTemplate === tpl
-                        ? 'bg-amber-900 text-amber-50 shadow-sm'
-                        : 'bg-amber-50/80 border border-amber-200 text-amber-700'
-                    }`}
-                  >
-                    {SHARE_TEMPLATES[tpl].emoji} {SHARE_TEMPLATES[tpl].label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 比例切换 */}
-              <div className="flex items-center justify-center gap-2 mb-3">
-                {(['1to1','3to4'] as const).map((fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={() => setShareFormat(fmt)}
-                    className={`px-3 py-1 rounded-full text-xs font-sans transition-all ${
-                      shareFormat === fmt
-                        ? 'bg-amber-200 text-amber-900 font-medium'
-                        : 'text-amber-500/70 hover:text-amber-700'
-                    }`}
-                  >
-                    {fmt === '1to1' ? '1:1 朋友圈' : '3:4 小红书'}
-                  </button>
-                ))}
-              </div>
-
-              {/* 主 CTA */}
+              {/* 主 CTA：打开比例选择 */}
               <button
-                onClick={() => generateShare(shareFormat)}
+                onClick={() => setShowSharePicker(true)}
                 disabled={shareLoading}
                 className="w-full py-3.5 bg-amber-900 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all disabled:opacity-50 mb-3"
                 style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
               >
-                {shareLoading ? '生成中…' : `生成 ${shareFormat === '1to1' ? '1:1 朋友圈' : '3:4 小红书'} 分享图`}
+                {shareLoading ? '生成中…' : '生成分享图'}
               </button>
 
               {/* 次要操作 */}
@@ -806,6 +751,52 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── 分享图比例选择器 ── */}
+      {showSharePicker && (
+        <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-end">
+          <div
+            className="bg-amber-50 w-full rounded-t-3xl p-5 safe-bottom"
+            style={{ animation: "slideUp 0.3s ease-out" }}
+          >
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="font-serif font-semibold text-amber-900 text-lg">选择分享图比例</h3>
+              <button onClick={() => setShowSharePicker(false)} className="text-amber-400/60 font-sans text-sm active:scale-95 transition-transform">
+                ✕ 关闭
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <button
+                onClick={() => pickFormatAndShare('1to1')}
+                disabled={shareLoading}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95 ${
+                  shareFormat === '1to1'
+                    ? 'bg-amber-900 border-amber-900 text-amber-50'
+                    : 'bg-white border-amber-200 text-amber-900 hover:border-amber-400'
+                }`}
+              >
+                <span className="font-serif text-2xl mb-1">□</span>
+                <span className="font-sans font-semibold text-sm">1:1 朋友圈</span>
+              </button>
+              <button
+                onClick={() => pickFormatAndShare('3to4')}
+                disabled={shareLoading}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all active:scale-95 ${
+                  shareFormat === '3to4'
+                    ? 'bg-amber-900 border-amber-900 text-amber-50'
+                    : 'bg-white border-amber-200 text-amber-900 hover:border-amber-400'
+                }`}
+              >
+                <span className="font-serif text-2xl mb-1">▯</span>
+                <span className="font-sans font-semibold text-sm">3:4 小红书</span>
+              </button>
+            </div>
+            <p className="text-center text-amber-500/60 font-sans text-xs mt-3">
+              点击即可生成并保存对应尺寸
+            </p>
+          </div>
         </div>
       )}
 

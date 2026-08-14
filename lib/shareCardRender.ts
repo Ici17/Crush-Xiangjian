@@ -608,7 +608,13 @@ function buildFriendCard(
   const bottomRow = JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
     children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center" },
+        children: [
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 600, letterSpacing: "0.04em" }, children: "Crush 香鉴" }),
+          JSX("span", { style: { color: C.AMBER_MID, fontSize: "14px", fontStyle: "italic", lineHeight: 1.4, marginTop: "4px" }, children: "你身上，藏着哪种香气？" }),
+        ],
+      }),
       JSX("img", {
         src: qrBase64, width: qrSize, height: qrSize,
         style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
@@ -721,7 +727,13 @@ function buildSharedCard(
   const bottomRow = JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
     children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: "crushxiangjian.com" }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center" },
+        children: [
+          JSX("span", { style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 600, letterSpacing: "0.04em" }, children: "Crush 香鉴" }),
+          JSX("span", { style: { color: C.AMBER_MID, fontSize: "14px", fontStyle: "italic", lineHeight: 1.4, marginTop: "4px" }, children: "你身上，藏着哪种香气？" }),
+        ],
+      }),
       JSX("img", {
         src: qrBase64, width: qrSize, height: qrSize,
         style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
