@@ -230,8 +230,9 @@ export async function getDynamicRecommendations(personalityName: string): Promis
 
     // 动态加载 matchPerfumes 模块（避免服务端导入客户端代码）
     const { getCalibratedRecommendations } = await import('@/lib/matchPerfumes');
-    // 平价档随个人校准浮动，与签名/进阶一样的 per-user 贪心（垄断去偏 K=9 防止霸榜）
-    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels);
+    // 传入所属原型 id，启用「平价档全局去重分配表」（16 原型各拿一支互不重复的尝试香）
+    const archetypeId = PERSONALITY_ID_MAP[personalityName];
+    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, archetypeId);
 
     if (calibrated.length === 0) return getRecommendations(personalityName);
 

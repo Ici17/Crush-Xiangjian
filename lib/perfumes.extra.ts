@@ -165,7 +165,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
   },
   "白茶-祖玛珑": {
     id: "白茶-祖玛珑",
-    name: "白茶",
+    name: "白茶（祖玛珑）",
     brand: "Jo Malone",
     brandCn: "祖玛珑",
     notes: {
@@ -421,7 +421,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
   },
   "墨水-川久保玲": {
     id: "墨水-川久保玲",
-    name: "墨水",
+    name: "墨水（川久保玲）",
     brand: "Comme des Garcons",
     brandCn: "川久保玲",
     notes: {

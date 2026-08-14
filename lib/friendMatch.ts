@@ -72,7 +72,10 @@ export function calculateCompatibility(
   }
   const resonance = Math.min(resSum / 300, 1); // 3 个共享高分维度 ≈ 满分
   const complementScore = Math.min(compSum / 300, 1); // 互补差值累计 300 ≈ 满分
-  const score = 20 + Math.round(100 * (0.7 * resonance + 0.3 * complementScore));
+  // 分数理论上限为 120（resonance 与 complementScore 各自封顶 1），
+  // 但产品语义为 0-100；夹紧到 100 消除极端向量下显示 >100% 的隐患。
+  const rawScore = 20 + 100 * (0.7 * resonance + 0.3 * complementScore);
+  const score = Math.min(100, Math.round(rawScore));
 
   const { grade, gradeColor } = (() => {
     if (score >= 75) return { grade: "灵魂伴侣" as const, gradeColor: "#C4956A" };
