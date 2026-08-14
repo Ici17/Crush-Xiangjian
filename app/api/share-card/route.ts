@@ -21,6 +21,7 @@
  *   matchC        尝试香匹配%（必填）
  *   desc          人格一句话简介（可选）
  *   notesA/B/C    三香三调关键词，点分隔（可选）
+ *   brandA/B/C    三香品牌名（可选，提升高级感）
  *   shared        共享香调，逗号分隔（可选，3:4 时显示）
  *
  * scene=friend:
@@ -32,6 +33,8 @@
  *   tier          tier 标签（默认"灵魂伴侣"）
  *   story         关系解读句（默认"两种香气的碰撞，让彼此独一无二的共鸣悄然发生。"）
  *   notesA/B      双方签名香三调关键词，点分隔（可选）
+ *   brandA/B      双方签名香品牌名（可选）
+ *   radarA/B      双方六维雷达 JSON（0~1，可选，3:4 时绘制双人对比雷达）
  *   shared        共享香调，逗号分隔（可选）
  *   inv           邀请码（嵌入二维码）
  *
@@ -53,6 +56,16 @@ export const runtime = "nodejs";
 
 function normalizeName(raw: string): string {
   return PERSONALITY_NAME_MAP[raw] ?? raw;
+}
+
+// 解析雷达 JSON（0~1，六维中文键），失败返回 undefined
+function parseRadarParam(raw: string | null): Record<string, number> | undefined {
+  if (!raw) return undefined;
+  try {
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) return obj as Record<string, number>;
+  } catch { /* ignore */ }
+  return undefined;
 }
 
 export async function GET(req: NextRequest) {
@@ -118,6 +131,9 @@ export async function GET(req: NextRequest) {
       notesA: sp.get("notesA") || undefined,
       notesB: sp.get("notesB") || undefined,
       notesC: sp.get("notesC") || undefined,
+      brandA: sp.get("brandA") || undefined,
+      brandB: sp.get("brandB") || undefined,
+      brandC: sp.get("brandC") || undefined,
     };
     data = d;
 
@@ -131,6 +147,8 @@ export async function GET(req: NextRequest) {
     const story = sp.get("story") ?? "两种香气的碰撞，让彼此独一无二的共鸣悄然发生。";
     const shared = sp.get("shared") ? sp.get("shared")!.split(",").filter(Boolean) : undefined;
     const inv = sp.get("inv") ?? "";
+    const radarA = parseRadarParam(sp.get("radarA"));
+    const radarB = parseRadarParam(sp.get("radarB"));
 
     if (!nameA || !nameB || !scoreRaw || !perfumeNameA || !perfumeNameB) {
       return NextResponse.json({ error: "friend: nameA, nameB, score, perfumeNameA, perfumeNameB are required" }, { status: 400 });
@@ -149,6 +167,10 @@ export async function GET(req: NextRequest) {
       perfumeTierB: sp.get("perfumeTierB") || undefined,
       notesA: sp.get("notesA") || undefined,
       notesB: sp.get("notesB") || undefined,
+      brandA: sp.get("brandA") || undefined,
+      brandB: sp.get("brandB") || undefined,
+      radarA,
+      radarB,
       inviteCode: inv,
     };
     data = d;

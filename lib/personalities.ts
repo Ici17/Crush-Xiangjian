@@ -674,7 +674,7 @@ function cosineDistance(a: { [k: string]: number }, b: { [k: string]: number }):
 }
 
 /** 品牌名显示：brandCn 看起来是「不合理的乱码音译」时回退到英文 brand（防御性兜底） */
-function brandLabel(p: Perfume): string {
+export function brandLabel(p: Perfume): string {
   const cn = (p.brandCn || "").trim();
   const en = (p.brand || "").trim();
   if (!cn) return en;

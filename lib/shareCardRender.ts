@@ -49,6 +49,9 @@ export interface SelfShareData {
   notesA?: string; // 本命香三调关键词（点分隔）
   notesB?: string; // 进阶香三调关键词
   notesC?: string; // 尝试香三调关键词
+  brandA?: string; // 本命香品牌
+  brandB?: string; // 进阶香品牌
+  brandC?: string; // 尝试香品牌
   format?: "1to1" | "3to4";
 }
 
@@ -67,6 +70,10 @@ export interface FriendShareData {
   perfumeTierB?: string; // B 的本命香 tier
   notesA?: string; // A 的签名香三调关键词（点分隔）
   notesB?: string; // B 的签名香三调关键词
+  brandA?: string; // A 的本命香品牌
+  brandB?: string; // B 的本命香品牌
+  radarA?: Record<string, number>; // A 六维雷达 0~1
+  radarB?: Record<string, number>; // B 六维雷达 0~1
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -294,6 +301,80 @@ function buildRadarSVG(values: Record<string, number>, size: number): string {
   </svg>`;
 }
 
+// ── 双人对冲雷达（A 金 / B 墨，叠加对比）──────────────────────────────────
+
+function buildDualRadarSVG(valuesA: Record<string, number>, valuesB: Record<string, number>, size: number): string {
+  const VB = 280;
+  const CX = VB / 2;
+  const CY = VB / 2;
+  const R = 92;
+  const N = RADAR_DIM_LIST.length;
+  const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
+  const toXY = (radius: number, angleDeg: number): [number, number] => {
+    const a = (angleDeg * Math.PI) / 180;
+    return [CX + radius * Math.cos(a), CY + radius * Math.sin(a)];
+  };
+  const angleOf = (i: number) => -90 + i * (360 / N);
+  const VISUAL_FLOOR = 0.22;
+  const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
+  const ringPoints = (radius: number): string =>
+    RADAR_DIM_LIST.map((_, i) => toXY(radius, angleOf(i)).join(',')).join(' ');
+  const polyPoints = (vals: Record<string, number>): string =>
+    RADAR_DIM_LIST.map((dim, i) => toXY(R * visualValue(vals[dim] ?? 0), angleOf(i)).join(',')).join(' ');
+  const labelPos = (i: number) => {
+    const angle = angleOf(i);
+    const rad = R + 22;
+    const [x, y] = toXY(rad, angle);
+    const anchor = Math.abs(Math.cos((angle * Math.PI) / 180)) < 0.25
+      ? 'middle'
+      : Math.cos((angle * Math.PI) / 180) > 0
+      ? 'start'
+      : 'end';
+    return { x, y, anchor };
+  };
+
+  const ringsSvg = RINGS.map((scale, idx) =>
+    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#C2A877" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.30}" stroke-width="${idx === RINGS.length - 1 ? 1.5 : 1.0}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="2 3"'}/>`
+  ).join('');
+
+  const axesSvg = RADAR_DIM_LIST.map((_, i) => {
+    const [x, y] = toXY(R, angleOf(i));
+    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#C2A877" stroke-opacity="0.30" stroke-width="0.8"/>`;
+  }).join('');
+
+  const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
+    const pos = labelPos(i);
+    const yOffset =
+      Math.sin((angleOf(i) * Math.PI) / 180) < -0.5
+        ? pos.y - 2
+        : Math.sin((angleOf(i) * Math.PI) / 180) > 0.5
+        ? pos.y + 12
+        : pos.y + 4;
+    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="13" font-family="'Noto Serif SC', serif" font-weight="500">${dim}</text>`;
+  }).join('');
+
+  const aPoly = polyPoints(valuesA);
+  const bPoly = polyPoints(valuesB);
+  const dotsA = RADAR_DIM_LIST.map((dim, i) => {
+    const [x, y] = toXY(R * visualValue(valuesA[dim] ?? 0), angleOf(i));
+    return `<circle cx="${x}" cy="${y}" r="2.4" fill="#A8884E" stroke="#F8F2E8" stroke-width="1.1"/>`;
+  }).join('');
+  const dotsB = RADAR_DIM_LIST.map((dim, i) => {
+    const [x, y] = toXY(R * visualValue(valuesB[dim] ?? 0), angleOf(i));
+    return `<circle cx="${x}" cy="${y}" r="2.4" fill="#2A211B" stroke="#F8F2E8" stroke-width="1.1"/>`;
+  }).join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${VB} ${VB}">
+    <g>${ringsSvg}</g>
+    <g>${axesSvg}</g>
+    <polygon points="${aPoly}" fill="rgba(168,136,78,0.18)" stroke="#A8884E" stroke-width="2.0" stroke-linejoin="round"/>
+    <polygon points="${bPoly}" fill="rgba(42,33,27,0.08)" stroke="#2A211B" stroke-width="2.0" stroke-dasharray="4 3" stroke-linejoin="round"/>
+    <g>${dotsA}</g>
+    <g>${dotsB}</g>
+    <g>${labelsSvg}</g>
+  </svg>`;
+}
+
 // ── 底部品牌行（共用）──────────────────────────────────────────────────────
 
 function brandRow(qrBase64: string, qrSize: number, showBrand = true) {
@@ -392,7 +473,7 @@ function buildSelfCard(
 
   // 报头：发丝线 + 品牌小标
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "34px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "28px" },
     children: [
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
       JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
@@ -412,18 +493,18 @@ function buildSelfCard(
     children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "88px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "22px" : "20px", marginBottom: is3to4 ? "20px" : "18px" },
+    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "18px" : "20px", marginBottom: is3to4 ? "16px" : "18px" },
   });
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "22px" : "24px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "18px" : "24px" },
     children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "26px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: 1.55 }, children: d.tagline })],
   });
 
   // 区块小标题（带发丝线）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "24px" : "26px", marginBottom: is3to4 ? "10px" : "12px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "18px" : "26px", marginBottom: is3to4 ? "10px" : "12px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
@@ -435,21 +516,23 @@ function buildSelfCard(
     const radarSize = 210;
     const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
     return JSX("div", {
-      style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "14px" : "14px" },
+      style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "10px" : "14px" },
       children: [JSX("img", { src: radarSVG, width: radarSize, height: radarSize, style: { display: "block" } })],
     });
   })() : null;
 
   // 香气台账（发丝线分隔，无白卡）
   const perfumeNotes = [d.notesA, d.notesB, d.notesC];
+  const perfumeBrands = [d.brandA, d.brandB, d.brandC];
   const tierEn = ["SIGNATURE", "NEXT", "TRY"];
   const ledgerRows = [d.perfumeA, d.perfumeB, d.perfumeC].map((p, i) => {
     const notes = perfumeNotes[i];
+    const brand = perfumeBrands[i];
     const tierColor = TIER_COLOR[p.tier] ?? GOLD;
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
-        paddingTop: is3to4 ? "14px" : "16px", paddingBottom: is3to4 ? "14px" : "16px",
+        paddingTop: is3to4 ? "12px" : "16px", paddingBottom: is3to4 ? "12px" : "16px",
         borderTop: i === 0 ? `1px solid ${HAIR}` : "none",
         borderBottom: `1px solid ${HAIR}`,
       },
@@ -458,7 +541,8 @@ function buildSelfCard(
           style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "20px" },
           children: [
             JSX("span", { style: { color: tierColor, fontSize: is3to4 ? "16px" : "14px", letterSpacing: "0.22em", marginBottom: "8px" }, children: `${p.tier} · ${tierEn[i]}` }),
-            JSX("span", { style: { color: INK, fontSize: is3to4 ? "26px" : "26px", fontWeight: 600, marginBottom: notes ? "8px" : "0px" }, children: p.name }),
+            JSX("span", { style: { color: INK, fontSize: is3to4 ? "26px" : "26px", fontWeight: 600, marginBottom: (brand || notes) ? "6px" : "0px" }, children: p.name }),
+            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "15px" : "14px", letterSpacing: "0.14em", marginBottom: notes ? "6px" : "0px" }, children: brand }) : null,
             notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "15px" : "15px", letterSpacing: "0.03em" }, children: notes }) : null,
           ].filter(Boolean),
         }),
@@ -470,7 +554,7 @@ function buildSelfCard(
 
   // 记忆点（令人心动的瞬间）——仅在 3:4 展示，1:1 空间不足
   const memoryEl = (is3to4 && d.memoryScene) ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", marginTop: "16px", paddingLeft: "20px", paddingRight: "20px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginTop: "10px", paddingLeft: "20px", paddingRight: "20px" },
     children: [JSX("span", { style: { color: "#4A3C2E", fontSize: "18px", lineHeight: 1.7, textAlign: "center" }, children: d.memoryScene })],
   }) : null;
 
@@ -489,7 +573,17 @@ function buildSelfCard(
     ],
   });
 
-  const centerChildren: any[] = [eyebrow, hero, heroRule, tagline];
+  // 人格副标题（编辑式人物小传）——传了才显示
+  const descEl = d.desc
+    ? JSX("div", {
+        style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "14px" : "16px", paddingLeft: "16px", paddingRight: "16px" },
+        children: [JSX("span", { style: { color: "#6F5A3E", fontSize: is3to4 ? "19px" : "18px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em" }, children: d.desc })],
+      })
+    : null;
+
+  const centerChildren: any[] = [eyebrow, hero, heroRule];
+  if (descEl) centerChildren.push(descEl);
+  centerChildren.push(tagline);
   if (radarEl) { centerChildren.push(secHead("香气图谱"), radarEl); }
   centerChildren.push(secHead("为你调的三支香"), ledger);
   if (memoryEl) centerChildren.push(memoryEl);
@@ -523,12 +617,12 @@ function buildFriendCard(
 ) {
   const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
-  const ringSize = is3to4 ? 300 : 240;
+  const ringSize = is3to4 ? 240 : 220;
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVGFn(d.score, ringSize)).toString("base64")}`;
 
   // 报头：发丝线 + 品牌小标
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "40px" : "30px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "26px" : "30px" },
     children: [
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
       JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
@@ -538,30 +632,46 @@ function buildFriendCard(
 
   // eyebrow
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "34px" : "26px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "22px" : "26px" },
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.28em" }, children: "香气默契鉴定 · COMPATIBILITY" })],
   });
 
-  // 双人列（A × B 字标）
-  const pairCol = (name: string, scent: string, align: "flex-start" | "flex-end") => JSX("div", {
+  // 区块小标题（带发丝线）
+  const secHead = (t: string) => JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "0px", marginBottom: "10px" },
+    children: [
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
+    ],
+  });
+
+  // 双人列（A × B 字标 + 本命香 + 品牌 + 三调）
+  const pairCol = (name: string, perfumeName: string, brand: string | undefined, notes: string | undefined, align: "flex-start" | "flex-end") => JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: align, flex: "0 0 40%" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "84px" : "66px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.04em" }, children: name }),
-      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "22px" : "19px", marginTop: "14px", letterSpacing: "0.04em" }, children: scent }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "74px" : "60px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.04em" }, children: name }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: align, marginTop: "14px" },
+        children: [
+          JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "21px" : "18px", letterSpacing: "0.04em" }, children: `本命香 · ${perfumeName || ""}` }),
+          brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", letterSpacing: "0.14em", marginTop: "6px" }, children: brand }) : null,
+          notes ? JSX("span", { style: { color: "#7A6A56", fontSize: is3to4 ? "15px" : "13px", letterSpacing: "0.03em", marginTop: "6px" }, children: notes }) : null,
+        ].filter(Boolean),
+      }),
     ],
   });
   const pair = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "30px" : "22px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "18px" : "20px" },
     children: [
-      pairCol(d.nameA, `本命香 · ${d.perfumeNameA || ""}`, "flex-start"),
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "56px" : "44px", alignSelf: "center" }, children: "×" }),
-      pairCol(d.nameB, `本命香 · ${d.perfumeNameB || ""}`, "flex-end"),
+      pairCol(d.nameA, d.perfumeNameA, d.brandA, d.notesA, "flex-start"),
+      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "52px" : "42px", alignSelf: "center" }, children: "×" }),
+      pairCol(d.nameB, d.perfumeNameB, d.brandB, d.notesB, "flex-end"),
     ],
   });
 
   // 圆环 + 契合度（描边圆环，居中数字）
   const ringContainer = JSX("div", {
-    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: is3to4 ? "18px" : "14px" },
+    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: is3to4 ? "8px" : "12px" },
     children: [
       JSX("img", { src: ringBase64, width: ringSize, height: ringSize, style: { position: "absolute", top: "0px", left: "0px" } }),
       JSX("div", {
@@ -576,14 +686,14 @@ function buildFriendCard(
 
   // tier 徽章（描边胶囊）
   const tierBadge = JSX("div", {
-    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: is3to4 ? "12px 40px" : "10px 34px", marginTop: is3to4 ? "12px" : "8px", marginBottom: is3to4 ? "30px" : "24px" },
+    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: is3to4 ? "10px 36px" : "10px 30px", marginTop: is3to4 ? "6px" : "8px", marginBottom: is3to4 ? "18px" : "22px" },
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "28px" : "25px", letterSpacing: "0.14em" }, children: d.tier })],
   });
 
   // 关系解读句
   const story = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "20px" : "16px" },
-    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "30px" : "26px", textAlign: "center", lineHeight: 1.7 }, children: d.story })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "14px" },
+    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "28px" : "24px", textAlign: "center", lineHeight: 1.7 }, children: d.story })],
   });
 
   // 相处建议句（基于 tier 生成一句克制建议）
@@ -597,9 +707,31 @@ function buildFriendCard(
   };
   const adviceText = ADVICE_MAP[d.tier] ?? "香气不同没关系，相遇本身就是一次调香。";
   const advice = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "30px" : "24px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "25px" : "22px", fontStyle: "italic", textAlign: "center", lineHeight: 1.6 }, children: adviceText })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "16px" : "20px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", fontStyle: "italic", textAlign: "center", lineHeight: 1.6 }, children: adviceText })],
   });
+
+  // 双人香气光谱对比（仅 3:4，金=A / 墨=B）
+  const dualRadarEl = (is3to4 && d.radarA && d.radarB) ? (() => {
+    const rSize = 190;
+    const rSvg = `data:image/svg+xml;base64,${Buffer.from(buildDualRadarSVG(d.radarA!, d.radarB!, rSize)).toString("base64")}`;
+    return JSX("div", {
+      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "12px" },
+      children: [
+        secHead("香气光谱对比"),
+        JSX("img", { src: rSvg, width: rSize, height: rSize, style: { display: "block", marginTop: "6px" } }),
+        JSX("div", {
+          style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "10px" },
+          children: [
+            JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#A8884E", marginRight: "8px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "18px", marginRight: "22px" }, children: d.nameA }),
+            JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#2A211B", marginRight: "8px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "18px" }, children: d.nameB }),
+          ],
+        }),
+      ],
+    });
+  })() : null;
 
   // 共享香调（发丝线胶囊，1:1 与 3:4 均显示，最多 4 个）
   const sharedEl = d.sharedNotes && d.sharedNotes.length > 0
@@ -634,6 +766,7 @@ function buildFriendCard(
   });
 
   const centerChildren: any[] = [eyebrow, pair, ringContainer, tierBadge, story, advice];
+  if (dualRadarEl) centerChildren.push(dualRadarEl);
   if (sharedEl) centerChildren.push(sharedEl);
 
   return JSX("div", {

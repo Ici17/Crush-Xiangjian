@@ -352,6 +352,10 @@ function ResultInner() {
       notesA: flatNotes(recs[0]?.notesStructured),
       notesB: flatNotes(recs[1]?.notesStructured),
       notesC: flatNotes(recs[2]?.notesStructured),
+      // 品牌名（高级感杠杆）：recs[i].brand 已是 brandLabel 智能译名
+      brandA: recs[0]?.brand ?? '',
+      brandB: recs[1]?.brand ?? '',
+      brandC: recs[2]?.brand ?? '',
     });
     const res = await fetch(`/api/share-card?${params}`);
     if (!res.ok) return;
