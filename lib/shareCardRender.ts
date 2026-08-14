@@ -45,6 +45,10 @@ export interface SelfShareData {
   // 锁定版内容（2026-08-13 改：分享图=锁定版，不含解锁内容）
   radar?: Record<string, number>; // 六维雷达 0~1（香气图谱）
   memoryScene?: string; // 记忆点区块文案
+  desc?: string; // 人格一句话简介（副标题）
+  notesA?: string; // 本命香三调关键词（点分隔）
+  notesB?: string; // 进阶香三调关键词
+  notesC?: string; // 尝试香三调关键词
   format?: "1to1" | "3to4";
 }
 
@@ -61,6 +65,8 @@ export interface FriendShareData {
   // 新增 v2
   perfumeTierA?: string; // A 的本命香 tier
   perfumeTierB?: string; // B 的本命香 tier
+  notesA?: string; // A 的签名香三调关键词（点分隔）
+  notesB?: string; // B 的签名香三调关键词
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -360,18 +366,26 @@ function buildSelfCard(
 
   // 人格名大字
   const nameBlock = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "28px" : "24px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "24px" : "20px" },
     children: [
       JSX("span", {
         style: { color: C.AMBER_DARK, fontSize: is3to4 ? "88px" : "72px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.08em" },
         children: d.name,
       }),
-    ],
+      d.desc
+        ? JSX("span", {
+            style: { color: C.TEXT_MUTED, fontSize: is3to4 ? "21px" : "18px", textAlign: "center", lineHeight: 1.5, marginTop: "14px", paddingHorizontal: "16px" },
+            children: d.desc,
+          })
+        : null,
+    ].filter(Boolean),
   });
 
   // 三香横排卡
+  const perfumeNotes = [d.notesA, d.notesB, d.notesC];
   const perfumeCards = [d.perfumeA, d.perfumeB, d.perfumeC].map((p, i) => {
     const bottleSize = is3to4 ? 140 : 120;
+    const notes = perfumeNotes[i];
     const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVG(p.tier, bottleSize)).toString("base64")}`;
     const tierColor = TIER_COLOR[p.tier] ?? C.AMBER_ACCENT;
     const tierBg = TIER_BG[p.tier] ?? C.AMBER_PALE;
@@ -417,7 +431,14 @@ function buildSelfCard(
           style: { color: C.AMBER_ACCENT, fontSize: "20px", fontWeight: 700 },
           children: `${p.match}%`,
         }),
-      ],
+        // 三调关键词
+        notes
+          ? JSX("span", {
+              style: { color: C.TEXT_MUTED, fontSize: "14px", textAlign: "center", lineHeight: 1.4, marginTop: "8px" },
+              children: notes,
+            })
+          : null,
+      ].filter(Boolean),
     });
   });
 
@@ -488,7 +509,7 @@ function buildSelfCard(
   });
 
   const centerChildren: any[] = [nameBlock, taglineEl, memoryEl, perfumesRow];
-  if (radarEl && is3to4) centerChildren.push(radarEl);
+  if (radarEl) centerChildren.push(radarEl);
 
   return JSX("div", {
     style: {
@@ -534,24 +555,32 @@ function buildFriendCard(
     ],
   });
 
-  // 双人名字行（60% / 40%）
+  // 双人列（左 A / 右 B）：名 + 签名香 + 本命香徽章 + 三调关键词
+  const personaCol = (side: "left" | "right", name: string, perfume: string, tier: string | undefined, notes: string | undefined, nameSize: string, perfumeSize: string, flex: string) => {
+    const align = side === "left" ? "flex-start" : "flex-end";
+    return JSX("div", {
+      style: { display: "flex", flexDirection: "column", alignItems: align, flex },
+      children: [
+        JSX("span", { style: { color: C.AMBER_DARK, fontSize: nameSize, fontWeight: 700, lineHeight: 1.1 }, children: name }),
+        JSX("span", { style: { color: C.TEXT_MUTED, fontSize: perfumeSize, marginTop: "6px" }, children: perfume }),
+        JSX("div", {
+          style: {
+            display: "flex", alignItems: "center", justifyContent: align,
+            marginTop: "10px", background: TIER_BG["本命香"], borderRadius: "999px",
+            padding: "4px 14px", border: `1px solid ${TIER_COLOR["本命香"]}40`,
+          },
+          children: [JSX("span", { style: { color: TIER_COLOR["本命香"], fontSize: "16px", fontWeight: 600 }, children: tier ?? "本命香" })],
+        }),
+        notes ? JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "14px", marginTop: "8px", textAlign: side === "left" ? "left" : "right", lineHeight: 1.4 }, children: notes }) : null,
+      ].filter(Boolean),
+    });
+  };
+
   const nameRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "20px" : "16px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "24px" : "20px" },
     children: [
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flex: "0 0 60%" },
-        children: [
-          JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "72px" : "58px", fontWeight: 700, lineHeight: 1.1 }, children: d.nameA }),
-          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px", marginTop: "6px" }, children: d.perfumeNameA }),
-        ],
-      }),
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flex: "0 0 36%" },
-        children: [
-          JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "60px" : "48px", fontWeight: 700, lineHeight: 1.1 }, children: d.nameB }),
-          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "18px", marginTop: "6px" }, children: d.perfumeNameB }),
-        ],
-      }),
+      personaCol("left", d.nameA, d.perfumeNameA, d.perfumeTierA, d.notesA, is3to4 ? "72px" : "58px", "20px", "0 0 56%"),
+      personaCol("right", d.nameB, d.perfumeNameB, d.perfumeTierB, d.notesB, is3to4 ? "60px" : "48px", "18px", "0 0 40%"),
     ],
   });
 
@@ -590,17 +619,48 @@ function buildFriendCard(
 
   // 关系解读句
   const storyEl = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "16px" : "12px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "14px" : "10px" },
     children: [
       JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px", textAlign: "center", lineHeight: 1.5 }, children: d.story }),
     ],
   });
 
-  // 共享香调（仅 3:4）
-  const sharedNotesEl = is3to4 && d.sharedNotes && d.sharedNotes.length > 0
+  // 相处建议句（基于 tier 生成一句克制建议）
+  const ADVICE_MAP: Record<string, string> = {
+    "灵魂共振": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
+    "灵魂伴侣": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
+    "互补搭档": "他补上你缺的那一味，别急着调成一样。",
+    "有趣的碰撞": "不一样才好玩，先闻闻对方世界里没去过的那块。",
+    "气味互补": "你们合起来，是一整座调香台。",
+    "不同的香气世界": "不必勉强同频，记住这股味道就好。",
+  };
+  const adviceText = ADVICE_MAP[d.tier] ?? "香气不同没关系，相遇本身就是一次调香。";
+  const adviceEl = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "18px" : "14px" },
+    children: [
+      JSX("span", { style: { color: C.AMBER_ACCENT, fontSize: "21px", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }, children: adviceText }),
+    ],
+  });
+
+  // 共享香调（胶囊 chips，1:1 与 3:4 均显示，最多 4 个）
+  const sharedNotesEl = d.sharedNotes && d.sharedNotes.length > 0
     ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
-        children: [JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "20px" }, children: `共享 ${d.sharedNotes.join(" · ")}` })],
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginBottom: is3to4 ? "18px" : "14px" },
+        children: [
+          JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "18px", marginRight: "12px", alignSelf: "center" }, children: "共享香调" }),
+          ...d.sharedNotes.slice(0, 4).map((n, i) =>
+            JSX("div", {
+              key: i,
+              style: {
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: C.AMBER_PALE, borderRadius: "999px",
+                padding: "6px 16px", margin: "4px",
+                border: `1px solid ${C.AMBER_LIGHT}60`,
+              },
+              children: [JSX("span", { style: { color: C.AMBER_MID, fontSize: "18px", fontWeight: 500 }, children: n })],
+            })
+          ),
+        ],
       })
     : null;
 
@@ -622,7 +682,7 @@ function buildFriendCard(
     ],
   });
 
-  const centerChildren: any[] = [nameRow, ringContainer, scoreLabelEl, tierBadge, storyEl];
+  const centerChildren: any[] = [nameRow, ringContainer, scoreLabelEl, tierBadge, storyEl, adviceEl];
   if (sharedNotesEl) centerChildren.push(sharedNotesEl);
 
   return JSX("div", {

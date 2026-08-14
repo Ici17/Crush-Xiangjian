@@ -332,6 +332,9 @@ function ResultInner() {
       memoryScene = getMemoryScene(personalityName, snapshot).description;
     }
 
+    const flatNotes = (n?: { top: string[]; heart: string[]; base: string[] }) =>
+      n ? [...n.top, ...n.heart, ...n.base].join('·') : '';
+
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://crushxiangjian.com';
     const params = new URLSearchParams({
       scene: 'self', format,
@@ -344,6 +347,11 @@ function ResultInner() {
       // 锁定版内容
       radar: JSON.stringify(radar),
       memoryScene: memoryScene ?? '',
+      // 增强区块：人格副标题 + 三香三调关键词
+      desc: personality.description ?? '',
+      notesA: flatNotes(recs[0]?.notesStructured),
+      notesB: flatNotes(recs[1]?.notesStructured),
+      notesC: flatNotes(recs[2]?.notesStructured),
     });
     const res = await fetch(`/api/share-card?${params}`);
     if (!res.ok) return;

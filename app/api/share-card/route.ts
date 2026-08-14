@@ -19,6 +19,8 @@
  *   matchB        进阶香匹配%（必填）
  *   perfumeC      尝试香名（必填）
  *   matchC        尝试香匹配%（必填）
+ *   desc          人格一句话简介（可选）
+ *   notesA/B/C    三香三调关键词，点分隔（可选）
  *   shared        共享香调，逗号分隔（可选，3:4 时显示）
  *
  * scene=friend:
@@ -29,7 +31,8 @@
  *   score         契合度 0-100（必填）
  *   tier          tier 标签（默认"灵魂伴侣"）
  *   story         关系解读句（默认"两种香气的碰撞，让彼此独一无二的共鸣悄然发生。"）
- *   shared        共享香调，逗号分隔（可选，3:4 时显示）
+ *   notesA/B      双方签名香三调关键词，点分隔（可选）
+ *   shared        共享香调，逗号分隔（可选）
  *   inv           邀请码（嵌入二维码）
  *
  * scene=shared:
@@ -111,6 +114,10 @@ export async function GET(req: NextRequest) {
       perfumeC: { name: perfumeC, tier: "尝试香", match: matchC },
       radar,
       memoryScene: memoryScene || undefined,
+      desc: sp.get("desc") || undefined,
+      notesA: sp.get("notesA") || undefined,
+      notesB: sp.get("notesB") || undefined,
+      notesC: sp.get("notesC") || undefined,
     };
     data = d;
 
@@ -138,6 +145,10 @@ export async function GET(req: NextRequest) {
       nameA, nameB, perfumeNameA, perfumeNameB,
       score, tier, story,
       sharedNotes: shared,
+      perfumeTierA: sp.get("perfumeTierA") || undefined,
+      perfumeTierB: sp.get("perfumeTierB") || undefined,
+      notesA: sp.get("notesA") || undefined,
+      notesB: sp.get("notesB") || undefined,
       inviteCode: inv,
     };
     data = d;

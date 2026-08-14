@@ -218,6 +218,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     if (!result || !shareA || !shareB) return;
     setShareLoading(true);
     try {
+      const flatNotes = (n?: { top: string[]; heart: string[]; base: string[] }) =>
+        n ? [...n.top, ...n.heart, ...n.base].join('·') : '';
+
       const params = new URLSearchParams({
         scene: 'friend',
         nameA: shareA.name,
@@ -230,6 +233,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         inv: encodeInvite(shareA.name),
         shared: result.sharedNotes.map(n => n.split(' ')[1]).join(','),
         story: result.story,
+        notesA: flatNotes(shareA.signaturePerfume.notes),
+        notesB: flatNotes(shareB.signaturePerfume.notes),
       });
       // 加 cache-buster 避免旧图缓存
       params.append('_t', String(Date.now()));
