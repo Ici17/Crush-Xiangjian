@@ -4,7 +4,7 @@
  *
  * 数据来源：
  * - 人格基础信息（name/mbtiAlias/tagline/description）：lib/data.ts → PERSONALITY_TYPES
- * - 香水推荐（3 档）：lib/data.ts → PERSONALITY_TYPES[].signaturePerfume/advancedPerfume/budgetPerfume
+ * - 香水推荐（3 档）：方案 B 代表性推荐（lib/matchPerfumes 的 getCalibratedRecommendations + inferArchetypeCal），不再用硬编码三香字段
  * - 雷达分值：lib/data.ts → PERSONALITY_TYPES[].radarScores
  * - 问卷写入 key：crushxiangjian_personality_id / radar_scores / path_labels
  *
@@ -14,7 +14,7 @@
  */
 
 import { PERSONALITY_TYPES, PERFUMES, type Perfume } from '@/lib/data';
-import { getPerfumeProfile } from '@/lib/matchPerfumes';
+import { getPerfumeProfile, getCalibratedRecommendations, inferArchetypeCal } from '@/lib/matchPerfumes';
 
 export type Personality = {
   name: string;
@@ -86,7 +86,7 @@ export type Recommendation = {
   notes: string;                      // 扁平字符串（向后兼容）
   notesStructured: NotesStructured;    // 结构化三调（推荐使用）
   quote: string;
-  tier: 'signature' | 'advanced' | 'budget';      // 真实数据档位
+  tier: 'premium' | 'budget';      // 真实数据档位（premium = 原 signature+advanced 合并）
   role: 'signature' | 'advanced' | 'budget';      // 展示角色（本命香/进阶香/尝试香）
   match: number;
   priceRange: string;                  // 价格区间，如 "¥800-1200/50ml"
@@ -94,81 +94,50 @@ export type Recommendation = {
   longevity: number;                   // 留香 1-5
 };
 
-/** 香水匹配度（基于名称 hash，同一瓶香分数恒定） */
-function perfumeMatch(name: string, tier: 'signature' | 'advanced' | 'budget'): number {
-  const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  if (tier === 'signature') return 90 + (hash % 9);
-  if (tier === 'advanced')   return 76 + (hash % 13);
-  return 60 + (hash % 14); // budget
-}
-
-/** 将 data.ts 的 notes 对象展平为字符串 */
-function joinNotes(notes: { top: string[]; heart: string[]; base: string[] }): string {
-  return [...notes.top, ...notes.heart, ...notes.base].join(' / ');
-}
-
-/** 内部基础推荐（不含 match，调用方自己补） */
-function _getBaseRecommendations(id: string | undefined): readonly Omit<Recommendation, 'match'>[] {
-  if (!id) return SAMPLE_RECOMMENDATIONS;
-
-  try {
-    const type = PERSONALITY_TYPES.find((t) => t.id === id);
-    if (!type) return SAMPLE_RECOMMENDATIONS;
-
-    return [
-      {
-        name: type.signaturePerfume.name,
-        brand: type.signaturePerfume.brand,
-        brandCn: type.signaturePerfume.brandCn,
-        notes: joinNotes(type.signaturePerfume.notes),
-        notesStructured: { ...type.signaturePerfume.notes },
-        quote: `「${type.signaturePerfume.description}」`,
-        tier: 'signature',
-        role: 'signature',
-        priceRange: type.signaturePerfume.priceRange,
-        intensity: type.signaturePerfume.intensity,
-        longevity: type.signaturePerfume.longevity,
-      },
-      {
-        name: type.advancedPerfume.name,
-        brand: type.advancedPerfume.brand,
-        brandCn: type.advancedPerfume.brandCn,
-        notes: joinNotes(type.advancedPerfume.notes),
-        notesStructured: { ...type.advancedPerfume.notes },
-        quote: `「${type.advancedPerfume.description}」`,
-        tier: 'advanced',
-        role: 'advanced',
-        priceRange: type.advancedPerfume.priceRange,
-        intensity: type.advancedPerfume.intensity,
-        longevity: type.advancedPerfume.longevity,
-      },
-      {
-        name: type.budgetPerfume.name,
-        brand: type.budgetPerfume.brand,
-        brandCn: type.budgetPerfume.brandCn,
-        notes: joinNotes(type.budgetPerfume.notes),
-        notesStructured: { ...type.budgetPerfume.notes },
-        quote: `「${type.budgetPerfume.description}」`,
-        tier: 'budget',
-        role: 'budget',
-        priceRange: type.budgetPerfume.priceRange,
-        intensity: type.budgetPerfume.intensity,
-        longevity: type.budgetPerfume.longevity,
-      },
-    ] as const;
-  } catch {
-    return SAMPLE_RECOMMENDATIONS;
-  }
-}
-
 /**
- * 根据人格名获取香水推荐（3 档）+ 匹配度
- * 优先使用 data.ts 真实数据，降级为示例文案
+ * 根据人格名获取香水推荐（3 档）+ 匹配度（改法 B：统一走方案 B 代表性推荐）
+ *
+ * 改法 B 要求「首屏/无校准数据也直接走方案 B」（不做固定硬编码映射）。
+ * 这里用原型固有字段确定性推导代表性校准输入（inferArchetypeCal），
+ * 再以该原型自身雷达向量跑 getCalibratedRecommendations，
+ * 输出稳定、可复现的「代表性三香」（本命香/进阶香/尝试香）。
+ * 与用户校准后的动态推荐共享同一套算法与全局平价去重分配表。
  */
 export function getRecommendations(personalityName: string): readonly Recommendation[] {
   const id = PERSONALITY_ID_MAP[personalityName];
-  const base = _getBaseRecommendations(id);
-  return base.map((r) => ({ ...r, match: perfumeMatch(r.name, r.tier) }));
+  const type = PERSONALITY_TYPES.find((t) => t.id === id);
+  if (!type) return SAMPLE_RECOMMENDATIONS;
+
+  try {
+    const radarRaw = getRadarScores(personalityName); // 中文键 0-1
+    const radarVector = {
+      woody: radarRaw['木质'],
+      fresh: radarRaw['清新'],
+      oriental: radarRaw['东方'],
+      gourmand: radarRaw['美食'],
+      citrus: radarRaw['柑橘'],
+      floral: radarRaw['花香'],
+    };
+    const { calChoices, pathLabels } = inferArchetypeCal(type);
+    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, id);
+    if (calibrated.length === 0) return SAMPLE_RECOMMENDATIONS;
+    return calibrated.map((r) => ({
+      name: r.name,
+      brand: r.brand,
+      brandCn: r.brandCn,
+      notes: r.notes,
+      notesStructured: r.notesStructured,
+      quote: r.quote,
+      tier: r.tier,
+      role: r.role,
+      match: r.match,
+      priceRange: r.priceRange,
+      intensity: r.intensity,
+      longevity: r.longevity,
+    })) as readonly Recommendation[];
+  } catch {
+    return SAMPLE_RECOMMENDATIONS;
+  }
 }
 
 /**
@@ -325,7 +294,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notes: '沉香 / 檀木 / 零陵香豆',
     notesStructured: { top: ['小豆蔻'], heart: ['沉香', '檀木'], base: ['零陵香豆', '琥珀'] },
     quote: '「它和你一样，初见是距离，再闻是深度。」',
-    tier: 'signature',
+    tier: 'premium',
     role: 'signature',
     match: 93,
     priceRange: '¥1500-2200/50ml',
@@ -339,7 +308,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notes: '檀香 / 纸莎草 / 皮革',
     notesStructured: { top: ['小豆蔻'], heart: ['檀香', '纸莎草'], base: ['皮革', '雪松'] },
     quote: '「安静的人，往往最有故事。」',
-    tier: 'advanced',
+    tier: 'premium',
     role: 'advanced',
     match: 82,
     priceRange: '¥1200-1800/50ml',
@@ -353,7 +322,7 @@ export const SAMPLE_RECOMMENDATIONS: readonly Recommendation[] = [
     notes: '雪松 / 玫瑰 / 岩兰草',
     notesStructured: { top: ['雪松'], heart: ['玫瑰'], base: ['岩兰草', '麝香'] },
     quote: '「你不必热烈，也足够被记住。」',
-    tier: 'advanced',
+    tier: 'premium',
     role: 'advanced',
     match: 68,
     priceRange: '¥1400-1600/50ml',
@@ -618,7 +587,7 @@ export function getScentAdvice(name: string): ScentAdvice {
 
 /** 本命香完整档案（解锁内容 ②）：从推荐香水程序化派生前/中/后调 */
 export type PerfumeDetail = {
-  name: string; brand: string; brandCn: string; tier: 'signature' | 'advanced' | 'budget';
+  name: string; brand: string; brandCn: string; tier: 'premium' | 'budget';
   role: 'signature' | 'advanced' | 'budget';
   top: string[]; heart: string[]; base: string[];
   lasting: string; lastingPct: number; scene: string; quote: string;
@@ -628,9 +597,8 @@ export type PerfumeDetail = {
   longevity: number;
 };
 
-export const TIER_META: Record<'signature' | 'advanced' | 'budget', { lasting: string; lastingPct: number; scene: string }> = {
-  signature: { lasting: '8–10 小时', lastingPct: 90, scene: '重要场合 · 独处夜读' },
-  advanced: { lasting: '6–8 小时', lastingPct: 70, scene: '通勤 · 深度工作' },
+export const TIER_META: Record<'premium' | 'budget', { lasting: string; lastingPct: number; scene: string }> = {
+  premium: { lasting: '6–10 小时', lastingPct: 85, scene: '重要场合 · 通勤日常' },
   budget: { lasting: '4–6 小时', lastingPct: 50, scene: '周末 · 轻松社交' },
 };
 
@@ -675,7 +643,7 @@ function cosineDistance(a: { [k: string]: number }, b: { [k: string]: number }):
 }
 
 /** 品牌名显示：brandCn 看起来是「不合理的乱码音译」时回退到英文 brand（防御性兜底） */
-export function brandLabel(p: Perfume): string {
+export function brandLabel(p: { brand?: string; brandCn?: string }): string {
   const cn = (p.brandCn || "").trim();
   const en = (p.brand || "").trim();
   if (!cn) return en;

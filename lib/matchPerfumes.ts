@@ -369,7 +369,7 @@ function totalScore(
 // ════════════════════════════════════════════════════════
 
 // 由原型固有字段确定性推导其校准输入（与比对/验证脚本保持一致）
-function inferArchetypeCal(t: {
+export function inferArchetypeCal(t: {
   scentDirection?: string;
   description?: string;
   mbtiAlias?: string;
@@ -483,7 +483,7 @@ export interface CalibratedRecommendation {
   notes: string;
   notesStructured: { top: string[]; heart: string[]; base: string[] };
   quote: string;
-  tier: Perfume['tier'];            // 真实数据档位（signature/advanced/budget）
+  tier: Perfume['tier'];            // 真实数据档位（premium/budget）
   role: 'signature' | 'advanced' | 'budget';  // 展示角色：本命香/进阶香/尝试香
   match: number;
   priceRange: string;
@@ -508,9 +508,10 @@ function parseLowPricePerMl(priceRange: string): number {
 
 /**
  * 进阶香价格门槛（元/ml）：进阶香只从单 ml 价不低于该值的香里选，保证高定价定位。
- * 数据分布（单 ml 中位）：signature ¥30、advanced ¥12、budget ¥2。
- * 门槛设为 20 可将进阶香锁定在「轻奢/高端」区间（≥¥20/ml 的进阶香约 5 支，外加大批 signature 香），
- * 与 ¥2/ml 尝试香、¥12/ml 普通进阶香拉开明显档次。
+ * 改法 B：本命香与进阶香都来自 premium 合并池（原 signature+advanced 合并）。
+ * 数据分布（单 ml 中位）：premium ¥18、budget ¥2.4。
+ * 门槛设为 20 可将进阶香锁定在「轻奢/高端」区间（premium 池中 ≥¥20/ml 的香远多于改法 B 前的 advanced 档），
+ * 与 ¥2.4/ml 尝试香拉开明显档次。
  */
 const ADVANCED_MIN_PRICE_PER_ML = 20;
 
@@ -561,9 +562,9 @@ export function getCalibratedRecommendations(
   }));
 
   // ═══ 推荐池结构（方案 B）═══
-  // 池 A（高端）：signature + advanced 合并，取 top 2 → 角色分别为 本命香 / 进阶香
+  // 池 A（高端）：premium 池（原 signature + advanced 合并），取 top 2 → 角色分别为 本命香 / 进阶香
   // 池 B（平价）：budget 单独取 top 1 → 角色为 尝试香
-  // 本命香可来自 advanced（合并池 top1），tier 保留真实档位，role 表示展示位置
+  // 本命香来自 premium 合并池 top1，tier 保留真实档位（premium/budget），role 表示展示位置
   const results: CalibratedRecommendation[] = [];
   const selectedNames = new Set<string>();      // 跨池同名去重
   const selectedProfiles: ScentVector[] = [];    // MMR：与已选香气的相似度惩罚
@@ -574,9 +575,9 @@ export function getCalibratedRecommendations(
   const BUDGET_MONOPOLY_K = 9;       // 垄断去偏强度（惩罚上限约 9 分）
   const BUDGET_MMR_LAMBDA = 0.10;    // 与已选香气的相似度惩罚强度
 
-  // ── 池 A：高端合并（signature + advanced）取 top 2 ──
+  // ── 池 A：高端合并（premium = 原 signature + advanced 合并）取 top 2 ──
   const premiumCandidates = scored2.filter(
-    (s) => s.perfume.tier === 'signature' || s.perfume.tier === 'advanced'
+    (s) => s.perfume.tier === 'premium'
   );
   // 综合排序：总分 + 跨品牌去重 + 同名去重
   premiumCandidates.sort((a, b) => {

@@ -15,7 +15,7 @@ import {
 } from "@/lib/inviteState";
 import PersonalityIcon from "@/components/PersonalityIcon";
 import RadarChart from "@/components/RadarChart";
-import { PERSONALITY_NAME_MAP, getRadarScores, brandLabel } from "@/lib/personalities";
+import { PERSONALITY_NAME_MAP, getRadarScores, brandLabel, getRecommendations } from "@/lib/personalities";
 
 /** 契合度四档解读 */
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
@@ -225,18 +225,18 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         scene: 'friend',
         nameA: shareA.name,
         nameB: shareB.name,
-        perfumeNameA: shareA.signaturePerfume.name,
-        perfumeNameB: shareB.signaturePerfume.name,
+        perfumeNameA: getRecommendations(shareA.name)[0].name,
+        perfumeNameB: getRecommendations(shareB.name)[0].name,
         score: String(result.score),
         tier: getCompatibilityStory(result.score).tier,
         format,
         inv: encodeInvite(shareA.name),
         shared: result.sharedNotes.map(n => n.split(' ')[1]).join(','),
         story: result.story,
-        notesA: flatNotes(shareA.signaturePerfume.notes),
-        notesB: flatNotes(shareB.signaturePerfume.notes),
-        brandA: brandLabel(shareA.signaturePerfume),
-        brandB: brandLabel(shareB.signaturePerfume),
+        notesA: flatNotes(getRecommendations(shareA.name)[0].notesStructured),
+        notesB: flatNotes(getRecommendations(shareB.name)[0].notesStructured),
+        brandA: brandLabel(getRecommendations(shareA.name)[0]),
+        brandB: brandLabel(getRecommendations(shareB.name)[0]),
         radarA: JSON.stringify(getRadarScores(shareA.name)),
         radarB: JSON.stringify(getRadarScores(shareB.name)),
       });
