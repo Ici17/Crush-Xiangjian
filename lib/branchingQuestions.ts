@@ -1220,19 +1220,21 @@ export const CALIBRATION_ORDER = ["cal1", "cal2", "cal3"];
 // 基于 Q1 入口 + 累积分数推断人格
 // ============================================================
 
-export function calculatePersonalityFromPath(choices: string[]): {
-  personalityId: string;
-  pathString: string;
-  radarScores: {
-    floral: number;
-    woody: number;
-    fresh: number;
-    oriental: number;
-    citrus: number;
-    gourmand: number;
-  };
-} {
-  let scores = {
+type RadarScore = {
+  floral: number;
+  woody: number;
+  fresh: number;
+  oriental: number;
+  citrus: number;
+  gourmand: number;
+};
+
+/**
+ * 从用户选择累加人格倾向并相对归一化（与结果页雷达同维度）。
+ * 纯函数：相同 choices 永远返回相同 scores。
+ */
+function computeRadarScores(choices: string[]): RadarScore {
+  let scores: RadarScore = {
     floral: 50, woody: 50, fresh: 50, oriental: 50, citrus: 50, gourmand: 50,
   };
 
@@ -1243,7 +1245,7 @@ export function calculatePersonalityFromPath(choices: string[]): {
       const choice = q.choices.find(c => c.id === choiceId);
       if (choice) {
         for (const [key, value] of Object.entries(choice.personalityBias)) {
-          scores[key as keyof typeof scores] += value;
+          scores[key as keyof RadarScore] += value as number;
         }
         break;
       }
@@ -1252,28 +1254,23 @@ export function calculatePersonalityFromPath(choices: string[]): {
 
   // 相对归一化：用 dived-by-max 替代硬钳 0-100，让维度间的强弱差异显现
   const raw: Record<string, number> = {};
-  for (const key of Object.keys(scores) as (keyof typeof scores)[]) {
+  for (const key of Object.keys(scores) as (keyof RadarScore)[]) {
     raw[key] = Math.max(0, scores[key]);
   }
   const max = Math.max(...Object.values(raw), 1);
-  for (const key of Object.keys(scores) as (keyof typeof scores)[]) {
+  for (const key of Object.keys(scores) as (keyof RadarScore)[]) {
     scores[key] = Math.round((raw[key] / max) * 100);
   }
 
-  const pathString = choices.join("-");
-
-  // 基于分数用余弦相似度匹配最近的人格质心（全 16 原型竞争）
-  const personalityId = findClosestPersonality(scores);
-
-  return { personalityId, pathString, radarScores: scores };
+  return scores;
 }
 
 /**
- * 找雷达最近的人格质心（全 16 原型竞争，频率平衡去偏）
- * 质心来自 PERSONALITY_TYPES，与 test scores 同维度
+ * 纯函数：基于分数用余弦相似度匹配最近的人格质心（全 16 原型竞争）。
+ * 不使用任何模块级可变状态，确保「相同答案 → 相同结果」。
+ * 质心来自 PERSONALITY_TYPES，与 test scores 同维度。
  */
-const _freqMap = new Map<string, number>();
-function findClosestPersonality(scores: Record<string, number>): string {
+function findClosestPersonality(scores: RadarScore): string {
   const centroids = PERSONALITY_TYPES as Array<{ id: string; name: string; radarScores: ScentVector }>;
   const vec: ScentVector = {
     floral: scores.floral ?? 50, woody: scores.woody ?? 50,
@@ -1281,17 +1278,144 @@ function findClosestPersonality(scores: Record<string, number>): string {
     citrus: scores.citrus ?? 50, gourmand: scores.gourmand ?? 50,
   };
 
-  // 计算所有质心的余弦相似度，对过热原型施加频率去偏（FREQ_BIAS 使分布自然摊开）
-  const FREQ_BIAS = 0.06; // 每被选中一次扣 0.06 余弦，促进分散
-  const withScores = centroids.map((c) => {
+  let best = centroids[0].id;
+  let bestCos = -Infinity;
+  for (const c of centroids) {
     const cos = cosineSimilarity(vec, c.radarScores);
-    const freq = _freqMap.get(c.id) ?? 0;
-    return { id: c.id, score: cos - freq * FREQ_BIAS };
-  });
-  withScores.sort((a, b) => b.score - a.score);
-  const best = withScores[0];
-  _freqMap.set(best.id, (_freqMap.get(best.id) ?? 0) + 1);
-  return best.id;
+    if (cos > bestCos) {
+      bestCos = cos;
+      best = c.id;
+    }
+  }
+  return best;
+}
+
+// ─────────────────────────────────────────────────────────
+// 确定性路径→人格分配表（模块加载时预计算一次）
+// 目的：
+//  1. 消除原 _freqMap 突变导致的非确定性（相同答案必须→相同结果）
+//  2. 保证 16 个人格均可被问卷路径命中（覆盖全量，无孤儿原型）
+// 算法：
+//  - 枚举全部叶子路径，用纯余弦求每条路径的「最近原型」(base)
+//  - 若某些原型未被任何路径命中，贪心从「多路径原型」借最便宜的路径补齐
+//    借路径条件：当前所属原型路径数 ≥ 2（避免借空产生新缺口），
+//    且借给目标原型后余弦损失最小（cos(current) - cos(target) 最小）
+// ─────────────────────────────────────────────────────────
+function enumeratePaths(): string[][] {
+  const nextIds = new Set<string>();
+  Object.values(QUESTIONS).forEach((q) => q.choices.forEach((c) => c.nextQuestionId && nextIds.add(c.nextQuestionId)));
+  const roots = Object.keys(QUESTIONS).filter((qid) => !nextIds.has(qid));
+  const paths: string[][] = [];
+  const dfs = (qid: string, acc: string[]) => {
+    const q = QUESTIONS[qid];
+    if (!q) return;
+    if (!q.choices || q.choices.length === 0) { paths.push(acc); return; }
+    let anyNext = false;
+    for (const c of q.choices) {
+      if (c.nextQuestionId && QUESTIONS[c.nextQuestionId]) {
+        anyNext = true;
+        dfs(c.nextQuestionId, [...acc, c.id]);
+      } else {
+        paths.push([...acc, c.id]);
+      }
+    }
+    if (!anyNext) paths.push(acc);
+  };
+  roots.forEach((r) => dfs(r, []));
+  return paths;
+}
+
+function buildPathAssignment(): Map<string, string> {
+  const allIds = PERSONALITY_TYPES.map((t) => t.id);
+  const centroids = PERSONALITY_TYPES.map((t) => ({ id: t.id, vec: t.radarScores }));
+  const paths = enumeratePaths();
+
+  const cosCache = new Map<string, number>();
+  const cosOf = (str: string, vec: ScentVector, pid: string): number => {
+    const key = `${str}::${pid}`;
+    const hit = cosCache.get(key);
+    if (hit !== undefined) return hit;
+    const c = centroids.find((x) => x.id === pid)!;
+    const v = cosineSimilarity(vec, c.vec);
+    cosCache.set(key, v);
+    return v;
+  };
+  const vecOf = (path: string[]): ScentVector => {
+    const s = computeRadarScores(path);
+    return { floral: s.floral, woody: s.woody, fresh: s.fresh, oriental: s.oriental, citrus: s.citrus, gourmand: s.gourmand };
+  };
+
+  // base：每条路径纯余弦最近原型
+  const assign = new Map<string, string>();
+  const ownerCount: Record<string, number> = {};
+  for (const path of paths) {
+    const str = path.join("-");
+    const vec = vecOf(path);
+    let best = centroids[0].id;
+    let bestCos = -Infinity;
+    for (const c of centroids) {
+      const cos = cosineSimilarity(vec, c.vec);
+      if (cos > bestCos) { bestCos = cos; best = c.id; }
+    }
+    assign.set(str, best);
+    ownerCount[best] = (ownerCount[best] ?? 0) + 1;
+  }
+
+  // 覆盖补齐：贪心借路径
+  const uncovered = allIds.filter((id) => !pathHasOwner(assign, id));
+  for (const target of uncovered) {
+    let bestPathStr = "";
+    let bestFrom = "";
+    let bestLoss = Infinity;
+    // 优先借「多路径原型」(路径数 ≥ 2)，保证不产生新缺口
+    for (const [str, owner] of assign) {
+      if ((ownerCount[owner] ?? 0) < 2) continue;
+      const vec = vecOf(str.split("-"));
+      const loss = cosOf(str, vec, owner) - cosOf(str, vec, target); // ≥ 0
+      if (loss < bestLoss) { bestLoss = loss; bestPathStr = str; bestFrom = owner; }
+    }
+    // 兜底：若无多路径来源（极端情况），借路径数最多的原型
+    if (!bestPathStr) {
+      let topOwner = "";
+      let topCount = 0;
+      for (const [ , owner] of assign) {
+        if ((ownerCount[owner] ?? 0) > topCount) { topCount = ownerCount[owner]!; topOwner = owner; }
+      }
+      for (const [str, owner] of assign) {
+        if (owner !== topOwner) continue;
+        const vec = vecOf(str.split("-"));
+        const loss = cosOf(str, vec, owner) - cosOf(str, vec, target);
+        if (loss < bestLoss) { bestLoss = loss; bestPathStr = str; bestFrom = owner; }
+      }
+    }
+    if (bestPathStr) {
+      assign.set(bestPathStr, target);
+      ownerCount[bestFrom] = (ownerCount[bestFrom] ?? 0) - 1;
+      ownerCount[target] = (ownerCount[target] ?? 0) + 1;
+    }
+  }
+  return assign;
+}
+
+function pathHasOwner(assign: Map<string, string>, id: string): boolean {
+  for (const owner of assign.values()) if (owner === id) return true;
+  return false;
+}
+
+const PATH_ASSIGNMENT = buildPathAssignment();
+
+export function calculatePersonalityFromPath(choices: string[]): {
+  personalityId: string;
+  pathString: string;
+  radarScores: RadarScore;
+} {
+  const scores = computeRadarScores(choices);
+  const pathString = choices.join("-");
+
+  // 生产调用：查确定性的路径→人格分配表（覆盖全 16 原型，重复调用不漂移）
+  const personalityId = PATH_ASSIGNMENT.get(pathString) ?? findClosestPersonality(scores);
+
+  return { personalityId, pathString, radarScores: scores };
 }
 
 export function getPathLabels(choices: string[]): Array<{ label: string; emoji: string }> {
