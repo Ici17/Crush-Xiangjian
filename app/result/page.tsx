@@ -20,6 +20,8 @@ import {
   getShareQuote,
   getSharePerfumeReason,
   getSimilarPersonalities,
+  getParseQuote,
+  getUsagePhilosophy,
   STORAGE_KEYS,
   TIER_META,
   type Recommendation,
@@ -574,7 +576,7 @@ function ResultInner() {
         {/* ━━━ 解析金句 ━━━ */}
         <div className="px-6 pb-2 text-center">
           <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
-            「香气不是面具，是尚未被说出口的自我。」
+            {getParseQuote(personalityName)}
           </p>
         </div>
 
@@ -786,7 +788,7 @@ function ResultInner() {
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-amber-800 italic text-center" style={{ fontSize: '16px', lineHeight: 1.75 }}>
-            「香气不是面具，是尚未被说出口的自我。」闻香如识人——不在于多贵，而在于多像你。
+            {getUsagePhilosophy(personalityName)}
           </p>
         </section>
 

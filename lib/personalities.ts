@@ -799,3 +799,20 @@ export function getSharePerfumeReason(name: string): string {
 export function getSimilarPersonalities(name: string): string[] {
   return SIMILAR_PERSONALITIES[name] ?? [];
 }
+
+/** B1：解析金句（原写死通用句 → 改为按人格变体）
+ * 用每人格独有的 tagline 作引，落到产品主张「闻起来像自己」。
+ */
+export function getParseQuote(name: string): string {
+  const p = PERSONALITIES.find((x) => x.name === name) ?? PERSONALITIES[0];
+  return `「${p.tagline}」——这，就是你闻起来像自己的样子。`;
+}
+
+/** B1：用香哲学标题句（原写死通用句 → 改为按人格变体）
+ * 用 direction 的气质词（括号前部分）注入，落到产品主张「不在于多贵，而在于多像你」。
+ */
+export function getUsagePhilosophy(name: string): string {
+  const p = PERSONALITIES.find((x) => x.name === name) ?? PERSONALITIES[0];
+  const trait = p.direction.includes('（') ? p.direction.split('（')[0] : p.direction;
+  return `你的香水从不是为了遮盖，它只是把你那份「${trait}」，再确认一遍——不在于多贵，而在于多像你。`;
+}

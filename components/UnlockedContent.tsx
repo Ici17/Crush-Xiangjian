@@ -11,6 +11,8 @@ import {
   getUsageGuide,
   getPersonality,
   getScentAdvice,
+  getParseQuote,
+  getUsagePhilosophy,
   RADAR_DIMS,
   type RadarDim,
   type PerfumeDetail,
@@ -143,7 +145,7 @@ export default function UnlockedContent({
       {/* ━━━ 解析金句 ━━━ */}
       <div className="px-6 pb-2 text-center">
         <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
-          「香气不是面具，是尚未被说出口的自我。」
+          {getParseQuote(personalityName)}
         </p>
       </div>
 
@@ -206,7 +208,7 @@ export default function UnlockedContent({
           className="text-amber-800 italic text-center mb-5"
           style={{ fontSize: '16px', lineHeight: 1.75 }}
         >
-          你的香水不是用来遮盖什么，而是用来提醒自己——你比你以为的更深。
+          {getUsagePhilosophy(personalityName)}
         </p>
         <div className="space-y-3">
           {guide.map((g) => (
