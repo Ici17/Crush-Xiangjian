@@ -52,6 +52,9 @@ export interface SelfShareData {
   brandA?: string; // 本命香品牌
   brandB?: string; // 进阶香品牌
   brandC?: string; // 尝试香品牌
+  // 3:4 专属深度内容（气味底稿 / 香调偏好）
+  blueprint?: { top: string[]; heart: string[]; base: string[] };
+  radarTop3?: string[]; // 香调偏好 top 3
   format?: "1to1" | "3to4";
 }
 
@@ -201,7 +204,7 @@ function buildRingSVG(score: number, size: number): string {
 // ── 香水瓶 SVG（代码画瓶型，无外部图片）────────────────────────────────────
 
 function buildBottleSVG(tier: string, size: number): string {
-  const color = TIER_COLOR[tier] ?? C.AMBER_ACCENT;
+  const color = BOTTLE_COLOR[tier] ?? C.AMBER_ACCENT;
   const dark = C.AMBER_DARK;
   // 瓶型比例：总高 size，瓶身 68%，瓶盖 18%，瓶口 14%
   const bodyH = Math.round(size * 0.68);
@@ -229,6 +232,126 @@ function buildBottleSVG(tier: string, size: number): string {
     <!-- 高光 -->
     <rect x="${bodyX+Math.round(bodyW*0.12)}" y="${bodyY+Math.round(bodyH*0.05)}" width="${Math.round(bodyW*0.12)}" height="${Math.round(bodyH*0.55)}" rx="${Math.round(bodyW*0.06)}" fill="${C.WHITE}" opacity="0.25"/>
   </svg>`;
+}
+
+// ── 香调 → 瓶身颜色（方案 A：三香瓶型按香调染色）──
+const FAMILY_COLOR: Record<string, string> = {
+  木质: "#B98A5E",
+  柑橘: "#E0B84A",
+  花香: "#D98AA8",
+  东方: "#9A7BB5",
+  清新: "#7FB0C0",
+  美食: "#C98A6A",
+};
+const BOTTLE_COLOR: Record<string, string> = { ...TIER_COLOR, ...FAMILY_COLOR };
+
+// 由三调关键词推断香调族（用于瓶身染色；无 notes 时回落 tier 色）
+// 加权计分：避免单一关键词误命中，玫瑰/茉莉/紫罗兰/橙花等强花香标记权重更高
+function inferFamily(notes?: string): string | undefined {
+  if (!notes) return undefined;
+  const FAMILY_ORDER = ["花香", "木质", "东方", "清新", "柑橘", "美食"];
+  const scored: Array<[string[], string, number]> = [
+    [["木", "雪松", "檀香", "香根草", "松", "柏", "橡"], "木质", 1],
+    [["柑橘", "香柠檬", "柠檬", "橙", "佛手柑", "葡萄柚", "柚"], "柑橘", 1],
+    [["玫瑰", "茉莉", "鸢尾", "紫罗兰", "铃兰", "晚香玉", "桂花", "牡丹", "橙花"], "花香", 2],
+    [["花"], "花香", 1],
+    [["琥珀", "香草", "麝香", "广藿香", "焚香", "没药", "乳香", "胡椒", "辛"], "东方", 1],
+    [["海", "盐", "水", "莲", "青", "草", "薄荷", "茶", "无花果", "叶"], "清新", 1],
+    [["焦糖", "可可", "咖啡", "坚果", "椰", "奶", "糖", "食"], "美食", 1],
+  ];
+  const counts: Record<string, number> = {};
+  for (const [keys, fam, weight] of scored) {
+    for (const k of keys) {
+      let pos = notes.indexOf(k);
+      while (pos !== -1) {
+        counts[fam] = (counts[fam] || 0) + weight;
+        pos = notes.indexOf(k, pos + 1);
+      }
+    }
+  }
+  if (Object.keys(counts).length === 0) return undefined;
+  const sorted = Object.entries(counts).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return FAMILY_ORDER.indexOf(a[0]) - FAMILY_ORDER.indexOf(b[0]);
+  });
+  return sorted[0][0];
+}
+
+// ── 视觉锤：per-personality 线性手绘母题 + 极淡色晕（方案 A 增补）──
+type MotifStyle = "wave" | "ridge" | "dune" | "ember" | "line" | "dots";
+const PERSONALITY_VISUAL: Record<string, { color: string; motif: MotifStyle }> = {
+  暗流: { color: "#3A5A7A", motif: "wave" },
+  荒岛: { color: "#C9B79C", motif: "ridge" },
+  残温: { color: "#B07256", motif: "ember" },
+  裂岸: { color: "#7C8B8A", motif: "ridge" },
+  寒岭: { color: "#6E8CA0", motif: "ridge" },
+  极夜: { color: "#4A4A6E", motif: "dots" },
+  砾迹: { color: "#A8927A", motif: "dots" },
+  冲浪: { color: "#D98A4A", motif: "wave" },
+  温砾: { color: "#C19A6B", motif: "dune" },
+  空号: { color: "#8A8A8A", motif: "line" },
+  冷砚: { color: "#4E5C5A", motif: "line" },
+  渊海: { color: "#2E5A6E", motif: "wave" },
+  沉湾: { color: "#6E8E8A", motif: "dune" },
+  霜冷: { color: "#9DB0C0", motif: "line" },
+  荒原: { color: "#B08968", motif: "dune" },
+  烬生: { color: "#9A4A3A", motif: "ember" },
+};
+
+function motifMarkup(motif: MotifStyle, W: number, H: number, color: string): string {
+  const stroke = `stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.13"`;
+  const y0 = Math.round(H * 0.22);
+  const y1 = Math.round(H * 0.34);
+  const y2 = Math.round(H * 0.46);
+  const a = Math.round(H * 0.03);
+  if (motif === "wave") {
+    const amp = Math.round(H * 0.02);
+    const p1 = `M0 ${y0} Q ${W * 0.25} ${y0 - amp} ${W * 0.5} ${y0} T ${W} ${y0}`;
+    const p2 = `M0 ${y1} Q ${W * 0.25} ${y1 + amp} ${W * 0.5} ${y1} T ${W} ${y1}`;
+    return `<path d="${p1}" ${stroke}/><path d="${p2}" ${stroke}/>`;
+  }
+  if (motif === "ridge") {
+    const p = `M0 ${y1} L ${W * 0.2} ${y0} L ${W * 0.4} ${y1 + a} L ${W * 0.6} ${y0 - a} L ${W * 0.8} ${y1} L ${W} ${y0}`;
+    return `<path d="${p}" ${stroke}/>`;
+  }
+  if (motif === "dune") {
+    const p = `M0 ${y1} Q ${W * 0.3} ${y0} ${W * 0.5} ${y1} T ${W} ${y1}`;
+    return `<path d="${p}" ${stroke}/>`;
+  }
+  if (motif === "ember") {
+    return [0.2, 0.35, 0.5, 0.65, 0.8]
+      .map((fx) => {
+        const x = Math.round(W * fx);
+        const top = Math.round(y0 - H * 0.05);
+        const bot = Math.round(y1);
+        return `<path d="M${x} ${bot} L ${x} ${top}" ${stroke}/>`;
+      })
+      .join("");
+  }
+  if (motif === "line") {
+    return [y0, y1, y2]
+      .map((y) => {
+        const seg = Math.round(W * 0.18);
+        return `<path d="M${seg} ${y} L ${W - seg} ${y}" ${stroke}/>`;
+      })
+      .join("");
+  }
+  // dots
+  return [0.25, 0.4, 0.55, 0.7, 0.85]
+    .map((fx, i) => {
+      const x = Math.round(W * fx);
+      const y = i % 2 === 0 ? y0 : y1;
+      return `<circle cx="${x}" cy="${y}" r="3" fill="${color}" opacity="0.13"/>`;
+    })
+    .join("");
+}
+
+function buildMotifSVG(name: string, W: number, H: number): string {
+  const v = PERSONALITY_VISUAL[name] ?? { color: C.GOLD, motif: "line" as MotifStyle };
+  const wash = `<rect x="0" y="0" width="${W}" height="${H}" fill="${v.color}" opacity="0.05"/>`;
+  const motif = motifMarkup(v.motif, W, H, v.color);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${wash}${motif}</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
 // ── 香气图谱（六维雷达图）──────────────────────────────────────────────────
@@ -397,7 +520,7 @@ async function buildSvg(
   const W = 1080;
   const H = format === "1to1" ? 1080 : 1440;
   const pad = format === "3to4" ? "80px 64px" : "52px";
-  const qrSize = format === "1to1" ? 130 : 150;
+  const qrSize = format === "1to1" ? 130 : 120;
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
 
@@ -473,7 +596,7 @@ function buildSelfCard(
 
   // 报头：发丝线 + 品牌小标
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "28px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "14px" : "28px" },
     children: [
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
       JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
@@ -483,28 +606,28 @@ function buildSelfCard(
 
   // eyebrow
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "12px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", letterSpacing: "0.3em" }, children: "灵魂香气鉴定 · SOUL SCENT N°" })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "6px" : "12px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", letterSpacing: "0.3em" }, children: "灵魂香气鉴定" })],
   });
 
   // 巨型人格名（字标）
   const hero = JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "88px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
+    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "72px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "18px" : "20px", marginBottom: is3to4 ? "16px" : "18px" },
+    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "8px" : "20px", marginBottom: is3to4 ? "8px" : "18px" },
   });
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "18px" : "24px" },
-    children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "26px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: 1.55 }, children: d.tagline })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "8px" : "24px" },
+    children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.45 : 1.55 }, children: d.tagline })],
   });
 
   // 区块小标题（带发丝线）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "18px" : "26px", marginBottom: is3to4 ? "10px" : "12px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "10px" : "26px", marginBottom: is3to4 ? "6px" : "12px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
@@ -513,7 +636,7 @@ function buildSelfCard(
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = 210;
+    const radarSize = 140;
     const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "10px" : "14px" },
@@ -521,46 +644,60 @@ function buildSelfCard(
     });
   })() : null;
 
-  // 香气台账（发丝线分隔，无白卡）
+  // 香气台账（左侧瓶型按香调染色，发丝线分隔，无白卡）
   const perfumeNotes = [d.notesA, d.notesB, d.notesC];
   const perfumeBrands = [d.brandA, d.brandB, d.brandC];
-  const tierEn = ["SIGNATURE", "NEXT", "TRY"];
   const ledgerRows = [d.perfumeA, d.perfumeB, d.perfumeC].map((p, i) => {
     const notes = perfumeNotes[i];
     const brand = perfumeBrands[i];
-    const tierColor = TIER_COLOR[p.tier] ?? GOLD;
+    const family = inferFamily(notes);
+    const accent = family ? (BOTTLE_COLOR[family] ?? GOLD) : (TIER_COLOR[p.tier] ?? GOLD);
+    const bottleSize = is3to4 ? 64 : 68;
+    const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVG(family ?? p.tier, bottleSize)).toString("base64")}`;
     return JSX("div", {
       style: {
-        display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between",
-        paddingTop: is3to4 ? "12px" : "16px", paddingBottom: is3to4 ? "12px" : "16px",
+        display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+        paddingTop: is3to4 ? "5px" : "16px", paddingBottom: is3to4 ? "5px" : "16px",
         borderTop: i === 0 ? `1px solid ${HAIR}` : "none",
         borderBottom: `1px solid ${HAIR}`,
       },
       children: [
+        JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: is3to4 ? "26px" : "22px" } }),
         JSX("div", {
-          style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "20px" },
+          style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "16px" },
           children: [
-            JSX("span", { style: { color: tierColor, fontSize: is3to4 ? "16px" : "14px", letterSpacing: "0.22em", marginBottom: "8px" }, children: `${p.tier} · ${tierEn[i]}` }),
-            JSX("span", { style: { color: INK, fontSize: is3to4 ? "26px" : "26px", fontWeight: 600, marginBottom: (brand || notes) ? "6px" : "0px" }, children: p.name }),
-            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "15px" : "14px", letterSpacing: "0.14em", marginBottom: notes ? "6px" : "0px" }, children: brand }) : null,
-            notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "15px" : "15px", letterSpacing: "0.03em" }, children: notes }) : null,
+            JSX("span", { style: { color: accent, fontSize: is3to4 ? "15px" : "14px", letterSpacing: "0.22em", marginBottom: is3to4 ? "6px" : "8px" }, children: p.tier }),
+            JSX("span", { style: { color: INK, fontSize: is3to4 ? "24px" : "24px", fontWeight: 600, marginBottom: (brand || notes) ? "4px" : "0px" }, children: p.name }),
+            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "14px", letterSpacing: "0.14em", marginBottom: notes ? "4px" : "0px" }, children: brand }) : null,
+            notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "14px", letterSpacing: "0.03em" }, children: notes }) : null,
           ].filter(Boolean),
         }),
-        JSX("span", { style: { color: INK, fontSize: is3to4 ? "36px" : "36px", fontWeight: 500, lineHeight: 1, paddingTop: "4px" }, children: `${p.match}%` }),
+        JSX("span", { style: { color: INK, fontSize: is3to4 ? "36px" : "34px", fontWeight: 500, lineHeight: 1, paddingTop: "4px", flexShrink: 0 }, children: `${p.match}%` }),
       ],
     });
   });
   const ledger = JSX("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: ledgerRows });
 
-  // 记忆点（令人心动的瞬间）——仅在 3:4 展示，1:1 空间不足
-  const memoryEl = (is3to4 && d.memoryScene) ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", marginTop: "10px", paddingLeft: "20px", paddingRight: "20px" },
-    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: "18px", lineHeight: 1.7, textAlign: "center" }, children: d.memoryScene })],
+  // 记忆点（令人心动的瞬间）——HERO 区块，1:1 与 3:4 均完整展示、不截断
+  const memoryHead = (t: string) => JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "8px" : "14px" },
+    children: [
+      JSX("span", { style: { height: "1px", background: HAIR, width: is3to4 ? "70px" : "70px" }, children: "" }),
+      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "20px", letterSpacing: "0.24em", paddingLeft: "20px", paddingRight: "20px", whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { height: "1px", background: HAIR, width: is3to4 ? "70px" : "70px" }, children: "" }),
+    ],
+  });
+  const memoryEl = d.memoryScene ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "10px" : "26px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
+    children: [
+      memoryHead("令人心动的瞬间"),
+      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.55 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
+    ],
   }) : null;
 
   // 页脚
   const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "20px", borderTop: `1px solid ${HAIR}` },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "10px" : "20px", borderTop: `1px solid ${HAIR}` },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -573,34 +710,72 @@ function buildSelfCard(
     ],
   });
 
-  // 人格副标题（编辑式人物小传）——传了才显示
-  const descEl = d.desc
+  // 人格副标题（编辑式人物小传）——1:1 显示；3:4 内容区块较多，省略以保 QR 不溢出
+  const descEl = d.desc && !is3to4
     ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "14px" : "16px", paddingLeft: "16px", paddingRight: "16px" },
-        children: [JSX("span", { style: { color: "#6F5A3E", fontSize: is3to4 ? "19px" : "18px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em" }, children: d.desc })],
+        style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px", paddingLeft: "16px", paddingRight: "16px" },
+        children: [JSX("span", { style: { color: "#6F5A3E", fontSize: "18px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em" }, children: d.desc })],
       })
     : null;
+
+  // 3:4 专属：气味底稿（前/中/后调）
+  const blueprintEl = (is3to4 && d.blueprint) ? (() => {
+    const groups: Array<[string, string[]]> = [
+      ["前调", d.blueprint.top],
+      ["中调", d.blueprint.heart],
+      ["后调", d.blueprint.base],
+    ];
+    return JSX("div", {
+      style: { display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" },
+      children: groups.map(([label, arr]) => JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0" },
+        children: [
+          JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "13px" : "16px", letterSpacing: "0.2em", marginBottom: is3to4 ? "3px" : "10px" }, children: label }),
+          JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: arr.map((n) => JSX("span", { style: { color: INK, fontSize: is3to4 ? "15px" : "18px", lineHeight: is3to4 ? 1.35 : 1.85 }, children: n })) }),
+        ],
+      })),
+    });
+  })() : null;
+
+  // 3:4 专属：香调偏好 top 3
+  const radarTop3El = (is3to4 && d.radarTop3 && d.radarTop3.length > 0) ? JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center" },
+    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "20px" : "22px", letterSpacing: "0.12em" }, children: d.radarTop3.join(" · ") })],
+  }) : null;
+
+  // 裂变钩：底部话题标签（拉新传播）
+  const hashtag = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "8px" : "16px", marginBottom: "2px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "15px", letterSpacing: "0.06em", textAlign: "center" }, children: "#Crush香鉴  #灵魂香气鉴定  #你身上藏着哪种香气" })],
+  });
+
+  // 视觉锤：per-personality 线性手绘母题（极淡背景层，强化品牌记忆）
+  const motifImg = JSX("img", { src: buildMotifSVG(d.name, W, H), width: W, height: H, style: { position: "absolute", top: "0px", left: "0px", display: "block" } });
 
   const centerChildren: any[] = [eyebrow, hero, heroRule];
   if (descEl) centerChildren.push(descEl);
   centerChildren.push(tagline);
+  if (memoryEl) centerChildren.push(memoryEl); // 记忆点 HERO：置于三香之前
   if (radarEl) { centerChildren.push(secHead("香气图谱"), radarEl); }
   centerChildren.push(secHead("为你调的三支香"), ledger);
-  if (memoryEl) centerChildren.push(memoryEl);
+  if (blueprintEl) centerChildren.push(secHead("气味底稿"), blueprintEl);
+  if (radarTop3El) centerChildren.push(secHead("香调偏好"), radarTop3El);
 
   return JSX("div", {
     style: {
       display: "flex", flexDirection: "column", alignItems: "center",
       width: `${W}px`, height: `${H}px`,
-      background: C.BG, padding: pad,
+      background: C.BG, padding: pad, position: "relative",
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
+      motifImg,
       masthead,
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center", width: "100%" },
         children: centerChildren,
       }),
+      hashtag,
       bottomRow,
     ],
   });
