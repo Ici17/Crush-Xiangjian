@@ -605,13 +605,11 @@ function buildSelfCard(
   const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 报头：发丝线 + 品牌小标
+  // 报头：品牌小标（去掉两侧灰色细杠）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "14px" : "28px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "14px" : "28px" },
     children: [
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
-      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
     ],
   });
 
@@ -636,12 +634,11 @@ function buildSelfCard(
     children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.45 : 1.55 }, children: d.tagline })],
   });
 
-  // 区块小标题（带发丝线）
+  // 区块小标题（纯文字标签，去掉右侧灰色细杠）
   const secHead = (t: string) => JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "8px" : "18px", marginBottom: is3to4 ? "6px" : "8px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
     ],
   });
 
@@ -668,9 +665,7 @@ function buildSelfCard(
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "2px" : "10px", paddingBottom: is3to4 ? "2px" : "10px",
-        borderTop: i === 0 ? `1px solid ${HAIR}` : "none",
-        borderBottom: `1px solid ${HAIR}`,
+        paddingTop: is3to4 ? "10px" : "10px", paddingBottom: is3to4 ? "10px" : "10px",
       },
       children: [
         JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: is3to4 ? "26px" : "22px" } }),
@@ -689,20 +684,18 @@ function buildSelfCard(
   });
   const ledger = JSX("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: ledgerRows });
 
-  // 记忆点（令人心动的瞬间）——HERO 区块，1:1 与 3:4 均完整展示、不截断
+  // 记忆点（令人心动的瞬间）——HERO 区块，1:1 与 3:4 均完整展示、不截断（标题去两侧灰杠）
   const memoryHead = (t: string) => JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "8px" : "14px" },
     children: [
-      JSX("span", { style: { height: "1px", background: HAIR, width: is3to4 ? "70px" : "70px" }, children: "" }),
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "20px", letterSpacing: "0.24em", paddingLeft: "20px", paddingRight: "20px", whiteSpace: "nowrap" }, children: t }),
-      JSX("span", { style: { height: "1px", background: HAIR, width: is3to4 ? "70px" : "70px" }, children: "" }),
+      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "20px", letterSpacing: "0.24em", whiteSpace: "nowrap" }, children: t }),
     ],
   });
   const memoryEl = d.memoryScene ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "18px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "18px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "200px", paddingRight: "200px" },
     children: [
       memoryHead("令人心动的瞬间"),
-      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.55 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
+      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.65 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
     ],
   }) : null;
 
