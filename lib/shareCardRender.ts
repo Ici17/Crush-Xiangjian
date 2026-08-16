@@ -181,18 +181,25 @@ async function generateQR(url: string, size: number): Promise<string> {
 
 function buildRingSVG(score: number, size: number): string {
   const cx = size / 2, cy = size / 2;
-  const r = Math.round(size * 0.2);
+  // 大圆环：让数字舒适地居于环内，不再"出圈"
+  const r = Math.round(size * 0.36);
+  const rInner = Math.round(size * 0.26);
   const circumference = 2 * Math.PI * r;
   const dashOffset = circumference * (1 - score / 100);
-  const strokeW = Math.round(size * 0.028);
+  const strokeW = Math.round(size * 0.012);
+  const innerW = Math.max(1, Math.round(size * 0.005));
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
     <defs>
       <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0%" stop-color="#C2A877"/>
-        <stop offset="100%" stop-color="#2A211B"/>
+        <stop offset="100%" stop-color="#8B7349"/>
       </linearGradient>
     </defs>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(44,24,16,0.10)" stroke-width="${strokeW}"/>
+    <!-- 外圈：极淡背景环 -->
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(44,24,16,0.07)" stroke-width="${strokeW}"/>
+    <!-- 内圈：虚线装饰环，增加调香感 -->
+    <circle cx="${cx}" cy="${cy}" r="${rInner}" fill="none" stroke="rgba(44,24,16,0.10)" stroke-width="${innerW}" stroke-dasharray="5 9"/>
+    <!-- 分数进度弧：金色渐变，从顶部顺时针 -->
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#rg)" stroke-width="${strokeW}"
       stroke-linecap="round"
       stroke-dasharray="${circumference}"
@@ -844,16 +851,16 @@ function buildFriendCard(
     ],
   });
 
-  // 圆环 + 契合度（描边圆环，居中数字）
+  // 共鸣度核心视觉：双细线圆环 + 居中数字 + 上方小标
   const ringContainer = JSX("div", {
-    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: is3to4 ? "8px" : "12px" },
+    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: is3to4 ? "14px" : "18px" },
     children: [
       JSX("img", { src: ringBase64, width: ringSize, height: ringSize, style: { position: "absolute", top: "0px", left: "0px" } }),
       JSX("div", {
         style: { position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
         children: [
-          JSX("span", { style: { color: INK, fontSize: is3to4 ? "110px" : "90px", fontWeight: 500, lineHeight: 1 }, children: String(d.score) }),
-          JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "24px" : "21px", letterSpacing: "0.3em", marginTop: "6px" }, children: "共鸣度" }),
+          JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "17px" : "15px", letterSpacing: "0.28em", marginBottom: is3to4 ? "10px" : "8px" }, children: "共鸣度" }),
+          JSX("span", { style: { color: INK, fontSize: is3to4 ? "76px" : "66px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.02em" }, children: String(d.score) }),
         ],
       }),
     ],
@@ -861,7 +868,7 @@ function buildFriendCard(
 
   // tier 徽章（描边胶囊）
   const tierBadge = JSX("div", {
-    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: is3to4 ? "10px 36px" : "10px 30px", marginTop: is3to4 ? "6px" : "8px", marginBottom: is3to4 ? "18px" : "22px" },
+    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: is3to4 ? "10px 36px" : "10px 30px", marginTop: is3to4 ? "8px" : "10px", marginBottom: is3to4 ? "18px" : "22px" },
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "28px" : "25px", letterSpacing: "0.14em" }, children: d.tier })],
   });
 
