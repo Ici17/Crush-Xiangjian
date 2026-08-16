@@ -531,7 +531,7 @@ async function buildSvg(
   const W = 1080;
   const H = format === "1to1" ? 1080 : 1440;
   const pad = format === "3to4" ? "80px 64px" : "52px";
-  const qrSize = format === "1to1" ? 130 : 110;
+  const qrSize = format === "1to1" ? 118 : 110;
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
 
@@ -616,36 +616,36 @@ function buildSelfCard(
 
   // eyebrow
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "6px" : "12px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "6px" : "8px" },
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", letterSpacing: "0.3em" }, children: "灵魂香气鉴定" })],
   });
 
   // 巨型人格名（字标）
   const hero = JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "68px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
+    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "52px" : "62px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "8px" : "14px", marginBottom: is3to4 ? "8px" : "10px" },
+    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "6px" : "10px", marginBottom: is3to4 ? "6px" : "8px" },
   });
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "4px" : "18px" },
-    children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.45 : 1.55 }, children: d.tagline })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "6px" : "8px" },
+    children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "24px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.6 : 1.65 }, children: d.tagline })],
   });
 
   // 区块小标题（纯文字标签，去掉右侧灰色细杠）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "8px" : "18px", marginBottom: is3to4 ? "6px" : "8px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "5px" : "8px", marginBottom: is3to4 ? "5px" : "5px" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "23px" : "20px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
     ],
   });
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = is3to4 ? 260 : 140;
+    const radarSize = is3to4 ? 230 : 130;
     const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "6px" : "14px" },
@@ -666,17 +666,17 @@ function buildSelfCard(
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "10px" : "10px", paddingBottom: is3to4 ? "10px" : "10px",
+        paddingTop: is3to4 ? "6px" : "6px", paddingBottom: is3to4 ? "6px" : "6px",
       },
       children: [
         JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: is3to4 ? "26px" : "22px" } }),
         JSX("div", {
           style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "16px" },
           children: [
-            JSX("span", { style: { color: accent, fontSize: is3to4 ? "15px" : "14px", letterSpacing: "0.22em", marginBottom: is3to4 ? "6px" : "8px" }, children: p.tier }),
-            JSX("span", { style: { color: INK, fontSize: is3to4 ? "24px" : "24px", fontWeight: 600, marginBottom: (brand || notes) ? "4px" : "0px" }, children: p.name }),
-            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "14px", letterSpacing: "0.14em", marginBottom: notes ? "4px" : "0px" }, children: brand }) : null,
-            notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "14px", letterSpacing: "0.03em" }, children: notes }) : null,
+            JSX("span", { style: { color: accent, fontSize: is3to4 ? "14px" : "13px", letterSpacing: "0.22em", marginBottom: is3to4 ? "5px" : "6px" }, children: p.tier }),
+            JSX("span", { style: { color: INK, fontSize: is3to4 ? "22px" : "22px", fontWeight: 600, marginBottom: (brand || notes) ? "4px" : "0px" }, children: p.name }),
+            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "13px", letterSpacing: "0.14em", marginBottom: notes ? "4px" : "0px" }, children: brand }) : null,
+            notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "13px", letterSpacing: "0.03em" }, children: notes }) : null,
           ].filter(Boolean),
         }),
         JSX("span", { style: { color: INK, fontSize: is3to4 ? "36px" : "34px", fontWeight: 500, lineHeight: 1, paddingTop: "4px", flexShrink: 0 }, children: `${p.match}%` }),
@@ -687,22 +687,22 @@ function buildSelfCard(
 
   // 记忆点（令人心动的瞬间）——HERO 区块，1:1 与 3:4 均完整展示、不截断（标题去两侧灰杠）
   const memoryHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "8px" : "14px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "6px" : "6px" },
     children: [
       JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "20px", letterSpacing: "0.24em", whiteSpace: "nowrap" }, children: t }),
     ],
   });
   const memoryEl = d.memoryScene ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "18px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "200px", paddingRight: "200px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "4px" : "6px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "200px", paddingRight: "200px" },
     children: [
       memoryHead("令人心动的瞬间"),
-      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.65 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
+      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.9 : 1.9, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
     ],
   }) : null;
 
   // 页脚
   const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "6px" : "14px", borderTop: `1px solid ${HAIR}` },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "20px", borderTop: `1px solid ${HAIR}` },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -718,9 +718,9 @@ function buildSelfCard(
   // 用香哲学（编辑式金句）：1:1 / 3:4 均展示，替换原「气味底稿 / 人物小传」深度块
   // 引号内联成对包裹正文，避免单独浮置的前引号显得像多余字符
   const philosophyEl = (d.scentPhilosophy) ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px", marginBottom: is3to4 ? "0px" : "16px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px", marginBottom: is3to4 ? "0px" : "10px" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: `“${d.scentPhilosophy}”` }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.95, textAlign: "center", letterSpacing: "0.02em" }, children: `“${d.scentPhilosophy}”` }),
     ],
   }) : null;
 
@@ -760,7 +760,7 @@ function buildSelfCard(
       motifImg,
       masthead,
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center", width: "100%" },
+        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" },
         children: centerChildren,
       }),
       hashtag,
@@ -941,7 +941,7 @@ function buildFriendCard(
     },
     children: [
       masthead,
-      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center", width: "100%" }, children: centerChildren }),
+      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" }, children: centerChildren }),
       bottomRow,
     ],
   });
@@ -1071,7 +1071,7 @@ function buildSharedCard(
     },
     children: [
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center" },
+        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center" },
         children: [brandLine, subtitle, nameBlock, descEl, ...(philosophyEl ? [philosophyEl] : []), perfumeBlock, ctaEl],
       }),
       bottomRow,
