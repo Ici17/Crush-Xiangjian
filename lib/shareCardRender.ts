@@ -730,12 +730,6 @@ function buildSelfCard(
     children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "20px" : "22px", letterSpacing: "0.12em" }, children: d.radarTop3.join(" · ") })],
   }) : null;
 
-  // 裂变钩：底部话题标签（拉新传播）
-  const hashtag = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "4px" : "10px", marginBottom: "2px" },
-    children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "15px", letterSpacing: "0.06em", textAlign: "center" }, children: "#Crush香鉴  #灵魂香气鉴定  #你身上藏着哪种香气" })],
-  });
-
   // 视觉锤：per-personality 线性手绘母题（极淡背景层，强化品牌记忆）
   const motifImg = JSX("img", { src: buildMotifSVG(d.name, W, H), width: W, height: H, style: { position: "absolute", top: "0px", left: "0px", display: "block" } });
 
@@ -763,7 +757,6 @@ function buildSelfCard(
         style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" },
         children: centerChildren,
       }),
-      hashtag,
       bottomRow,
     ],
   });
