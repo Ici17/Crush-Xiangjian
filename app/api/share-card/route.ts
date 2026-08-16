@@ -196,9 +196,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "shared: sharerName, name, description, perfumeName are required" }, { status: 400 });
     }
 
+    const scentPhilosophy = getScentPhilosophy(name);
+
     const d: SharedShareData = {
       scene: "shared",
       sharerName, name, description, perfumeName,
+      scentPhilosophy,
       inviteCode: inv,
     };
     data = d;

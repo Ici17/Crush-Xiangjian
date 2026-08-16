@@ -89,8 +89,9 @@ export interface SharedShareData {
   perfumeName: string; // 本命香名
   // 新增 v2
   perfumeTier?: string; // 本命香 tier
-  blueprint?: { top: string[]; heart: string[]; base: string[] }; // 气味底稿
-  radarTop3?: string[]; // 香调偏好 top 3 (3:4)
+  blueprint?: { top: string[]; heart: string[]; base: string[] }; // 气味底稿（已弃用，保留兼容）
+  radarTop3?: string[]; // 香调偏好 top 3 (3:4)（已弃用，保留兼容）
+  scentPhilosophy?: string; // 用香哲学（编辑式金句，与 self 卡统一）
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -999,11 +1000,24 @@ function buildSharedCard(
 
   // description
   const descEl = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "28px" : "24px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "16px" : "14px" },
     children: [
       JSX("span", { style: { color: C.AMBER_MID, fontSize: is3to4 ? "24px" : "22px", textAlign: "center", lineHeight: 1.5 }, children: d.description }),
     ],
   });
+
+  // 用香哲学（编辑式金句）：与 self 卡统一口径
+  const philosophyEl = d.scentPhilosophy
+    ? JSX("div", {
+        style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", paddingLeft: is3to4 ? "48px" : "36px", paddingRight: is3to4 ? "48px" : "36px", marginBottom: is3to4 ? "24px" : "20px" },
+        children: [
+          JSX("span", {
+            style: { color: C.AMBER_DARK, fontSize: is3to4 ? "22px" : "20px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" },
+            children: `“${d.scentPhilosophy}”`,
+          }),
+        ],
+      })
+    : null;
 
   // 本命香瓶 + 名
   const perfumeBlock = JSX("div", {
@@ -1064,7 +1078,7 @@ function buildSharedCard(
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, justifyContent: "center" },
-        children: [brandLine, subtitle, nameBlock, descEl, perfumeBlock, ctaEl],
+        children: [brandLine, subtitle, nameBlock, descEl, ...(philosophyEl ? [philosophyEl] : []), perfumeBlock, ctaEl],
       }),
       bottomRow,
     ],
