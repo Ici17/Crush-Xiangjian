@@ -50,7 +50,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData } from "@/lib/shareCardRender";
-import { PERSONALITY_NAME_MAP, getScentBlueprint, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
+import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
 
 export const runtime = "nodejs";
 
@@ -118,10 +118,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3:4 专属深度内容：由人格名程序化派生气味底稿 + 香调偏好 top 3
-    const bp = getScentBlueprint(name);
-    const splitNotes = (s: string) => s.split(/\s*[·/]\s/).map((x) => x.trim()).filter(Boolean);
-    const blueprint = { top: splitNotes(bp.top), heart: splitNotes(bp.heart), base: splitNotes(bp.base) };
+    // 3:4 专属深度内容：由人格名程序化派生用香哲学 + 香调偏好 top 3
+    const scentPhilosophy = getScentPhilosophy(name);
     const radarScores = getRadarScores(name);
     const radarTop3 = [...RADAR_DIMS]
       .sort((a, b) => (radarScores[b] ?? 0) - (radarScores[a] ?? 0))
@@ -143,7 +141,7 @@ export async function GET(req: NextRequest) {
       brandA: sp.get("brandA") || undefined,
       brandB: sp.get("brandB") || undefined,
       brandC: sp.get("brandC") || undefined,
-      blueprint,
+      scentPhilosophy,
       radarTop3,
     };
     data = d;

@@ -581,6 +581,10 @@ export function getHiddenFace(name: string): HiddenFace {
 export function getScentBlueprint(name: string): ScentBlueprint {
   return SCENT_BLUEPRINTS[name] ?? SCENT_BLUEPRINT_FALLBACK;
 }
+export function getScentPhilosophy(name: string): string {
+  const type = PERSONALITY_TYPES.find((t) => t.name === name);
+  return type?.matchingReport.scentPhilosophy ?? PERSONALITY_TYPES[0].matchingReport.scentPhilosophy;
+}
 export function getScentAdvice(name: string): ScentAdvice {
   return SCENT_ADVICE[name] ?? SCENT_ADVICE['暗流'];
 }

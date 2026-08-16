@@ -52,8 +52,8 @@ export interface SelfShareData {
   brandA?: string; // 本命香品牌
   brandB?: string; // 进阶香品牌
   brandC?: string; // 尝试香品牌
-  // 3:4 专属深度内容（气味底稿 / 香调偏好）
-  blueprint?: { top: string[]; heart: string[]; base: string[] };
+  // 3:4 专属深度内容（用香哲学 / 香调偏好）
+  scentPhilosophy?: string; // 用香哲学（编辑式金句）
   radarTop3?: string[]; // 香调偏好 top 3
   format?: "1to1" | "3to4";
 }
@@ -728,24 +728,14 @@ function buildSelfCard(
       })
     : null;
 
-  // 3:4 专属：气味底稿（前/中/后调）
-  const blueprintEl = (is3to4 && d.blueprint) ? (() => {
-    const groups: Array<[string, string[]]> = [
-      ["前调", d.blueprint.top],
-      ["中调", d.blueprint.heart],
-      ["后调", d.blueprint.base],
-    ];
-    return JSX("div", {
-      style: { display: "flex", flexDirection: "row", justifyContent: "space-between", width: "100%" },
-      children: groups.map(([label, arr]) => JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "center", flex: "1 1 0" },
-        children: [
-          JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "13px" : "16px", letterSpacing: "0.2em", marginBottom: is3to4 ? "3px" : "10px" }, children: label }),
-          JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center" }, children: arr.map((n) => JSX("span", { style: { color: INK, fontSize: is3to4 ? "15px" : "18px", lineHeight: is3to4 ? 1.35 : 1.85 }, children: n })) }),
-        ],
-      })),
-    });
-  })() : null;
+  // 3:4 专属：用香哲学（编辑式金句，替换原「气味底稿」）
+  const philosophyEl = (is3to4 && d.scentPhilosophy) ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px" },
+    children: [
+      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "34px" : "30px", lineHeight: 1, marginBottom: "2px" }, children: "“" }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.scentPhilosophy }),
+    ],
+  }) : null;
 
   // 3:4 专属：香调偏好 top 3
   const radarTop3El = (is3to4 && d.radarTop3 && d.radarTop3.length > 0) ? JSX("div", {
@@ -768,7 +758,7 @@ function buildSelfCard(
   if (memoryEl) centerChildren.push(memoryEl); // 记忆点 HERO：置于三香之前
   if (radarEl) { centerChildren.push(secHead("香气图谱"), radarEl); }
   centerChildren.push(secHead("为你调的三支香"), ledger);
-  if (blueprintEl) centerChildren.push(secHead("气味底稿"), blueprintEl);
+  if (philosophyEl) centerChildren.push(secHead("用香哲学"), philosophyEl);
   if (radarTop3El) centerChildren.push(secHead("香调偏好"), radarTop3El);
 
   return JSX("div", {
