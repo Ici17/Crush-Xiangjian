@@ -626,18 +626,18 @@ function buildSelfCard(
     children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "68px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "8px" : "20px", marginBottom: is3to4 ? "8px" : "18px" },
+    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "8px" : "14px", marginBottom: is3to4 ? "8px" : "10px" },
   });
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "4px" : "24px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "4px" : "18px" },
     children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.45 : 1.55 }, children: d.tagline })],
   });
 
   // 区块小标题（带发丝线）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "8px" : "26px", marginBottom: is3to4 ? "6px" : "12px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "8px" : "18px", marginBottom: is3to4 ? "6px" : "8px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
@@ -667,7 +667,7 @@ function buildSelfCard(
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "2px" : "16px", paddingBottom: is3to4 ? "2px" : "16px",
+        paddingTop: is3to4 ? "2px" : "10px", paddingBottom: is3to4 ? "2px" : "10px",
         borderTop: i === 0 ? `1px solid ${HAIR}` : "none",
         borderBottom: `1px solid ${HAIR}`,
       },
@@ -698,7 +698,7 @@ function buildSelfCard(
     ],
   });
   const memoryEl = d.memoryScene ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "26px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "18px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
     children: [
       memoryHead("令人心动的瞬间"),
       JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.55 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
@@ -707,7 +707,7 @@ function buildSelfCard(
 
   // 页脚
   const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "6px" : "20px", borderTop: `1px solid ${HAIR}` },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "6px" : "14px", borderTop: `1px solid ${HAIR}` },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -720,17 +720,9 @@ function buildSelfCard(
     ],
   });
 
-  // 人格副标题（编辑式人物小传）——1:1 显示；3:4 内容区块较多，省略以保 QR 不溢出
-  const descEl = d.desc && !is3to4
-    ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px", paddingLeft: "16px", paddingRight: "16px" },
-        children: [JSX("span", { style: { color: "#6F5A3E", fontSize: "18px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em" }, children: d.desc })],
-      })
-    : null;
-
-  // 3:4 专属：用香哲学（编辑式金句，替换原「气味底稿」）
-  const philosophyEl = (is3to4 && d.scentPhilosophy) ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px" },
+  // 用香哲学（编辑式金句）：1:1 / 3:4 均展示，替换原「气味底稿 / 人物小传」深度块
+  const philosophyEl = (d.scentPhilosophy) ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px", marginBottom: is3to4 ? "0px" : "16px" },
     children: [
       JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "34px" : "30px", lineHeight: 1, marginBottom: "2px" }, children: "“" }),
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.scentPhilosophy }),
@@ -745,7 +737,7 @@ function buildSelfCard(
 
   // 裂变钩：底部话题标签（拉新传播）
   const hashtag = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "4px" : "16px", marginBottom: "2px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "4px" : "10px", marginBottom: "2px" },
     children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "15px", letterSpacing: "0.06em", textAlign: "center" }, children: "#Crush香鉴  #灵魂香气鉴定  #你身上藏着哪种香气" })],
   });
 
@@ -753,12 +745,13 @@ function buildSelfCard(
   const motifImg = JSX("img", { src: buildMotifSVG(d.name, W, H), width: W, height: H, style: { position: "absolute", top: "0px", left: "0px", display: "block" } });
 
   const centerChildren: any[] = [eyebrow, hero, heroRule];
-  if (descEl) centerChildren.push(descEl);
+  // 1:1 空间有限，把用香哲学放在顶部人物小传的原位置；3:4 保持「三支香 → 用香哲学 → 香调偏好」深度流
+  if (philosophyEl && !is3to4) centerChildren.push(secHead("用香哲学"), philosophyEl);
   centerChildren.push(tagline);
   if (memoryEl) centerChildren.push(memoryEl); // 记忆点 HERO：置于三香之前
   if (radarEl) { centerChildren.push(secHead("香气图谱"), radarEl); }
   centerChildren.push(secHead("为你调的三支香"), ledger);
-  if (philosophyEl) centerChildren.push(secHead("用香哲学"), philosophyEl);
+  if (philosophyEl && is3to4) centerChildren.push(secHead("用香哲学"), philosophyEl);
   if (radarTop3El) centerChildren.push(secHead("香调偏好"), radarTop3El);
 
   return JSX("div", {
