@@ -607,7 +607,7 @@ function buildSelfCard(
 
   // 报头：品牌小标 + 下方短居中灰杠（轻量锚点，与名字处金色短杠呼应）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "22px" : "30px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "16px" : "30px" },
     children: [
       JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
       JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: is3to4 ? "14px" : "18px" }, children: "" }),
@@ -637,7 +637,7 @@ function buildSelfCard(
 
   // 区块小标题（纯文字标签，去掉右侧灰色细杠）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "22px" : "14px", marginBottom: is3to4 ? "6px" : "5px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "18px" : "14px", marginBottom: is3to4 ? "6px" : "5px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "23px" : "20px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
     ],
@@ -645,7 +645,7 @@ function buildSelfCard(
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = is3to4 ? 230 : 130;
+    const radarSize = is3to4 ? 200 : 130;
     const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "6px" : "14px" },
@@ -666,7 +666,7 @@ function buildSelfCard(
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "6px" : "6px", paddingBottom: is3to4 ? "6px" : "6px",
+        paddingTop: is3to4 ? "4px" : "6px", paddingBottom: is3to4 ? "4px" : "6px",
       },
       children: [
         JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: is3to4 ? "26px" : "22px" } }),
@@ -726,7 +726,7 @@ function buildSelfCard(
 
   // 3:4 专属：香调偏好 top 3
   const radarTop3El = (is3to4 && d.radarTop3 && d.radarTop3.length > 0) ? JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "26px" : "0px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "18px" : "0px" },
     children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "20px" : "22px", letterSpacing: "0.12em" }, children: d.radarTop3.join(" · ") })],
   }) : null;
 
