@@ -366,10 +366,10 @@ function buildMotifSVG(name: string, W: number, H: number): string {
 const RADAR_DIM_LIST = ['木质', '清新', '东方', '美食', '柑橘', '花香'];
 
 function buildRadarSVG(values: Record<string, number>, size: number): string {
-  const VB = 280;
+  const VB = 380;
   const CX = VB / 2;
   const CY = VB / 2;
-  const R = 92;
+  const R = 118;
   const N = RADAR_DIM_LIST.length;
   const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
   const toXY = (radius: number, angleDeg: number): [number, number] => {
@@ -387,7 +387,7 @@ function buildRadarSVG(values: Record<string, number>, size: number): string {
 
   const labelPos = (i: number) => {
     const angle = angleOf(i);
-    const rad = R + 22;
+    const rad = R + 28;
     const [x, y] = toXY(rad, angle);
     const anchor = Math.abs(Math.cos((angle * Math.PI) / 180)) < 0.25
       ? 'middle'
@@ -398,34 +398,37 @@ function buildRadarSVG(values: Record<string, number>, size: number): string {
   };
 
   const ringsSvg = RINGS.map((scale, idx) =>
-    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#C2A877" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.32}" stroke-width="${idx === RINGS.length - 1 ? 1.5 : 1.0}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="2 3"'}/>`
+    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#C2A877" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.32}" stroke-width="${idx === RINGS.length - 1 ? 2.0 : 1.2}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="3 4"'}/>`
   ).join('');
 
   const axesSvg = RADAR_DIM_LIST.map((_, i) => {
     const [x, y] = toXY(R, angleOf(i));
-    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#C2A877" stroke-opacity="0.32" stroke-width="0.8"/>`;
+    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#C2A877" stroke-opacity="0.32" stroke-width="1.0"/>`;
   }).join('');
 
   const dotsSvg = RADAR_DIM_LIST.map((dim, i) => {
     const [x, y] = toXY(R * visualValue(values[dim] ?? 0), angleOf(i));
-    return `<circle cx="${x}" cy="${y}" r="2.6" fill="#A8884E" stroke="#F8F2E8" stroke-width="1.2"/>`;
+    return `<circle cx="${x}" cy="${y}" r="3.2" fill="#A8884E" stroke="#F8F2E8" stroke-width="1.5"/>`;
   }).join('');
 
   const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
     const pos = labelPos(i);
+    const score = Math.round((values[dim] ?? 0) * 100);
+    const label = `${dim} ${score}`;
+    const sin = Math.sin((angleOf(i) * Math.PI) / 180);
     const yOffset =
-      Math.sin((angleOf(i) * Math.PI) / 180) < -0.5
+      sin < -0.5
         ? pos.y - 2
-        : Math.sin((angleOf(i) * Math.PI) / 180) > 0.5
-        ? pos.y + 12
-        : pos.y + 4;
-    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="13" font-family="'Noto Serif SC', serif" font-weight="500">${dim}</text>`;
+        : sin > 0.5
+        ? pos.y + 14
+        : pos.y + 5;
+    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="16" font-family="'Noto Serif SC', serif" font-weight="500">${label}</text>`;
   }).join('');
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${VB} ${VB}">
     <g stroke="#C2A877" fill="none">${ringsSvg}</g>
     <g>${axesSvg}</g>
-    <polygon points="${dataPoints}" fill="rgba(168,136,78,0.14)" stroke="#A8884E" stroke-width="2.0" stroke-linejoin="round"/>
+    <polygon points="${dataPoints}" fill="rgba(168,136,78,0.16)" stroke="#A8884E" stroke-width="2.4" stroke-linejoin="round"/>
     <g>${dotsSvg}</g>
     <g>${labelsSvg}</g>
   </svg>`;
@@ -527,7 +530,7 @@ async function buildSvg(
   const W = 1080;
   const H = format === "1to1" ? 1080 : 1440;
   const pad = format === "3to4" ? "80px 64px" : "52px";
-  const qrSize = format === "1to1" ? 130 : 120;
+  const qrSize = format === "1to1" ? 130 : 110;
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
 
@@ -620,7 +623,7 @@ function buildSelfCard(
   // 巨型人格名（字标）
   const hero = JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "72px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
+    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "68px" : "84px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
     style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "8px" : "20px", marginBottom: is3to4 ? "8px" : "18px" },
@@ -628,13 +631,13 @@ function buildSelfCard(
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "8px" : "24px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "4px" : "24px" },
     children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "26px", fontStyle: "italic", textAlign: "center", lineHeight: is3to4 ? 1.45 : 1.55 }, children: d.tagline })],
   });
 
   // 区块小标题（带发丝线）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "10px" : "26px", marginBottom: is3to4 ? "6px" : "12px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "8px" : "26px", marginBottom: is3to4 ? "6px" : "12px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "25px" : "23px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
@@ -643,10 +646,10 @@ function buildSelfCard(
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = 140;
+    const radarSize = is3to4 ? 260 : 140;
     const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
     return JSX("div", {
-      style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "10px" : "14px" },
+      style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "6px" : "14px" },
       children: [JSX("img", { src: radarSVG, width: radarSize, height: radarSize, style: { display: "block" } })],
     });
   })() : null;
@@ -664,7 +667,7 @@ function buildSelfCard(
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "5px" : "16px", paddingBottom: is3to4 ? "5px" : "16px",
+        paddingTop: is3to4 ? "2px" : "16px", paddingBottom: is3to4 ? "2px" : "16px",
         borderTop: i === 0 ? `1px solid ${HAIR}` : "none",
         borderBottom: `1px solid ${HAIR}`,
       },
@@ -695,7 +698,7 @@ function buildSelfCard(
     ],
   });
   const memoryEl = d.memoryScene ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "10px" : "26px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "6px" : "26px", marginBottom: is3to4 ? "0px" : "4px", paddingLeft: "10px", paddingRight: "10px" },
     children: [
       memoryHead("令人心动的瞬间"),
       JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "17px" : "17px", lineHeight: is3to4 ? 1.55 : 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
@@ -704,7 +707,7 @@ function buildSelfCard(
 
   // 页脚
   const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "10px" : "20px", borderTop: `1px solid ${HAIR}` },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: is3to4 ? "6px" : "20px", borderTop: `1px solid ${HAIR}` },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
@@ -752,7 +755,7 @@ function buildSelfCard(
 
   // 裂变钩：底部话题标签（拉新传播）
   const hashtag = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "8px" : "16px", marginBottom: "2px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: is3to4 ? "4px" : "16px", marginBottom: "2px" },
     children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "15px", letterSpacing: "0.06em", textAlign: "center" }, children: "#Crush香鉴  #灵魂香气鉴定  #你身上藏着哪种香气" })],
   });
 
