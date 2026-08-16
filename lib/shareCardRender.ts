@@ -721,11 +721,11 @@ function buildSelfCard(
   });
 
   // 用香哲学（编辑式金句）：1:1 / 3:4 均展示，替换原「气味底稿 / 人物小传」深度块
+  // 引号内联成对包裹正文，避免单独浮置的前引号显得像多余字符
   const philosophyEl = (d.scentPhilosophy) ? JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "26px", paddingRight: "26px", marginTop: is3to4 ? "2px" : "0px", marginBottom: is3to4 ? "0px" : "16px" },
     children: [
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "34px" : "30px", lineHeight: 1, marginBottom: "2px" }, children: "“" }),
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: d.scentPhilosophy }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "19px" : "18px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: `“${d.scentPhilosophy}”` }),
     ],
   }) : null;
 
