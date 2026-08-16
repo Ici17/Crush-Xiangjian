@@ -605,11 +605,12 @@ function buildSelfCard(
   const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 报头：品牌小标（去掉两侧灰色细杠）
+  // 报头：品牌小标 + 下方短居中灰杠（轻量锚点，与名字处金色短杠呼应）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: is3to4 ? "14px" : "28px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "22px" : "30px" },
     children: [
       JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: is3to4 ? "14px" : "18px" }, children: "" }),
     ],
   });
 
