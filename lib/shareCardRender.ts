@@ -322,10 +322,8 @@ function motifMarkup(motif: MotifStyle, W: number, H: number, color: string): st
   const y2 = Math.round(H * 0.46);
   const a = Math.round(H * 0.03);
   if (motif === "wave") {
-    const amp = Math.round(H * 0.02);
-    const p1 = `M0 ${y0} Q ${W * 0.25} ${y0 - amp} ${W * 0.5} ${y0} T ${W} ${y0}`;
-    const p2 = `M0 ${y1} Q ${W * 0.25} ${y1 + amp} ${W * 0.5} ${y1} T ${W} ${y1}`;
-    return `<path d="${p1}" ${stroke}/><path d="${p2}" ${stroke}/>`;
+    // F 方案：去掉全宽水印波浪线，仅保留 buildMotifSVG 中的 5% 暖色铺底，避免横线压标题、画面更干净
+    return "";
   }
   if (motif === "ridge") {
     const p = `M0 ${y1} L ${W * 0.2} ${y0} L ${W * 0.4} ${y1 + a} L ${W * 0.6} ${y0 - a} L ${W * 0.8} ${y1} L ${W} ${y0}`;
