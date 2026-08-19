@@ -52,6 +52,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData } from "@/lib/shareCardRender";
 import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
 import { drawDaily, getTodayStr, RARITY_LABEL, type DrawnPerfume } from "@/lib/daily/draw";
+import { drawAlmanac } from "@/lib/daily/almanac";
 
 export const runtime = "nodejs";
 
@@ -194,12 +195,14 @@ export async function GET(req: NextRequest) {
       notes: `前 ${p.notes.top.join("·")} ｜ 中 ${p.notes.heart.join("·")} ｜ 后 ${p.notes.base.join("·")}`,
       rarity: RARITY_LABEL[p.rarity],
     });
+    const alm = drawAlmanac(date);
     const dd: DailyShareData = {
       scene: "daily",
       date,
       main: fmt(draw.main),
       inspirationA: fmt(draw.inspirations[0]),
       inspirationB: fmt(draw.inspirations[1]),
+      almanac: { yi: alm.yi, ji: alm.ji, note: alm.note },
     };
     data = dd;
 

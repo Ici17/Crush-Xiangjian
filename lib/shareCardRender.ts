@@ -102,6 +102,7 @@ export interface DailyShareData {
   main: { name: string; brandCn: string; notes: string; rarity: string };
   inspirationA: { name: string; brandCn: string; notes: string; rarity: string };
   inspirationB: { name: string; brandCn: string; notes: string; rarity: string };
+  almanac?: { yi: string[]; ji: string[]; note: string };
   format?: "1to1" | "3to4";
 }
 
@@ -1172,6 +1173,66 @@ function buildDailyCard(
     ],
   });
 
+  // 今日宜忌（增强晒图玄学钩子；1:1 极简单行，3:4 两列块）
+  const alm = d.almanac;
+  const almanacBlock = alm
+    ? is3to4
+      ? JSX("div", {
+          style: {
+            display: "flex", flexDirection: "column", width: "100%", marginTop: "18px",
+            padding: "16px 18px", background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "16px",
+          },
+          children: [
+            JSX("div", {
+              style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "10px" },
+              children: [JSX("span", { style: { color: INK, fontSize: "22px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
+            }),
+            JSX("div", {
+              style: { display: "flex", flexDirection: "row", gap: "20px", width: "100%" },
+              children: [
+                JSX("div", {
+                  style: { flex: 1, display: "flex", flexDirection: "column" },
+                  children: [
+                    JSX("span", { style: { color: GOLD, fontSize: "17px", letterSpacing: "0.1em" }, children: "宜" }),
+                    ...alm.yi.map((x, i) =>
+                      JSX("span", { key: i, style: { color: INK, fontSize: "18px", lineHeight: 1.8, marginTop: i === 0 ? 4 : 0 }, children: x })),
+                  ],
+                }),
+                JSX("div", {
+                  style: { flex: 1, display: "flex", flexDirection: "column" },
+                  children: [
+                    JSX("span", { style: { color: "#9A8E7C", fontSize: "17px", letterSpacing: "0.1em" }, children: "忌" }),
+                    ...alm.ji.map((x, i) =>
+                      JSX("span", { key: i, style: { color: "#6B5E4C", fontSize: "18px", lineHeight: 1.8, marginTop: i === 0 ? 4 : 0 }, children: x })),
+                  ],
+                }),
+              ],
+            }),
+            JSX("span", {
+              style: { display: "block", textAlign: "center", color: MUTED, fontSize: "16px", fontStyle: "italic", marginTop: "12px", lineHeight: 1.6 },
+              children: alm.note,
+            }),
+          ],
+        })
+      : JSX("div", {
+          style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "12px" },
+          children: [
+            JSX("div", {
+              style: { display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: "10px", fontSize: "14px", lineHeight: 1.6, color: INK },
+              children: [
+                JSX("span", { style: { color: GOLD }, children: `宜 ${alm.yi.join("·")}` }),
+                JSX("span", { style: { color: "#B6A892" }, children: "｜" }),
+                JSX("span", { style: { color: "#9A8E7C" }, children: `忌 ${alm.ji.join("·")}` }),
+              ],
+            }),
+            JSX("span", {
+              style: { display: "block", textAlign: "center", color: MUTED, fontSize: "13px", fontStyle: "italic", marginTop: "6px", lineHeight: 1.5 },
+              children: alm.note,
+            }),
+          ],
+        })
+    : null;
+
   // 结语
   const footnote = JSX("div", {
     style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: is3to4 ? "20px" : "16px" },
@@ -1200,7 +1261,7 @@ function buildDailyCard(
       background: C.BG, padding: pad, position: "relative",
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
-    children: [masthead, eyebrow, dateLine, strips, footnote, bottomRow],
+    children: [masthead, eyebrow, dateLine, strips, almanacBlock, footnote, bottomRow],
   });
 }
 

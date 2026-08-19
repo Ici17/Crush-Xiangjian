@@ -9,6 +9,7 @@ import {
   type DrawnPerfume,
 } from '@/lib/daily/draw';
 import { drawAlmanac } from '@/lib/daily/almanac';
+import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/daily/history';
 import ScentCodex from '@/components/ScentCodex';
 
 const WEEKDAYS = '日一二三四五六';
@@ -44,6 +45,9 @@ export default function DailyPanel() {
   const [holding, setHolding] = useState(false);
   const [view, setView] = useState<'draw' | 'codex'>('draw');
   const [note, setNote] = useState('');
+  const [streak, setStreak] = useState<StreakView | null>(null);
+  const [frozeGap, setFrozeGap] = useState(false);
+  const [grantedFreeze, setGrantedFreeze] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -51,10 +55,17 @@ export default function DailyPanel() {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         const obj = JSON.parse(raw) as { date: string; revealed: boolean };
-        if (obj.date === today && obj.revealed) setRevealed(true);
+        if (obj.date === today && obj.revealed) {
+          setRevealed(true);
+          const r = markVisited(today);
+          setStreak(r.view);
+          setFrozeGap(r.frozeGap);
+          setGrantedFreeze(r.grantedFreeze);
+        }
       }
       const rawNote = localStorage.getItem(NOTE_KEY(today));
       if (rawNote) setNote(rawNote);
+      if (!revealed) setStreak(getStreakView(today));
     } catch {
       /* ignore */
     }
@@ -77,6 +88,10 @@ export default function DailyPanel() {
     } catch {
       /* ignore */
     }
+    const r = markVisited(today);
+    setStreak(r.view);
+    setFrozeGap(r.frozeGap);
+    setGrantedFreeze(r.grantedFreeze);
   };
 
   const startHold = () => {
@@ -315,6 +330,81 @@ export default function DailyPanel() {
               className="w-full mt-2 bg-transparent outline-none"
               style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '13px', color: '#2C1810' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ── 香气历 · 连续静候 ── */}
+      {revealed && streak && (
+        <div
+          className="mt-6 rounded-2xl border p-4"
+          style={{ borderColor: 'rgba(168,136,78,0.35)', background: '#FBF6EE' }}
+        >
+          <div className="flex items-end justify-between">
+            <div>
+              <div style={{ fontSize: '11px', color: '#B6A892', letterSpacing: '0.2em' }}>连续静候</div>
+              <div style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '30px', color: '#2C1810', lineHeight: 1.1, marginTop: '2px' }}>
+                {streak.current}
+                <span style={{ fontSize: '13px', color: '#8B7C68', marginLeft: '4px' }}>日</span>
+              </div>
+            </div>
+            {streak.title.rank > 0 && (
+              <div
+                className="self-start"
+                style={{ fontSize: '12px', color: '#A8884E', border: '1px solid #A8884E', borderRadius: '4px', padding: '3px 8px', letterSpacing: '0.1em' }}
+              >
+                {streak.title.name}
+              </div>
+            )}
+          </div>
+
+          {frozeGap && (
+            <div style={{ fontSize: '11px', color: '#A8884E', marginTop: '8px' }}>昨日未至，已为你续上一签。</div>
+          )}
+          {grantedFreeze && (
+            <div style={{ fontSize: '11px', color: '#A8884E', marginTop: '8px' }}>静候满七日，赠你一枚续签。</div>
+          )}
+
+          {/* 月历墨点 */}
+          <div className="mt-3">
+            <div className="flex justify-between" style={{ fontSize: '10px', color: '#B6A892', marginBottom: '6px' }}>
+              <span>{today.slice(0, 7).replace('-', '.')}</span>
+              <span>续签 ×{streak.freezes}</span>
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {streak.monthGrid.map((c, i) => {
+                if (c.kind === 'empty') return <div key={i} />;
+                if (c.kind === 'future') return <div key={i} style={{ height: '14px' }} />;
+                const full = `${today.slice(0, 7)}-${String(c.day).padStart(2, '0')}`;
+                if (c.kind === 'today') {
+                  const r = RARITY_DOT[drawDaily(full).main.rarity];
+                  return (
+                    <div key={i} className="flex items-center justify-center" style={{ height: '14px' }}>
+                      <div
+                        style={{
+                          width: '12px', height: '12px', borderRadius: '50%',
+                          border: '1.5px solid #A8884E',
+                          background: r,
+                        }}
+                      />
+                    </div>
+                  );
+                }
+                if (c.kind === 'missed') {
+                  return (
+                    <div key={i} className="flex items-center justify-center" style={{ height: '14px' }}>
+                      <div style={{ width: '7px', height: '7px', borderRadius: '50%', border: '1px solid #D8CFC0' }} />
+                    </div>
+                  );
+                }
+                const r = RARITY_DOT[drawDaily(full).main.rarity];
+                return (
+                  <div key={i} className="flex items-center justify-center" style={{ height: '14px' }}>
+                    <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: r }} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
