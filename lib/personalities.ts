@@ -14,7 +14,7 @@
  */
 
 import { PERSONALITY_TYPES, PERFUMES, type Perfume } from '@/lib/data';
-import { getPerfumeProfile, getCalibratedRecommendations, inferArchetypeCal } from '@/lib/matchPerfumes';
+import { getPerfumeProfile, getPerfumeProfile18D, cosineSimilarity18D, getCalibratedRecommendations, inferArchetypeCal, type ScentVector } from '@/lib/matchPerfumes';
 
 export type Personality = {
   name: string;
@@ -701,6 +701,88 @@ function getContrastMap(): Map<string, Perfume> {
   }
   _contrastMap = map;
   return map;
+}
+
+// ════════════════════════════════════════════════════════
+// 本命守护香（玄学 / 守护体系固定映射）
+// 从完整香水库（225 款）用 18 维分阶段余弦为 16 人格做「最优不重复分配」，
+// 取高端(premium)专属、互不重复的一支作为「本命守护香」。
+// 与动态本命香(getRecommendations)区分：守护香是「你是谁」的气息底色，常驻固定。
+// 合规：外壳为守护/锚定语义，内核为气味契合，无任何吉凶/转运/桃花表述。
+// ════════════════════════════════════════════════════════
+
+// 人格 → 本命守护香（固定、互不重复、全 premium）
+// 来源：scripts/assign_guardian.ts 匈牙利最优分配（方案 A · 高端专属）
+export const GUARDIAN_PERFUME: Record<string, string> = {
+  暗流: '莫哈维之影', 荒岛: '呵欠', 残温: '初恋', 裂岸: '焚香教堂',
+  寒岭: '灰烬', 极夜: '亚历山大二世', 砾迹: '昆仑煮雪', 冲浪: '初熟之物',
+  温砾: '月光天堂', 空号: '羊毛大衣', 冷砚: '精纯鸢尾', 渊海: '玫瑰31',
+  沉湾: '一轮玫瑰', 霜冷: '冷杉之林', 荒原: '暗黑天使', 烬生: '珍珠乌木',
+};
+
+// 守护印（与每日香签金印「雅/隐」共用视觉，语义为「锚定的气息底色」）
+// 隐=深邃内敛 | 雅=有故事感 | 常=明亮外放
+export const GUARDIAN_SEAL: Record<string, '隐' | '雅' | '常'> = {
+  暗流: '隐', 寒岭: '隐', 极夜: '隐', 空号: '隐', 渊海: '隐', 荒原: '隐',
+  残温: '雅', 裂岸: '雅', 冷砚: '雅', 沉湾: '雅', 霜冷: '雅', 烬生: '雅',
+  荒岛: '常', 砾迹: '常', 冲浪: '常', 温砾: '常',
+};
+
+// 守护签文（启示体 · 合规：讲情绪 / 审美，无吉凶 / 转运 / 桃花）
+export const GUARDIAN_LINES: Record<string, string> = {
+  暗流: '无人区的玫瑰，替你收着柔软',
+  荒岛: '阳光落处，便是你不肯停留的岸',
+  残温: '你给世界的光，有人替你温着',
+  裂岸: '掌心的雷，替你劈开混沌',
+  寒岭: '冷焰不灭，是你对自己的诚实',
+  极夜: '极致处的光，只照给你自己',
+  砾迹: '沉默的石，替所有人稳住脚',
+  冲浪: '浪尖之上，你替无聊日子充电',
+  温砾: '你的暖，是别人偷偷攒下的糖',
+  空号: '留白之处，是你给自己的余地',
+  冷砚: '冷釉覆火，是你看穿美的眼',
+  渊海: '深蓝之下，你早看见远处',
+  沉湾: '静湾藏细浪，你接住所有微妙',
+  霜冷: '霜刃藏柔，是你不说的承担',
+  荒原: '心中旷野，无人到过，你也不急',
+  烬生: '余烬不灭，是你给人的落日',
+};
+
+const GUARDIAN_RADAR_CN_TO_EN: Record<string, string> = {
+  花香: 'floral', 木质: 'woody', 清新: 'fresh', 东方: 'oriental', 柑橘: 'citrus', 美食: 'gourmand',
+};
+
+export interface GuardianPerfume {
+  name: string;
+  brand: string;
+  brandCn: string;
+  notes: { top: string[]; heart: string[]; base: string[] };
+  tier: 'premium' | 'budget';
+  seal: '隐' | '雅' | '常';
+  line: string;
+  match: number; // 与人格气息的契合度 %
+}
+
+/** 取某人格的本命守护香（固定映射，全 premium 互不重复；契合度现场计算，保证与气味数据一致） */
+export function getGuardianPerfume(name: string): GuardianPerfume | null {
+  const pname = GUARDIAN_PERFUME[name];
+  if (!pname) return null;
+  const p = (PERFUMES as Record<string, Perfume>)[pname];
+  if (!p) return null;
+  const radarCn = getRadarScores(name);
+  const radarEn: ScentVector = { floral: 0, woody: 0, fresh: 0, oriental: 0, citrus: 0, gourmand: 0 };
+  for (const [k, val] of Object.entries(radarCn) as [string, number][]) {
+    const en = GUARDIAN_RADAR_CN_TO_EN[k];
+    if (en) radarEn[en] = val;
+  }
+  const match = Math.round(cosineSimilarity18D(radarEn, getPerfumeProfile18D(p)) * 100);
+  return {
+    name: p.name, brand: p.brand, brandCn: p.brandCn,
+    notes: p.notes, tier: p.tier,
+    seal: GUARDIAN_SEAL[name] ?? '常',
+    line: GUARDIAN_LINES[name] ?? '',
+    match,
+  };
 }
 
 export function getContrastScent(name: string): ContrastScent {
