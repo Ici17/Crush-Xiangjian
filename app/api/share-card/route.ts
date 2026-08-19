@@ -49,8 +49,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData } from "@/lib/shareCardRender";
+import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData } from "@/lib/shareCardRender";
 import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
+import { drawDaily, getTodayStr, RARITY_LABEL, type DrawnPerfume } from "@/lib/daily/draw";
 
 export const runtime = "nodejs";
 
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
   if (!["1to1", "3to4"].includes(format)) {
     return NextResponse.json({ error: "format must be 1to1|3to4" }, { status: 400 });
   }
-  if (!["self", "friend", "shared"].includes(scene)) {
+  if (!["self", "friend", "shared", "daily"].includes(scene)) {
     return NextResponse.json({ error: "scene must be self|friend|shared" }, { status: 400 });
   }
 
@@ -183,6 +184,24 @@ export async function GET(req: NextRequest) {
       inviteCode: inv,
     };
     data = d;
+
+  } else if (scene === "daily") {
+    const date = sp.get("date") ?? getTodayStr();
+    const draw = drawDaily(date);
+    const fmt = (p: DrawnPerfume) => ({
+      name: p.name,
+      brandCn: p.brandCn,
+      notes: `前 ${p.notes.top.join("·")} ｜ 中 ${p.notes.heart.join("·")} ｜ 后 ${p.notes.base.join("·")}`,
+      rarity: RARITY_LABEL[p.rarity],
+    });
+    const dd: DailyShareData = {
+      scene: "daily",
+      date,
+      main: fmt(draw.main),
+      inspirationA: fmt(draw.inspirations[0]),
+      inspirationB: fmt(draw.inspirations[1]),
+    };
+    data = dd;
 
   } else {
     // scene === "shared"

@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 
 // ── 类型定义 ───────────────────────────────────────────────────────────────
 
-export type ShareScene = "self" | "friend" | "shared";
+export type ShareScene = "self" | "friend" | "shared" | "daily";
 
 export interface PerfumeCard {
   name: string;
@@ -96,7 +96,16 @@ export interface SharedShareData {
   format?: "1to1" | "3to4";
 }
 
-export type ShareCardData = SelfShareData | FriendShareData | SharedShareData;
+export interface DailyShareData {
+  scene: "daily";
+  date: string; // YYYY-MM-DD (Asia/Shanghai)
+  main: { name: string; brandCn: string; notes: string; rarity: string };
+  inspirationA: { name: string; brandCn: string; notes: string; rarity: string };
+  inspirationB: { name: string; brandCn: string; notes: string; rarity: string };
+  format?: "1to1" | "3to4";
+}
+
+export type ShareCardData = SelfShareData | FriendShareData | SharedShareData | DailyShareData;
 
 // ── 颜色常量 ───────────────────────────────────────────────────────────────
 
@@ -564,8 +573,10 @@ async function buildSvg(
     root = buildSelfCard(JSX, data as SelfShareData, W, H, pad, qrBase64, qrSize, base, fontData);
   } else if (data.scene === "friend") {
     root = buildFriendCard(JSX, data as FriendShareData, W, H, pad, qrBase64, qrSize, base, satori, buildRingSVG, fontData);
-  } else {
+  } else if (data.scene === "shared") {
     root = buildSharedCard(JSX, data as SharedShareData, W, H, pad, qrBase64, qrSize, base, buildBottleSVG, fontData);
+  } else {
+    root = buildDailyCard(JSX, data as DailyShareData, W, H, pad, qrBase64, qrSize, base, fontData);
   }
 
   const svgRaw = await (satori as any)(root, {
@@ -1096,6 +1107,101 @@ function _cacheKey(data: ShareCardData, format: string) {
     const d = data as SharedShareData;
     return `${base}|${d.sharerName}|${d.name}`;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景四：今日香签（daily）
+// 布局：报头 → 今日香签标题 → 日期 → 三笺（启示/主香/启示）→ 结语 → 页脚QR
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildDailyCard(
+  JSX: any, d: DailyShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, fontData: Buffer
+) {
+  const is3to4 = H > W;
+  const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
+
+  // 报头
+  const masthead = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "16px" : "22px" },
+    children: [
+      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: is3to4 ? "14px" : "16px" }, children: "" }),
+    ],
+  });
+
+  // 标题
+  const eyebrow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "14px" },
+    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "30px" : "26px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "· 今日香签 ·" })],
+  });
+
+  // 日期 + 星期
+  const [y, m, day] = d.date.split("-").map(Number);
+  const wd = "日一二三四五六"[new Date(y, m - 1, day).getDay()];
+  const dateLine = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "14px" : "18px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "18px", letterSpacing: "0.2em" }, children: `${d.date.replace(/-/g, ".")} 星期${wd}` })],
+  });
+
+  // 单笺
+  const strip = (label: string, name: string, brand: string, notes: string, rarity: string, isMain: boolean) =>
+    JSX("div", {
+      style: {
+        flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+        background: C.PAPER, border: `1px solid ${isMain ? GOLD : HAIR}`, borderRadius: "16px",
+        padding: is3to4 ? "22px 14px" : "18px 10px",
+      },
+      children: [
+        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "16px", letterSpacing: "0.2em" }, children: label }),
+        rarity
+          ? JSX("span", { style: { marginTop: "8px", color: GOLD, fontSize: is3to4 ? "18px" : "16px", border: `1px solid ${GOLD}`, borderRadius: "4px", padding: "1px 8px" }, children: rarity })
+          : JSX("span", { style: { marginTop: "8px", height: "22px" }, children: "" }),
+        JSX("span", { style: { color: INK, fontFamily: "serif", fontWeight: 700, fontSize: is3to4 ? "27px" : "22px", marginTop: "12px", textAlign: "center", lineHeight: 1.3 }, children: name }),
+        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "17px" : "15px", marginTop: "6px" }, children: brand }),
+        JSX("span", { style: { color: "#A89A86", fontSize: is3to4 ? "15px" : "13px", marginTop: is3to4 ? "16px" : "12px", textAlign: "center", lineHeight: 1.6 }, children: notes }),
+      ],
+    });
+
+  const strips = JSX("div", {
+    style: { display: "flex", flexDirection: "row", gap: is3to4 ? "16px" : "14px", width: "100%", marginTop: "4px" },
+    children: [
+      strip("启示", d.inspirationA.name, d.inspirationA.brandCn, d.inspirationA.notes, d.inspirationA.rarity, false),
+      strip("主香", d.main.name, d.main.brandCn, d.main.notes, d.main.rarity, true),
+      strip("启示", d.inspirationB.name, d.inspirationB.brandCn, d.inspirationB.notes, d.inspirationB.rarity, false),
+    ],
+  });
+
+  // 结语
+  const footnote = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: is3to4 ? "20px" : "16px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
+  });
+
+  // 页脚
+  const bottomRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "16px", borderTop: `1px solid ${HAIR}` },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
+        children: [
+          JSX("span", { style: { color: INK, fontSize: "24px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
+          JSX("span", { style: { color: MUTED, fontSize: "15px", fontStyle: "italic", marginTop: "8px" }, children: "今日，被某种气息接住。" }),
+        ],
+      }),
+      JSX("img", { src: qrBase64, width: qrSize, height: qrSize, style: { borderRadius: "8px", border: `1px solid ${HAIR}`, background: C.WHITE } }),
+    ],
+  });
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`,
+      background: C.BG, padding: pad, position: "relative",
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [masthead, eyebrow, dateLine, strips, footnote, bottomRow],
+  });
 }
 
 export async function renderShareCardCached(

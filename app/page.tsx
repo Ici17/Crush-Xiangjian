@@ -7,6 +7,7 @@ import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personali
 import { TOTAL_PERFUMES } from '@/lib/data';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import PersonalityIcon from '@/components/PersonalityIcon';
+import DailyPanel from '@/components/DailyPanel';
 
 /**
  * 落地页 - 保留设计师品牌符号 + 恢复原始结构,只压缩 hero 高度
@@ -99,6 +100,7 @@ export default function LandingPage() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selected, setSelected] = useState<Personality>(PERSONALITIES[0]);
+  const [mode, setMode] = useState<'test' | 'daily'>('test');
   const myStatus = useMyTestStatus();
 
   const handleOpenSheet = (name: string): void => {
@@ -141,6 +143,35 @@ export default function LandingPage() {
           style={{ height: '46vh', minHeight: 320, animationDelay: '60ms' }}
           aria-label="品牌氛围主视觉"
         >
+          {/* ─── 顶部胶囊切换：测香 / 今日香签 ─── */}
+          <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
+            <div className="inline-flex items-center bg-black/25 border border-[#D4A574]/50 rounded-full p-1 backdrop-blur-sm">
+              <button
+                onClick={() => setMode('test')}
+                className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+                style={{
+                  fontFamily: 'Noto Sans SC, sans-serif',
+                  background: mode === 'test' ? '#A8884E' : 'transparent',
+                  color: mode === 'test' ? '#FAF3EA' : '#E8D9C4',
+                }}
+                aria-pressed={mode === 'test'}
+              >
+                测香
+              </button>
+              <button
+                onClick={() => setMode('daily')}
+                className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors"
+                style={{
+                  fontFamily: 'Noto Sans SC, sans-serif',
+                  background: mode === 'daily' ? '#A8884E' : 'transparent',
+                  color: mode === 'daily' ? '#FAF3EA' : '#E8D9C4',
+                }}
+                aria-pressed={mode === 'daily'}
+              >
+                今日香签
+              </button>
+            </div>
+          </div>
           {/* 深色渐变背景 */}
           <div
             className="absolute inset-0"
@@ -216,6 +247,7 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {mode === 'test' && (<>
         {/* ─── 3 Main Title Area("Crush / 香鉴" 双行) ─── */}
         <div
           className="px-6 pt-6 pb-2 text-center animate-fadeIn"
@@ -451,7 +483,11 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+      </>)}
+
       </div>
+
+      {mode === 'daily' && <DailyPanel />}
 
       {/* ─── 人格 Bottom Sheet(保留 framer-motion) ─── */}
       <AnimatePresence>
