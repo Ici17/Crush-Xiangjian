@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   drawDaily,
   getTodayStr,
@@ -8,6 +8,8 @@ import {
   type DailyDraw,
   type DrawnPerfume,
 } from '@/lib/daily/draw';
+import { drawAlmanac } from '@/lib/daily/almanac';
+import ScentCodex from '@/components/ScentCodex';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -24,6 +26,8 @@ function notesLine(p: DrawnPerfume): string {
 }
 
 const STORE_KEY = 'crush_daily';
+const NOTE_KEY = (date: string) => `crush_daily_note_${date}`;
+const NOTE_MAX = 20;
 
 /**
  * 今日香签面板（「静候·揭笺」交互）
@@ -34,9 +38,12 @@ const STORE_KEY = 'crush_daily';
 export default function DailyPanel() {
   const today = getTodayStr();
   const draw: DailyDraw = drawDaily(today);
+  const almanac = useMemo(() => drawAlmanac(today), [today]);
 
   const [revealed, setRevealed] = useState(false);
   const [holding, setHolding] = useState(false);
+  const [view, setView] = useState<'draw' | 'codex'>('draw');
+  const [note, setNote] = useState('');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -46,10 +53,22 @@ export default function DailyPanel() {
         const obj = JSON.parse(raw) as { date: string; revealed: boolean };
         if (obj.date === today && obj.revealed) setRevealed(true);
       }
+      const rawNote = localStorage.getItem(NOTE_KEY(today));
+      if (rawNote) setNote(rawNote);
     } catch {
       /* ignore */
     }
   }, [today]);
+
+  const saveNote = (v: string) => {
+    const clipped = v.slice(0, NOTE_MAX);
+    setNote(clipped);
+    try {
+      localStorage.setItem(NOTE_KEY(today), clipped);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const reveal = () => {
     setRevealed(true);
@@ -88,6 +107,10 @@ export default function DailyPanel() {
 
   return (
     <div className="px-5 pt-2 pb-10 animate-fadeIn">
+      {view === 'codex' ? (
+        <ScentCodex onBack={() => setView('draw')} />
+      ) : (
+      <>
       {/* 标题区 */}
       <div className="text-center" style={{ fontFamily: 'Noto Serif SC, serif' }}>
         <div style={{ fontSize: '17px', letterSpacing: '0.3em', color: '#2C1810' }}>
@@ -219,6 +242,97 @@ export default function DailyPanel() {
         </a>
       )}
 
+      {/* ── 今日宜忌 · 留白（揭笺后第二屏） ── */}
+      {revealed && (
+        <div
+          className="mt-6 rounded-2xl border p-4"
+          style={{ borderColor: 'rgba(168,136,78,0.35)', background: '#FBF6EE' }}
+        >
+          <div className="text-center" style={{ fontFamily: 'Noto Serif SC, serif' }}>
+            <div style={{ fontSize: '14px', letterSpacing: '0.2em', color: '#2C1810' }}>
+              今日宜忌
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#B6A892', marginTop: '4px' }}>
+              一时一笺的情绪注脚
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-3">
+            <div className="flex-1">
+              <div style={{ fontSize: '11px', color: '#A8884E', letterSpacing: '0.1em' }}>宜</div>
+              {almanac.yi.map((x, i) => (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: '12.5px',
+                    color: '#2C1810',
+                    lineHeight: 1.7,
+                    marginTop: i === 0 ? 4 : 0,
+                  }}
+                >
+                  {x}
+                </div>
+              ))}
+            </div>
+            <div className="flex-1">
+              <div style={{ fontSize: '11px', color: '#9A8E7C', letterSpacing: '0.1em' }}>忌</div>
+              {almanac.ji.map((x, i) => (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: '12.5px',
+                    color: '#6B5E4C',
+                    lineHeight: 1.7,
+                    marginTop: i === 0 ? 4 : 0,
+                  }}
+                >
+                  {x}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className="text-center mt-3"
+            style={{ fontSize: '12px', color: '#8B7C68', lineHeight: 1.6, fontStyle: 'italic' }}
+          >
+            {almanac.note}
+          </div>
+
+          {/* 留白：绑定今日香，限 20 字 */}
+          <div className="mt-3 pt-3" style={{ borderTop: '1px dashed rgba(168,136,78,0.3)' }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontSize: '11px', color: '#8B7C68', letterSpacing: '0.1em' }}>留白 · 写一句今日</span>
+              <span style={{ fontSize: '10px', color: '#B6A892' }}>
+                {note.length}/{NOTE_MAX}
+              </span>
+            </div>
+            <input
+              value={note}
+              maxLength={NOTE_MAX}
+              onChange={(e) => saveNote(e.target.value)}
+              placeholder="这一笺，落在了你哪段日子？"
+              className="w-full mt-2 bg-transparent outline-none"
+              style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '13px', color: '#2C1810' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 图鉴入口 */}
+      <button
+        onClick={() => setView('codex')}
+        className="block w-full mt-4 rounded-full py-3 text-[14px] font-medium text-center"
+        style={{
+          fontFamily: 'Noto Sans SC, sans-serif',
+          background: 'transparent',
+          color: '#A8884E',
+          border: '1px solid rgba(168,136,78,0.5)',
+        }}
+      >
+        香气图鉴 · 十六种本命 →
+      </button>
+
       {/* 克制的结语（避开运势话术） */}
       <p
         className="text-center mt-4"
@@ -227,6 +341,8 @@ export default function DailyPanel() {
         香签是今日的一缕灵感，不是预言。<br />
         愿你今日，被某种气息轻轻接住。
       </p>
+      </>
+      )}
     </div>
   );
 }
