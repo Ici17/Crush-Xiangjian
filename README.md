@@ -28,12 +28,28 @@
 - [x] PWA manifest + service worker
 - [x] "重开仍同批" 缓存(动态推荐写入 localStorage,关浏览器重开仍显示同一批香水)
 
+### ✅ 已完成(v2 · 今日香签 / 守护香 / 留存互动)
+- [x] **今日香签 · 静候揭笺**:首页顶部胶囊切换进入;长按 1.5s 静候 → 三笺逐张启笺
+- [x] **确定性抽签**:以日期为种子(mulberry32 + Fisher-Yates),全员当日同签,页面与分享卡结果一致
+- [x] **16 人格本命守护香**:匈牙利算法最优不重复分配,每人格一支 premium 香水;结果页 / 图鉴可展示
+- [x] **香气图鉴**:16 守护香网格 + 本命认领高亮 + 收集进度 X/16
+- [x] **今日宜忌 · 留白卡**:确定性宜 3 / 忌 3 + 今日一语,合规只讲情绪与审美;限 20 字留白批注
+- [x] **香气历 · 连续静候**:连续天数 / 续签令牌(freeze)/ 7·30·100·365 天称号 / 月历墨点
+- [x] **今日之瓶 · 香水瓶演示**:揭笺后底部浮现,液体按稀有度升起 + 瓶口飘香,收束页面留白
+- [x] **今日香签分享卡**:satori 出 1:1 / 3:4 签面,内嵌宜忌与今日一语,增强晒图
+
 ### 🔲 待开发 / 推迟(v2)
 - [ ] 微信卡片 `og:title` / 卡片图片(需认证服务号 + JS-SDK,v2 推迟)
 - [ ] 跨设备结果同步(需后端 inviteId → 受邀人 mapping,当前仅 localStorage 单设备)
 - [ ] 香气产品实物寄送履约（待定）
 - [ ] 雷达图改用 Recharts(当前为 SVG 自绘,已可用)
 - [ ] 更多人格测试用例
+
+### 🔜 规划中(v2 · 互动 / 裂变)
+- [ ] 本命守护香 → 结果页常驻展示卡(数据已就绪,缺结果页 UI)
+- [ ] Phase 2 仪式动效:揭笺「香烟袅袅」进度(CSS/SVG,不做 Three.js)+ 节气月相「隐签之夜」
+- [ ] 香气共鸣 / CP 共振:双人组合种子比对,算互补 / 差几调,生成合香卡
+- [ ] 增长 / 裂变:「气味 CP 图鉴」收集制、好友匹配升级为合香卡(已评估,待排期)
 
 ---
 
@@ -101,11 +117,16 @@ crushxiangjian/
 │   ├── terms/page.tsx      # 服务条款
 │   ├── privacy/page.tsx    # 隐私政策
 │   └── api/
-│       └── og/route.tsx       # 动态 OG 图
+│       ├── og/route.tsx       # 动态 OG 图
+│       └── share-card/route.ts  # 分享卡(satori:result / daily 多场景)
 ├── components/
 │   ├── PaymentModal.tsx       # 支付弹窗(跳转收银台)
 │   ├── UnlockedContent.tsx    # 解锁版完整内容(隐藏面/反差香/底稿/关系)
 │   ├── ComparisonRadarChart.tsx  # 朋友对比雷达图
+│   ├── DailyPanel.tsx        # 今日香签面板(静候揭笺 + 宜忌 + 留白 + 香气历)
+│   ├── PerfumeBottle.tsx     # 香水瓶线稿(SVG,结果页 / 解锁版 / 今日之瓶复用)
+│   ├── PerfumeBottleShowcase.tsx  # 今日之瓶·香水瓶演示(液体升起 + 飘香)
+│   ├── ScentCodex.tsx        # 香气图鉴(16 守护香网格 + 本命认领)
 │   └── SiteFooter.tsx         # 全站页脚(定价说明 + 客服邮箱 + 法律链接)
 ├── lib/
 │   ├── data.ts             # 16 人格 + 110 香水 + 问卷 + 匹配算法
@@ -113,7 +134,11 @@ crushxiangjian/
 │   ├── payment.ts          # 三档价格配置 + localStorage 解锁状态 + 预留支付接口
 │   ├── friendMatch.ts      # 朋友契合度计算
 │   ├── inviteState.ts      # 邀请状态同步(跨标签 + polling)
-│   └── useMyTestStatus.ts  # 读取本机测试状态
+│   ├── useMyTestStatus.ts  # 读取本机测试状态
+│   └── daily/
+│       ├── draw.ts         # 今日香签确定性抽签(日期种子)
+│       ├── almanac.ts      # 今日宜忌(宜 3 / 忌 3 / 今日一语)
+│       └── history.ts      # 香气历(连续静候 / 续签令牌 / 称号 / 月历墨点)
 ├── public/
 │   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # service worker

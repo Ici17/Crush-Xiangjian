@@ -11,6 +11,7 @@ import {
 import { drawAlmanac } from '@/lib/daily/almanac';
 import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/daily/history';
 import ScentCodex from '@/components/ScentCodex';
+import PerfumeBottleShowcase from '@/components/PerfumeBottleShowcase';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -431,6 +432,16 @@ export default function DailyPanel() {
         香签是今日的一缕灵感，不是预言。<br />
         愿你今日，被某种气息轻轻接住。
       </p>
+
+      {/* 今日之瓶 · 香水瓶演示（揭笺后浮现，填补底部留白） */}
+      {revealed && (
+        <PerfumeBottleShowcase
+          name={draw.main.name}
+          brandCn={draw.main.brandCn}
+          rarity={draw.main.rarity}
+          revealed={revealed}
+        />
+      )}
       </>
       )}
     </div>
