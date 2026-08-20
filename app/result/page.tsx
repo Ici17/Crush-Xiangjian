@@ -138,6 +138,7 @@ function ResultInner() {
   const [radarData, setRadarData] = useState(getRadarScores('暗流')); // 黄金兜底雷达兜底
   const [pathLabels, setPathLabels] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
+  const [showUntestedHint, setShowUntestedHint] = useState(false); // 裸开 / 无测试记录时提示示例人格
   const [shareHint, setShareHint] = useState('');
   const [shareLink, setShareLink] = useState('');
   const [shareQrSvg, setShareQrSvg] = useState('');
@@ -182,6 +183,7 @@ function ResultInner() {
       setRadarData(getRadarScores(mappedName));
       setPathLabels(getPathLabelsFromStorage());
       setIsDemo(false);
+      setShowUntestedHint(false);
     } else if (demoName) {
       // 演示模式：预览任意人格，不污染真实邀请链
       const name = demoName === '1' || demoName === '' ? '暗流' : decodeURIComponent(demoName);
@@ -189,6 +191,7 @@ function ResultInner() {
       setRadarData(getRadarScores(name));
       setPathLabels(getPathLabelsFromStorage());
       setIsDemo(true);
+      setShowUntestedHint(false);
     } else {
       // 无 URL 参数时，读 localStorage（问卷完成跳转）
       const name = getPersonalityNameFromStorage();
@@ -198,6 +201,10 @@ function ResultInner() {
         setPathLabels(getPathLabelsFromStorage());
         // 注册自己为邀请者（让朋友 B 能标记我）
         setAsInviter(name);
+        setShowUntestedHint(false);
+      } else {
+        // 无 URL 参数、也无本地测试记录 → 裸开 / 未测试，用黄金兜底「暗流」并提示示例
+        setShowUntestedHint(true);
       }
       // 若两者皆无，保持黄金兜底「暗流」兜底
       setIsDemo(false);
@@ -435,14 +442,22 @@ function ResultInner() {
     <main className="app-shell">
       <div className="overflow-y-auto no-scrollbar pb-20 max-w-[430px] mx-auto">
 
-        {/* 顶部重新测试按钮 */}
-        <div className="sticky top-0 z-50 px-4 py-2 flex justify-between items-center bg-cream/80 backdrop-blur-sm border-b border-amber-100/50">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-600 text-xs font-sans">Crush 香鉴</span>
+        {/* 顶部导航：首页返回（两态共用）+ 重新测试 */}
+        <div className="sticky top-0 z-50 px-4 py-2 flex items-center justify-between gap-2 bg-cream/80 backdrop-blur-sm border-b border-amber-100/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-200 rounded-full text-xs text-amber-600 font-sans hover:border-amber-400 active:scale-95 transition-all flex-none"
+              aria-label="返回首页"
+            >
+              <span aria-hidden style={{ fontSize: '11px', lineHeight: 1 }}>←</span>
+              首页
+            </Link>
+            <span className="text-amber-600 text-xs font-sans truncate">Crush 香鉴</span>
           </div>
           <button
             onClick={handleRestart}
-            className="px-3 py-1 bg-white border border-amber-200 rounded-full text-xs text-amber-600 font-sans hover:border-amber-400 transition-colors"
+            className="px-3 py-1 bg-white border border-amber-200 rounded-full text-xs text-amber-600 font-sans hover:border-amber-400 active:scale-95 transition-all flex-none"
           >
             重新测试
           </button>
@@ -470,6 +485,30 @@ function ResultInner() {
             aria-live="polite"
           >
             ✦ 支付成功，已解锁完整版内容！
+          </div>
+        )}
+
+        {/* 未测试示例提示横幅（裸开 / 无测试记录时出现，不破坏既有渲染） */}
+        {showUntestedHint && (
+          <div
+            className="flex items-center justify-center gap-1.5 px-4 py-2 text-center"
+            style={{
+              background: 'rgba(250,238,218,0.7)',
+              borderBottom: '1px solid rgba(168,136,78,0.25)',
+              color: '#8B5E3C',
+              fontSize: '12px',
+              backdropFilter: 'blur(4px)',
+            }}
+            role="status"
+          >
+            <span>你还没测香，这是示例人格「暗流」</span>
+            <Link
+              href="/question"
+              className="text-amber-600 font-medium hover:text-amber-700 underline decoration-amber-400"
+              style={{ textUnderlineOffset: '2px' }}
+            >
+              去测香 →
+            </Link>
           </div>
         )}
 
