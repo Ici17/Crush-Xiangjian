@@ -15,7 +15,19 @@ const SEAL_COLOR: Record<string, string> = {
  * - 确定性：同一对永远同一支合香，是好友匹配结果态的传播核心产物
  * - 合规：合香 = 审美侧写（你们合起来是什么味道），无命定/缘分断言
  */
-export default function CpBlendCard({ nameA, nameB }: { nameA: string; nameB: string }) {
+export default function CpBlendCard({
+  nameA,
+  nameB,
+  onShare,
+  footnote,
+}: {
+  nameA: string;
+  nameB: string;
+  /** 提供则在卡底渲染「分享这张合香卡」按钮（分享逻辑由父组件持有）*/
+  onShare?: () => void;
+  /** 卡底小字（如预览态「你收到一张合香卡」）*/
+  footnote?: string;
+}) {
   const cp = useMemo(() => getCpResonance(nameA, nameB), [nameA, nameB]);
 
   if (!cp) return null;
@@ -94,6 +106,29 @@ export default function CpBlendCard({ nameA, nameB }: { nameA: string; nameB: st
           「{cp.line}」
         </p>
       </div>
+
+      {/* 卡底：分享 / 小字 */}
+      {(onShare || footnote) && (
+        <div className="mt-4 flex items-center justify-between gap-3">
+          {footnote ? (
+            <span style={{ fontSize: '11px', color: '#A8884E' }}>{footnote}</span>
+          ) : (
+            <span />
+          )}
+          {onShare && (
+            <button
+              onClick={onShare}
+              className="shrink-0 px-4 py-2 rounded-full font-sans text-xs font-medium transition-all active:scale-95"
+              style={{
+                color: '#FAF3EA',
+                background: '#2C1810',
+              }}
+            >
+              分享这张合香卡 →
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

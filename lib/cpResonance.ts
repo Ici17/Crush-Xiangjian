@@ -68,10 +68,19 @@ export function getCpResonance(nameA: string, nameB: string): CpResonance | null
   if (!ga || !gb) return null;
 
   // 合香名：两人守护香中调首材意象相合（heart 为空则回落前调）
+  // 按音符稳定排序，使合香名可交换（A×B == B×A 同名），图鉴对称双亮不冲突
   const pickKey = (g: typeof ga) => g.notes.heart[0] ?? g.notes.top[0] ?? '';
   const keyA = pickKey(ga);
   const keyB = pickKey(gb);
-  const blendName = keyA && keyB ? `${keyA}与${keyB}` : `${ga.name} × ${gb.name}`;
+  let blendName: string;
+  if (keyA && keyB && keyA !== keyB) {
+    const [n1, n2] = [keyA, keyB].sort();
+    blendName = `${n1}与${n2}`;
+  } else if (keyA || keyB) {
+    blendName = keyA || keyB;
+  } else {
+    blendName = `${ga.name} × ${gb.name}`;
+  }
 
   // 三调融合：各自前/中/后去重拼接，各取前 3
   const top = dedupe([...ga.notes.top, ...gb.notes.top]).slice(0, 3);

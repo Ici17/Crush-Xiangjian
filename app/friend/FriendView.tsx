@@ -11,8 +11,12 @@ import {
   getInviterIdFromUrl,
   markInviteePending,
   encodeInvite,
+  decodeInvite,
+  encodeCpPair,
+  decodeCpPair,
   getInviteState,
 } from "@/lib/inviteState";
+import { markCpLit, getCpLitCount, CP_TOTAL } from "@/lib/cpCodex";
 import PersonalityIcon from "@/components/PersonalityIcon";
 import RadarChart from "@/components/RadarChart";
 import CpBlendCard from "@/components/CpBlendCard";
@@ -103,6 +107,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [toast, setToast] = useState<string | null>(null);
   // 「我的灵魂香气榜」名单（来自 localStorage 邀请记录）
   const [friendList, setFriendList] = useState<Array<{ name: string }>>([]);
+  // ⑦ 合香双人链接：?cp=<encA>~<encB> 与 ?me=<enc>（有人称时直接进结果态）
+  const [cpPair, setCpPair] = useState<[string, string] | null>(null);
+  const [meId, setMeId] = useState<string | null>(null);
 
   // 邀请态 stagger：0=header 1=inviter 2=inviteText 3=CTA 4=secondary
   const staggerInvite = useStaggerReveal(300, 5);
@@ -110,8 +117,24 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const staggerResult = useStaggerReveal(200, 5);
 
   useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
     const inv = getInviterIdFromUrl();
-    if (inv) {
+    const cpRaw = sp.get('cp');
+    const cp = cpRaw ? decodeCpPair(cpRaw) : null;
+    const meRaw = sp.get('me');
+    const me = meRaw ? decodeInvite(meRaw) : null;
+
+    if (cp) {
+      setCpPair(cp);
+      if (me) {
+        // 带人称：A=cp[0] 当作邀请者，me 当作「我」→ 直接进结果态
+        setInviterId(cp[0]);
+        markInviteePending(cp[0]);
+        setMyTypeId(me);
+      } else if (!inv) {
+        // 仅 cp、无人称、无 inv → 合香预览态（下面单独渲染）
+      }
+    } else if (inv) {
       setInviterId(inv);
       markInviteePending(inv);
     } else if (initialInviterName) {
@@ -176,6 +199,15 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     ? PERSONALITY_TYPES.find((t) => t.id === friendTypeId) ?? null
     : null;
 
+  // ⑦ 合香预览：?cp=A|B 且无人称、无邀请者
+  const cpAType: PersonalityType | null = cpPair
+    ? PERSONALITY_TYPES.find((t) => t.name === cpPair[0]) ?? null
+    : null;
+  const cpBType: PersonalityType | null = cpPair
+    ? PERSONALITY_TYPES.find((t) => t.name === cpPair[1]) ?? null
+    : null;
+  const isCpPreview = !!(cpPair && cpAType && cpBType && !meId && !inviterId);
+
   // 已有测试结果时：直接算匹配
   useEffect(() => {
     if (inviterType && myType) {
@@ -195,6 +227,12 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(inviterId)}`
       : null;
 
+  // ⑦ 合香分享链接（?cp=A|B），优先于普通邀请链接
+  const cpShareLink =
+    cpPair && cpAType && cpBType
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?cp=${encodeCpPair(cpAType.name, cpBType.name)}`
+      : null;
+
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
@@ -207,6 +245,15 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       showToast("邀请链接已复制 ✓");
     } catch { /* 静默 */ }
   }, [inviteLink, showToast]);
+
+  // ⑦ 复制合香双人链接（?cp=A|B）
+  const handleCopyCpShare = useCallback(async () => {
+    if (!cpShareLink) return;
+    try {
+      await navigator.clipboard.writeText(cpShareLink);
+      showToast("合香链接已复制 ✓");
+    } catch { /* 静默 */ }
+  }, [cpShareLink, showToast]);
 
   const handleCopyShareText = useCallback(() => {
     if (!result || !shareA || !shareB) return;
@@ -273,6 +320,13 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const isInviteState = !!(inviterType && !myType);
   // 无邀请态 + 人格已选 + 结果已出
   const isManualState = !!(!inviterType && myType && friendType && result);
+
+  // ⑦ 匹配成功即点亮合香图鉴（结果态 / 合香预览态都记；合香对称双亮）
+  useEffect(() => {
+    if (shareA && shareB && (isResultState || isCpPreview)) {
+      markCpLit(shareA.name, shareB.name);
+    }
+  }, [shareA?.name, shareB?.name, isResultState, isCpPreview]);
 
   if (!ready) {
     return (
@@ -396,6 +450,57 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
           <div className="mt-auto px-5 pb-8 text-center">
             <p className="text-amber-400/40 font-sans text-xs">
               Crush 香鉴 · 测测你们的灵魂香气
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── ⑦ 合香预览态：收到一张合香卡（?cp=A|B 且无人称） ── */}
+      {isCpPreview && cpAType && cpBType && (
+        <div className="pb-8">
+          {/* 顶部深琥珀背景 */}
+          <div
+            className="px-5 pt-safe-top pt-6 pb-8 text-center relative overflow-hidden"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 50% at 50% 35%, rgba(220,160,90,0.32) 0%, rgba(122,74,46,0) 60%),' +
+                'linear-gradient(180deg,#2A1810 0%,#3D2418 25%,#5C3826 55%,#9B6A47 80%,#FAF3EA 100%)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span
+                className="text-amber-300 font-sans text-sm hover:text-amber-100 transition-colors"
+                style={{ cursor: 'pointer' }}
+                onClick={() => router.back()}
+              >
+                ← 返回
+              </span>
+              <span className="text-amber-300/70 font-serif text-xs tracking-widest">合香</span>
+            </div>
+            <p className="text-amber-200/80 font-sans text-sm mb-1">你收到一张合香卡</p>
+            <p className="font-serif font-bold text-2xl text-cream mb-1">
+              {cpAType.name}
+              <span className="mx-1.5 text-amber-300/80">×</span>
+              {cpBType.name}
+            </p>
+            <p className="text-amber-300/60 font-serif text-xs italic">
+              你们合在一起，是什么味道？
+            </p>
+          </div>
+
+          {/* 内容区 */}
+          <div className="px-5 pt-6 space-y-6">
+            <CpBlendCard nameA={cpAType.name} nameB={cpBType.name} footnote="来自朋友的合香邀请" />
+
+            <button
+              onClick={() => router.push(`/question?cp=${encodeCpPair(cpAType.name, cpBType.name)}`)}
+              className="w-full py-3.5 bg-amber-900 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all"
+              style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
+            >
+              测测你与 TA 的合香 →
+            </button>
+            <p className="text-center text-amber-500/60 font-sans text-xs leading-relaxed">
+              测完即解锁你与 TA 的合香，<br />并点亮你们的合香图鉴一格
             </p>
           </div>
         </div>
@@ -605,7 +710,12 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 <div className="w-1 h-4 bg-amber-700 rounded-full" />
                 <h3 className="font-serif font-semibold text-amber-900 text-sm">◆ 合香卡</h3>
               </div>
-              <CpBlendCard nameA={shareA.name} nameB={shareB.name} />
+              <CpBlendCard
+                nameA={shareA.name}
+                nameB={shareB.name}
+                onShare={() => setShowSharePicker(true)}
+                footnote={cpPair ? "你与 TA 的合香" : undefined}
+              />
             </section>
 
             {/* 5. 分享图下载 */}
@@ -633,10 +743,10 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   复制分享文案
                 </button>
                 <button
-                  onClick={handleCopyInvite}
+                  onClick={cpShareLink ? handleCopyCpShare : handleCopyInvite}
                   className="hover:text-amber-900 transition-colors underline underline-offset-2"
                 >
-                  @好友来测默契度
+                  {cpShareLink ? "复制合香链接" : "@好友来测默契度"}
                 </button>
               </div>
             </section>
@@ -753,13 +863,21 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
 
             {/* 「邀请朋友」动作区 */}
             {myType && (
-              <button
-                onClick={handleCopyInvite}
-                disabled={!inviteLink}
-                className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand disabled:opacity-40"
-              >
-                邀请朋友来测 →
-              </button>
+              <>
+                <button
+                  onClick={handleCopyInvite}
+                  disabled={!inviteLink}
+                  className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand disabled:opacity-40"
+                >
+                  邀请朋友来测 →
+                </button>
+                <Link
+                  href="/codex"
+                  className="block w-full py-3 text-center bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors"
+                >
+                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL} →
+                </Link>
+              </>
             )}
           </div>
 

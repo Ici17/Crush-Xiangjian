@@ -182,10 +182,18 @@ export default function QuestionPage() {
 
     // 延迟一点，让用户看到"正在调香"页
     timerRef.current = setTimeout(() => {
-      const rawInv =
+      const search =
         typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("inv")
-          : null;
+          ? new URLSearchParams(window.location.search)
+          : new URLSearchParams();
+      const rawInv = search.get("inv");
+      const rawCp = search.get("cp");
+
+      if (rawCp) {
+        // ⑦ 合香分享回流：测完带 cp 跳结果页，结果页再引导回合香预览
+        router.push(`/result?cp=${encodeURIComponent(rawCp)}`);
+        return;
+      }
 
       if (rawInv) {
         let inviterName: string;

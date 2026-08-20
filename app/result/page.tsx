@@ -552,6 +552,23 @@ function ResultInner() {
         {/* ━━━ 本命守护香（常驻 · 16 人格唯一锚定，测完立刻可见，两态共用）━━━ */}
         {revealed && <GuardianScentCard personalityName={personalityName} />}
 
+        {/* ━━━ ⑦ 合香回流 banner：来自朋友的合香邀请 ━━━ */}
+        {revealed && params.get('cp') && (
+          <section className="px-6 pt-2 pb-1">
+            <Link
+              href={`/friend?cp=${encodeURIComponent(params.get('cp')!)}&me=${encodeInvite(personalityName)}`}
+              className="block w-full py-3.5 rounded-2xl text-center font-sans font-semibold text-sm active:scale-95 transition-transform"
+              style={{
+                background: 'linear-gradient(160deg,#2A1810 0%,#5C3826 100%)',
+                color: '#F8EAD9',
+                boxShadow: '0 4px 14px rgba(92,58,36,0.2)',
+              }}
+            >
+              你和 TA 的合香已生成 · 查看合香卡 →
+            </Link>
+          </section>
+        )}
+
         {/* ━━━ 锁定态：雷达图 + 本命香水 + 免费解锁 ━━━ */}
         {paidLevel < 2 && (
           <>

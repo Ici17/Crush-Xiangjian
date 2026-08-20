@@ -44,6 +44,33 @@ export function decodeInvite(encoded: string): string | null {
 }
 
 // ─────────────────────────────────────────
+// 合香双人链接编解码（?cp= <encA>~<encB>）
+// 合香是对称的，但链接里保留有序对以便图鉴精确点亮对应格
+// ─────────────────────────────────────────
+
+/** 编码一对人格名为合香链接参数（base64 各编，~ 连接）*/
+export function encodeCpPair(nameA: string, nameB: string): string {
+  return `${encodeInvite(nameA)}~${encodeInvite(nameB)}`;
+}
+
+/**
+ * 解码合香链接参数，返回 [A, B]；任一无效则返回 null
+ * base64 里不含 ~，故可安全用 ~ 切分
+ */
+export function decodeCpPair(raw: string): [string, string] | null {
+  try {
+    const [aEnc, bEnc] = raw.split('~');
+    if (!aEnc || !bEnc) return null;
+    const a = decodeInvite(aEnc);
+    const b = decodeInvite(bEnc);
+    if (!a || !b) return null;
+    return [a, b];
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────
 // localStorage 读写（朋友页用）
 // ─────────────────────────────────────────
 
