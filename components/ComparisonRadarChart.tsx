@@ -1,4 +1,4 @@
-import { RADAR_DIMS, type RadarDim } from '@/lib/personalities';
+import { RADAR_DIMS, RADAR_DIM_LABELS, type RadarDim } from '@/lib/personalities';
 
 // 英文 key → 中文 key（兼容 data.ts 旧数据结构）
 const KEY_MAP: Record<string, RadarDim> = {
@@ -180,7 +180,7 @@ export default function ComparisonRadarChart({
             const yOffset = sin < -0.5 ? pos.y - 2 : sin > 0.5 ? pos.y + 12 : pos.y + 4;
             return (
               <text key={dim} x={pos.x} y={yOffset} textAnchor={pos.anchor}>
-                {dim}
+                {RADAR_DIM_LABELS[dim] ?? dim}
               </text>
             );
           })}

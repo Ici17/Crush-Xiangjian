@@ -87,12 +87,12 @@ export function calculateCompatibility(
 
   const THRESH = 45;
   const dimensions = [
-    { key: "floral" as const, label: "花香调", emoji: "🌹" },
-    { key: "woody" as const, label: "木质调", emoji: "🪵" },
-    { key: "fresh" as const, label: "清新调", emoji: "🌊" },
-    { key: "oriental" as const, label: "东方调", emoji: "✨" },
-    { key: "citrus" as const, label: "柑橘调", emoji: "🍋" },
-    { key: "gourmand" as const, label: "美食调", emoji: "🍫" },
+    { key: "floral" as const, label: "花香", emoji: "🌹" },
+    { key: "woody" as const, label: "木质", emoji: "🪵" },
+    { key: "fresh" as const, label: "水生", emoji: "🌊" },
+    { key: "oriental" as const, label: "东方", emoji: "✨" },
+    { key: "citrus" as const, label: "柑橘", emoji: "🍋" },
+    { key: "gourmand" as const, label: "馥奇", emoji: "🍫" },
   ];
 
   const sharedNotes: string[] = [];

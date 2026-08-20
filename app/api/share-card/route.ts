@@ -50,7 +50,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData } from "@/lib/shareCardRender";
-import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
+import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS, RADAR_DIM_LABELS } from "@/lib/personalities";
 import { getCpResonance } from "@/lib/cpResonance";
 import { drawDaily, getTodayStr, RARITY_LABEL, type DrawnPerfume } from "@/lib/daily/draw";
 import { drawAlmanac } from "@/lib/daily/almanac";
@@ -126,7 +126,8 @@ export async function GET(req: NextRequest) {
     const radarScores = getRadarScores(name);
     const radarTop3 = [...RADAR_DIMS]
       .sort((a, b) => (radarScores[b] ?? 0) - (radarScores[a] ?? 0))
-      .slice(0, 3);
+      .slice(0, 3)
+      .map((dim) => RADAR_DIM_LABELS[dim] ?? dim);
 
     const d: SelfShareData = {
       scene: "self",

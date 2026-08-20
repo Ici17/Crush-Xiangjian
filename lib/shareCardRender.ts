@@ -24,6 +24,7 @@ import QRCode from "qrcode";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { RADAR_DIM_LABELS } from "@/lib/personalities";
 
 // ── 类型定义 ───────────────────────────────────────────────────────────────
 
@@ -439,7 +440,7 @@ function buildRadarSVG(values: Record<string, number>, size: number): string {
 
   const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
     const pos = labelPos(i);
-    const label = `${dim}`;
+    const label = RADAR_DIM_LABELS[dim] ?? dim;
     const sin = Math.sin((angleOf(i) * Math.PI) / 180);
     const yOffset =
       sin < -0.5
@@ -508,7 +509,7 @@ function buildDualRadarSVG(valuesA: Record<string, number>, valuesB: Record<stri
         : Math.sin((angleOf(i) * Math.PI) / 180) > 0.5
         ? pos.y + 12
         : pos.y + 4;
-    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="20" font-family="'Noto Serif SC', serif" font-weight="600">${dim}</text>`;
+    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="20" font-family="'Noto Serif SC', serif" font-weight="600">${RADAR_DIM_LABELS[dim] ?? dim}</text>`;
   }).join('');
 
   const aPoly = polyPoints(valuesA);

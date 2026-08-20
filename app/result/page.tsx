@@ -27,6 +27,7 @@ import {
   type Recommendation,
   type PerfumeDetail,
   PERSONALITY_NAME_MAP,
+  RADAR_DIM_LABELS,
 } from '@/lib/personalities';
 import { PERSONALITY_TYPES } from '@/lib/data';
 import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
@@ -628,7 +629,7 @@ function ResultInner() {
           {/* 无障碍文字版 */}
           <ul className="sr-only">
             {Object.entries(radarData).map(([dim, val]) => (
-              <li key={dim}>{dim}：{Math.round(val * 100)}%</li>
+              <li key={dim}>{RADAR_DIM_LABELS[dim] ?? dim}：{Math.round(val * 100)}%</li>
             ))}
           </ul>
         </section>
@@ -865,6 +866,7 @@ function ResultInner() {
               data={Object.fromEntries(
                 Object.entries(radarData).map(([k, v]) => [k, v > 1 ? v : v * 100])
               )}
+              dimLabels={RADAR_DIM_LABELS}
             />
           </div>
           {/* 「推荐探索方向」解读（锁定态模糊）*/}

@@ -1,4 +1,4 @@
-import { RADAR_DIMS, type RadarDim } from '@/lib/personalities';
+import { RADAR_DIMS, RADAR_DIM_LABELS, type RadarDim } from '@/lib/personalities';
 
 type Props = {
   /** 六维分值，0~1 */
@@ -127,7 +127,7 @@ export default function RadarChart({ values, size = 280 }: Props) {
               : pos.y + 4;
           return (
             <text key={dim} x={pos.x} y={yOffset} textAnchor={pos.anchor}>
-              {dim}
+              {RADAR_DIM_LABELS[dim] ?? dim}
             </text>
           );
         })}

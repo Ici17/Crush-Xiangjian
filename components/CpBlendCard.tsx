@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { getCpResonance } from '@/lib/cpResonance';
+import { RADAR_DIM_LABELS } from '@/lib/personalities';
 
 const SEAL_COLOR: Record<string, string> = {
   隐: '#2C1810',
@@ -49,7 +50,7 @@ export default function CpBlendCard({
           你们的合香
         </span>
         <span style={{ fontSize: '11px', color: '#8B7C68' }}>
-          {cp.toneA} × {cp.toneB} · {diffLabel}
+          {RADAR_DIM_LABELS[cp.toneA] ?? cp.toneA} × {RADAR_DIM_LABELS[cp.toneB] ?? cp.toneB} · {diffLabel}
         </span>
       </div>
 

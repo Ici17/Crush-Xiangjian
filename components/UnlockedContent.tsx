@@ -14,6 +14,7 @@ import {
   getParseQuote,
   getUsagePhilosophy,
   RADAR_DIMS,
+  RADAR_DIM_LABELS,
   type RadarDim,
   type PerfumeDetail,
   type ContrastScent,
@@ -137,7 +138,7 @@ export default function UnlockedContent({
         {/* 无障碍文字版 */}
         <ul className="sr-only">
           {Object.entries(radarData).map(([dim, val]) => (
-            <li key={dim}>{dim}：{Math.round((val ?? 0) * 100)}%</li>
+            <li key={dim}>{RADAR_DIM_LABELS[dim] ?? dim}：{Math.round((val ?? 0) * 100)}%</li>
           ))}
         </ul>
       </section>
@@ -227,6 +228,7 @@ export default function UnlockedContent({
         <div className="mb-5">
           <ScentPreferenceBar
             data={Object.fromEntries(radarGrid.map(({ dim, value }) => [dim, value]))}
+            dimLabels={RADAR_DIM_LABELS}
           />
         </div>
         <div className="flex items-center justify-center gap-2 mb-4">
@@ -235,7 +237,7 @@ export default function UnlockedContent({
         <h4 className="font-serif text-base font-medium text-amber-950 mb-3">推荐探索方向</h4>
         <ul className="space-y-2">
           <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
-            · {getTopDimName(radarData)} 是你的舒适区
+            · {RADAR_DIM_LABELS[getTopDimName(radarData)] ?? getTopDimName(radarData)} 是你的舒适区
           </li>
           <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
             · {advice.explore1}

@@ -275,6 +275,17 @@ export const getPersonality = (name: string): Personality => {
 export const RADAR_DIMS = ['木质', '清新', '东方', '美食', '柑橘', '花香'] as const;
 export type RadarDim = (typeof RADAR_DIMS)[number];
 
+// 展示层命名映射：内部 中文维度键 → 用户可见维度名（去"调"、方向更直观）
+// 内部坐标体系（RADAR_DIMS / RadarDim / 英文键 / 色板键 / 路由解析键）一律不动，仅此处改展示文案。
+export const RADAR_DIM_LABELS: Record<string, string> = {
+  木质: '木质',
+  清新: '水生',
+  东方: '东方',
+  美食: '馥奇',
+  柑橘: '柑橘',
+  花香: '花香',
+};
+
 // 示例：暗流 的六维分值（0~1）（降级兜底）
 export const SAMPLE_RADAR: Record<RadarDim, number> = {
   木质: 0.9,
