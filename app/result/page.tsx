@@ -36,6 +36,7 @@ import ScarcityStrip from '@/components/ScarcityStrip';
 import { markPaid, getPaidLevel, PRICE_CONFIG, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
+import GuardianScentCard from '@/components/GuardianScentCard';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import { clearMyTestProgress } from '@/lib/useMyTestStatus';
@@ -547,6 +548,9 @@ function ResultInner() {
           )}
           </div>
         </section>
+
+        {/* ━━━ 本命守护香（常驻 · 16 人格唯一锚定，测完立刻可见，两态共用）━━━ */}
+        {revealed && <GuardianScentCard personalityName={personalityName} />}
 
         {/* ━━━ 锁定态：雷达图 + 本命香水 + 免费解锁 ━━━ */}
         {paidLevel < 2 && (
