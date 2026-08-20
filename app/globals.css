@@ -123,6 +123,21 @@
   .scent-wisp-2 {
     animation: scentFloat 7s ease-in-out infinite 1.5s;
   }
+
+  /* 香烟袅袅（揭笺静候仪式） */
+  .incense-smoke {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(5px);
+    background: radial-gradient(circle, rgba(168, 136, 78, 0.55) 0%, rgba(168, 136, 78, 0) 70%);
+    opacity: 0;
+    animation: incenseWisp 2.6s ease-out infinite;
+  }
+  .incense-wisp-2 { animation-delay: 0.85s; }
+  .incense-wisp-3 { animation-delay: 1.7s; }
+  .incense-tip {
+    animation: incenseGlow 1.3s ease-in-out infinite;
+  }
 }
 
 @keyframes fadeIn {
@@ -145,6 +160,15 @@
   0%   { transform: translateY(0) rotate(0deg);   opacity: 0.5; }
   50%  { transform: translateY(-14px) rotate(8deg); opacity: 0.8; }
   100% { transform: translateY(0) rotate(0deg);   opacity: 0.5; }
+}
+@keyframes incenseWisp {
+  0%   { transform: translateY(0) translateX(0) scale(0.7); opacity: 0; }
+  30%  { opacity: 0.5; }
+  100% { transform: translateY(-16px) translateX(2px) scale(1.25); opacity: 0; }
+}
+@keyframes incenseGlow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
 }
 @keyframes bottleGlow {
   0%, 100% { opacity: 0.6; transform: scale(1); }

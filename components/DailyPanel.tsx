@@ -9,9 +9,11 @@ import {
   type DrawnPerfume,
 } from '@/lib/daily/draw';
 import { drawAlmanac } from '@/lib/daily/almanac';
+import { getNightMood } from '@/lib/daily/night';
 import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/daily/history';
 import ScentCodex from '@/components/ScentCodex';
 import PerfumeBottleShowcase from '@/components/PerfumeBottleShowcase';
+import IncenseRitual from '@/components/IncenseRitual';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -41,6 +43,7 @@ export default function DailyPanel() {
   const today = getTodayStr();
   const draw: DailyDraw = drawDaily(today);
   const almanac = useMemo(() => drawAlmanac(today), [today]);
+  const night = useMemo(() => getNightMood(today), [today]);
 
   const [revealed, setRevealed] = useState(false);
   const [holding, setHolding] = useState(false);
@@ -135,6 +138,11 @@ export default function DailyPanel() {
         <div style={{ fontSize: '12px', color: '#8B7C68', marginTop: '6px' }}>
           {today.replace(/-/g, '.')} 星期{weekdayCN(today)} ｜ 全员今日共此一笺
         </div>
+        {night.hidden && (
+          <div style={{ fontSize: '11px', color: '#A8884E', letterSpacing: '0.22em', marginTop: '5px' }}>
+            今夜 · {night.badge}
+          </div>
+        )}
       </div>
 
       {/* 三笺 */}
@@ -226,6 +234,9 @@ export default function DailyPanel() {
       <div className="text-center mt-5" style={{ fontSize: '12px', color: '#8B7C68' }}>
         {revealed ? '今日已揭 · 明日再来' : '长按静候，揭今日一笺'}
       </div>
+
+      {/* 香烟袅袅（静候仪式动效 · Phase 2） */}
+      {!revealed && <IncenseRitual active={holding} />}
 
       {/* 主操作 */}
       {!revealed ? (
@@ -331,6 +342,30 @@ export default function DailyPanel() {
               className="w-full mt-2 bg-transparent outline-none"
               style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '13px', color: '#2C1810' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ── 隐签之夜（节气/月相仪式氛围 · Phase 2） ── */}
+      {revealed && night.hidden && (
+        <div
+          className="mt-6 rounded-2xl border p-4 text-center"
+          style={{ borderColor: 'rgba(168,136,78,0.35)', background: '#FBF6EE' }}
+        >
+          <div style={{ fontSize: '11px', color: '#A8884E', letterSpacing: '0.25em' }}>
+            今夜 · {night.badge}
+          </div>
+          <div
+            style={{
+              fontFamily: 'Noto Serif SC, serif',
+              fontSize: '15px',
+              color: '#2C1810',
+              lineHeight: 1.7,
+              marginTop: '8px',
+              fontStyle: 'italic',
+            }}
+          >
+            「{night.line}」
           </div>
         </div>
       )}
