@@ -77,6 +77,14 @@ export interface FriendShareData {
   brandB?: string; // B 的本命香品牌
   radarA?: Record<string, number>; // A 六维雷达 0~1
   radarB?: Record<string, number>; // B 六维雷达 0~1
+  // 合香卡（CP 共振核心产物，服务端确定性计算）
+  cpBlendName?: string; // 合香名（如「玫瑰与焚香」）
+  cpDiffTones?: number; // 差几调（0~3）
+  cpToneA?: string; // A 主导调族
+  cpToneB?: string; // B 主导调族
+  cpSeal?: string; // 合香印（隐/雅/常）
+  cpLine?: string; // 合香解读（启示体）
+  cpNotes?: string; // 合香三调（前/中/后 点分隔）
   inviteCode: string;
   format?: "1to1" | "3to4";
 }
@@ -885,6 +893,17 @@ function buildFriendCard(
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", fontStyle: "italic", textAlign: "center", lineHeight: 1.6 }, children: adviceText })],
   });
 
+  // 合香卡（CP 共振核心产物）——分享图统一精简行「合香 {名} · 隔 X 调」
+  // 完整三调+解读留给页面 CpBlendCard（避免分享图 3:4 内容溢出被裁）
+  const cpLine = d.cpBlendName ? JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "14px" : "18px" },
+    children: [
+      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "15px" }, children: "合香" }),
+      JSX("span", { style: { color: INK, fontSize: is3to4 ? "32px" : "24px", fontWeight: 600, marginLeft: is3to4 ? "18px" : "14px" }, children: d.cpBlendName }),
+      d.cpDiffTones !== undefined ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "15px", marginLeft: is3to4 ? "14px" : "12px" }, children: `隔 ${d.cpDiffTones} 调` }) : null,
+    ].filter(Boolean),
+  }) : null;
+
   // 双人香气光谱对比（仅 3:4，金=A / 墨=B）
   const dualRadarEl = (is3to4 && d.radarA && d.radarB) ? (() => {
     const rSize = 200;
@@ -940,6 +959,7 @@ function buildFriendCard(
   });
 
   const centerChildren: any[] = [eyebrow, pair, ringContainer, tierBadge, story, advice];
+  if (cpLine) centerChildren.push(cpLine);
   if (dualRadarEl) centerChildren.push(dualRadarEl);
   if (sharedEl) centerChildren.push(sharedEl);
 
@@ -1103,7 +1123,7 @@ function _cacheKey(data: ShareCardData, format: string) {
     return `${base}|${d.name}|${d.perfumeA.match}|${d.perfumeB.match}|${d.perfumeC.match}`;
   } else if (data.scene === "friend") {
     const d = data as FriendShareData;
-    return `${base}|${d.nameA}|${d.nameB}|${d.score}`;
+    return `${base}|${d.nameA}|${d.nameB}|${d.score}|${d.cpBlendName ?? ''}|${d.cpDiffTones ?? ''}`;
   } else {
     const d = data as SharedShareData;
     return `${base}|${d.sharerName}|${d.name}`;

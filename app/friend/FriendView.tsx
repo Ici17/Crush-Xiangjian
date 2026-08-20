@@ -15,6 +15,7 @@ import {
 } from "@/lib/inviteState";
 import PersonalityIcon from "@/components/PersonalityIcon";
 import RadarChart from "@/components/RadarChart";
+import CpBlendCard from "@/components/CpBlendCard";
 import { PERSONALITY_NAME_MAP, getRadarScores, brandLabel, getRecommendations } from "@/lib/personalities";
 
 /** 契合度四档解读 */
@@ -592,6 +593,19 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   两种香气的交汇，让彼此独一无二的共鸣悄然发生。
                 </p>
               </div>
+            </section>
+
+            {/* 4.5 合香卡（CP 共振核心产物） */}
+            <section
+              className={`transition-all duration-500 ${
+                staggerResult[3] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 bg-amber-700 rounded-full" />
+                <h3 className="font-serif font-semibold text-amber-900 text-sm">◆ 合香卡</h3>
+              </div>
+              <CpBlendCard nameA={shareA.name} nameB={shareB.name} />
             </section>
 
             {/* 5. 分享图下载 */}

@@ -51,6 +51,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData } from "@/lib/shareCardRender";
 import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS } from "@/lib/personalities";
+import { getCpResonance } from "@/lib/cpResonance";
 import { drawDaily, getTodayStr, RARITY_LABEL, type DrawnPerfume } from "@/lib/daily/draw";
 import { drawAlmanac } from "@/lib/daily/almanac";
 
@@ -184,6 +185,17 @@ export async function GET(req: NextRequest) {
       radarB,
       inviteCode: inv,
     };
+    // 合香卡（CP 共振）：服务端确定性计算，与页面 CpBlendCard 同源一致
+    const cp = getCpResonance(nameA, nameB);
+    if (cp) {
+      d.cpBlendName = cp.blendName;
+      d.cpDiffTones = cp.diffTones;
+      d.cpToneA = cp.toneA;
+      d.cpToneB = cp.toneB;
+      d.cpSeal = cp.seal;
+      d.cpLine = cp.line;
+      d.cpNotes = `前 ${cp.top.join("·")} ｜ 中 ${cp.heart.join("·")} ｜ 后 ${cp.base.join("·")}`;
+    }
     data = d;
 
   } else if (scene === "daily") {
