@@ -45,11 +45,19 @@
 - [ ] 雷达图改用 Recharts(当前为 SVG 自绘,已可用)
 - [ ] 更多人格测试用例
 
-### 🔜 规划中(v2 · 互动 / 裂变)
-- [ ] 本命守护香 → 结果页常驻展示卡(数据已就绪,缺结果页 UI)
-- [ ] Phase 2 仪式动效:揭笺「香烟袅袅」进度(CSS/SVG,不做 Three.js)+ 节气月相「隐签之夜」
-- [ ] 香气共鸣 / CP 共振:双人组合种子比对,算互补 / 差几调,生成合香卡
-- [ ] 增长 / 裂变:「气味 CP 图鉴」收集制、好友匹配升级为合香卡(已评估,待排期)
+### ✅ 已完成(v2 · 互动 / 裂变 / 增长)
+- [x] **④ 本命守护香常驻卡**:结果页揭晓区后固定展示本命守护香(复用 v2 匈牙利分配结果),常驻不随解锁状态消失
+- [x] **⑤ Phase 2 仪式动效**:揭笺「香烟袅袅」长按 1.5s 香头渐亮 + 三缕烟雾(SVG + CSS,非 Three.js);节气 / 月相「隐签之夜」(隐签之夜取精确正日 ±0.5 天,情绪基调切换)
+- [x] **⑥ 香气共鸣 / CP 共振**:双人组合种子比对(`lib/cpResonance.ts`),算互补 / 差 0~3 调,生成合香卡 `CpBlendCard`;合香名可交换排序(A×B==B×A 同名),分享卡注入合香行
+- [x] **⑦ 增长裂变**(纯免费增长,不接付费):
+  - **合香分享裂变·两轨**:① 好友页分享入口生成 `?cp=A|B` 双人链接,受邀方进入即看到双方合香预览 + 点亮图鉴;② 「保存合香海报」走 satori 出图下载,两轨可独立使用
+  - **气味 CP 图鉴(256 点亮式)**:`/codex` 路由 + 16×16 网格(`components/CpCodex.tsx`),任意两人组合点亮一格,进度 X/256,详情弹层展示合香名 / 隔几调 / 基调
+  - 合规:不强制分享解锁、只讲情绪与审美、无吉凶 / 桃花 / 命定恋人
+
+### 🔜 探索中(后续可排期,非阻塞)
+- [ ] 微信卡片 `og:image` 动态化(合香卡 / 图鉴进度晒图)
+- [ ] 跨设备图鉴同步(localStorage → 云端,需后端)
+- [ ] 图鉴点亮成就卡 / 连续点亮称号激励
 
 ---
 
@@ -113,7 +121,9 @@ crushxiangjian/
 │   │   └── SharedView.tsx  # 分享卡(?skip=1 调试渲染)
 │   ├── friend/
 │   │   ├── page.tsx        # 朋友匹配页入口
-│   │   └── FriendView.tsx  # 雷达对比 + 契合度 + 邀请闭环
+│   │   └── FriendView.tsx  # 雷达对比 + 契合度 + 邀请闭环 + 合香预览
+│   ├── codex/
+│   │   └── page.tsx        # 气味 CP 图鉴(256 点亮式网格 + 进度)
 │   ├── terms/page.tsx      # 服务条款
 │   ├── privacy/page.tsx    # 隐私政策
 │   └── api/
@@ -127,18 +137,25 @@ crushxiangjian/
 │   ├── PerfumeBottle.tsx     # 香水瓶线稿(SVG,结果页 / 解锁版 / 今日之瓶复用)
 │   ├── PerfumeBottleShowcase.tsx  # 今日之瓶·香水瓶演示(液体升起 + 飘香)
 │   ├── ScentCodex.tsx        # 香气图鉴(16 守护香网格 + 本命认领)
+│   ├── GuardianScentCard.tsx  # ④ 本命守护香常驻卡(结果页)
+│   ├── IncenseRitual.tsx      # ⑤ 揭笺「香烟袅袅」(SVG + CSS)
+│   ├── CpBlendCard.tsx        # ⑥⑦ 合香卡(好友页 + 分享裂变)
+│   ├── CpCodex.tsx            # ⑦ 气味 CP 图鉴(16×16 网格 + 进度)
 │   └── SiteFooter.tsx         # 全站页脚(定价说明 + 客服邮箱 + 法律链接)
 ├── lib/
 │   ├── data.ts             # 16 人格 + 110 香水 + 问卷 + 匹配算法
 │   ├── personalities.ts    # 人格扩展数据(隐藏面/反差香/底稿/推荐缓存)
 │   ├── payment.ts          # 三档价格配置 + localStorage 解锁状态 + 预留支付接口
 │   ├── friendMatch.ts      # 朋友契合度计算
-│   ├── inviteState.ts      # 邀请状态同步(跨标签 + polling)
+│   ├── inviteState.ts      # 邀请状态同步(跨标签 + polling)+ cp 双人编解码
 │   ├── useMyTestStatus.ts  # 读取本机测试状态
+│   ├── cpResonance.ts      # ⑥ 双人组合种子比对 / 合香
+│   ├── cpCodex.ts          # ⑦ 图鉴点亮记录(localStorage,对称双亮)
 │   └── daily/
 │       ├── draw.ts         # 今日香签确定性抽签(日期种子)
 │       ├── almanac.ts      # 今日宜忌(宜 3 / 忌 3 / 今日一语)
-│       └── history.ts      # 香气历(连续静候 / 续签令牌 / 称号 / 月历墨点)
+│       ├── history.ts      # 香气历(连续静候 / 续签令牌 / 称号 / 月历墨点)
+│       └── night.ts        # ⑤ 节气 / 月相 / 隐签之夜
 ├── public/
 │   ├── manifest.json       # PWA manifest
 │   ├── sw.js               # service worker
