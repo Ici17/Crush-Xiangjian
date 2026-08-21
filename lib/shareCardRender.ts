@@ -399,146 +399,259 @@ function buildMotifSVG(name: string, W: number, H: number): string {
 // 维度顺序：上=木质，顺时针 → 清新 → 东方 → 美食 → 柑橘 → 花香
 const RADAR_DIM_LIST = ['木质', '清新', '东方', '美食', '柑橘', '花香'];
 
-function buildRadarSVG(values: Record<string, number>, size: number): string {
+interface RadarRenderResult { svg: any; labels: any[]; }
+
+/**
+ * 把维度标签渲染成 satori 绝对定位的 <div>，而不是放在内嵌 SVG 的 <text> 里。
+ * 原因：satori 不支持嵌套 SVG 里的 <text>，中文字符会报 "convert them to <path>"；
+ * 用 satori 自己的文字布局，字体继承 Noto Serif SC，标签清晰可读。
+ */
+function buildRadarLabels(
+  JSX: any,
+  size: number,
+  vb: number,
+  labelRadius: number,
+  fontSize: number
+): any[] {
+  const CX = vb / 2;
+  const CY = vb / 2;
+  const scale = size / vb;
+  const N = RADAR_DIM_LIST.length;
+  const angleOf = (i: number) => -90 + i * (360 / N);
+  const box = Math.round(fontSize * 2.5);
+  return RADAR_DIM_LIST.map((dim, i) => {
+    const angle = angleOf(i);
+    const rad = (angle * Math.PI) / 180;
+    const x = CX + labelRadius * Math.cos(rad);
+    const y = CY + labelRadius * Math.sin(rad);
+    const left = x * scale - box / 2;
+    const top = y * scale - box / 2;
+    return JSX('div', {
+      key: `lab-${i}`,
+      style: {
+        position: 'absolute',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${box}px`,
+        height: `${box}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      children: [JSX('span', {
+        style: {
+          color: '#6F5A3E',
+          fontSize: fontSize,
+          fontWeight: 600,
+          fontFamily: "'Noto Serif SC', serif",
+          textAlign: 'center',
+          lineHeight: 1.1,
+        },
+        children: RADAR_DIM_LABELS[dim] ?? dim,
+      })],
+    });
+  });
+}
+
+function buildRadarSVG(JSX: any, values: Record<string, number>, size: number): RadarRenderResult {
   const VB = 460;
   const CX = VB / 2;
   const CY = VB / 2;
   const R = 140;
   const N = RADAR_DIM_LIST.length;
   const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
-  const toXY = (radius: number, angleDeg: number): [number, number] => {
+  const toXY = (radius: number, angleDeg: number): { x: number; y: number } => {
     const a = (angleDeg * Math.PI) / 180;
-    return [CX + radius * Math.cos(a), CY + radius * Math.sin(a)];
+    return { x: CX + radius * Math.cos(a), y: CY + radius * Math.sin(a) };
   };
   const angleOf = (i: number) => -90 + i * (360 / N);
   const VISUAL_FLOOR = 0.22;
   const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
   const ringPoints = (radius: number): string =>
-    RADAR_DIM_LIST.map((_, i) => toXY(radius, angleOf(i)).join(',')).join(' ');
-  const dataPoints = RADAR_DIM_LIST.map((dim, i) =>
-    toXY(R * visualValue(values[dim] ?? 0), angleOf(i)).join(',')
-  ).join(' ');
+    RADAR_DIM_LIST.map((_, i) => {
+      const p = toXY(radius, angleOf(i));
+      return `${p.x},${p.y}`;
+    }).join(' ');
+  const dataPoints = RADAR_DIM_LIST.map((dim, i) => {
+    const p = toXY(R * visualValue(values[dim] ?? 0), angleOf(i));
+    return `${p.x},${p.y}`;
+  }).join(' ');
 
-  const labelPos = (i: number) => {
-    const angle = angleOf(i);
-    const rad = R + 24;
-    const [x, y] = toXY(rad, angle);
-    const anchor = Math.abs(Math.cos((angle * Math.PI) / 180)) < 0.25
-      ? 'middle'
-      : Math.cos((angle * Math.PI) / 180) > 0
-      ? 'start'
-      : 'end';
-    return { x, y, anchor };
-  };
+  const rings = RINGS.map((scale, idx) => {
+    const isOuter = idx === RINGS.length - 1;
+    return JSX('polygon', {
+      key: `ring-${idx}`,
+      points: ringPoints(R * scale),
+      fill: 'none',
+      stroke: '#C2A877',
+      strokeOpacity: isOuter ? 0.6 : 0.32,
+      strokeWidth: isOuter ? 2.0 : 1.2,
+      strokeDasharray: isOuter ? undefined : '3 4',
+    });
+  });
 
-  const ringsSvg = RINGS.map((scale, idx) =>
-    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#C2A877" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.32}" stroke-width="${idx === RINGS.length - 1 ? 2.0 : 1.2}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="3 4"'}/>`
-  ).join('');
+  const axes = RADAR_DIM_LIST.map((_, i) => {
+    const p = toXY(R, angleOf(i));
+    return JSX('line', {
+      key: `axis-${i}`,
+      x1: CX,
+      y1: CY,
+      x2: p.x,
+      y2: p.y,
+      stroke: '#C2A877',
+      strokeOpacity: 0.32,
+      strokeWidth: 1.0,
+    });
+  });
 
-  const axesSvg = RADAR_DIM_LIST.map((_, i) => {
-    const [x, y] = toXY(R, angleOf(i));
-    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#C2A877" stroke-opacity="0.32" stroke-width="1.0"/>`;
-  }).join('');
+  const dots = RADAR_DIM_LIST.map((dim, i) => {
+    const p = toXY(R * visualValue(values[dim] ?? 0), angleOf(i));
+    return JSX('circle', {
+      key: `dot-${i}`,
+      cx: p.x,
+      cy: p.y,
+      r: 3.6,
+      fill: '#A8884E',
+      stroke: '#F8F2E8',
+      strokeWidth: 1.6,
+    });
+  });
 
-  const dotsSvg = RADAR_DIM_LIST.map((dim, i) => {
-    const [x, y] = toXY(R * visualValue(values[dim] ?? 0), angleOf(i));
-    return `<circle cx="${x}" cy="${y}" r="3.2" fill="#A8884E" stroke="#F8F2E8" stroke-width="1.5"/>`;
-  }).join('');
+  const svg = JSX('svg', {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: size,
+    height: size,
+    viewBox: `0 0 ${VB} ${VB}`,
+    children: [
+      JSX('g', { key: 'rings', stroke: '#C2A877', fill: 'none', children: rings }),
+      JSX('g', { key: 'axes', children: axes }),
+      JSX('polygon', {
+        key: 'poly',
+        points: dataPoints,
+        fill: 'rgba(168,136,78,0.22)',
+        stroke: '#A8884E',
+        strokeWidth: 2.8,
+        strokeLinejoin: 'round',
+      }),
+      JSX('g', { key: 'dots', children: dots }),
+    ],
+  });
 
-  const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
-    const pos = labelPos(i);
-    const label = RADAR_DIM_LABELS[dim] ?? dim;
-    const sin = Math.sin((angleOf(i) * Math.PI) / 180);
-    const yOffset =
-      sin < -0.5
-        ? pos.y - 2
-        : sin > 0.5
-        ? pos.y + 14
-        : pos.y + 5;
-    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="30" font-family="'Noto Serif SC', serif" font-weight="600">${label}</text>`;
-  }).join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${VB} ${VB}">
-    <g stroke="#C2A877" fill="none">${ringsSvg}</g>
-    <g>${axesSvg}</g>
-    <polygon points="${dataPoints}" fill="rgba(168,136,78,0.16)" stroke="#A8884E" stroke-width="2.4" stroke-linejoin="round"/>
-    <g>${dotsSvg}</g>
-    <g>${labelsSvg}</g>
-  </svg>`;
+  const labels = buildRadarLabels(JSX, size, VB, R + 32, 34);
+  return { svg, labels };
 }
 
 // ── 双人对冲雷达（A 金 / B 墨，叠加对比）──────────────────────────────────
 
-function buildDualRadarSVG(valuesA: Record<string, number>, valuesB: Record<string, number>, size: number): string {
-  const VB = 340;
+function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: Record<string, number>, size: number): RadarRenderResult {
+  const VB = 380;
   const CX = VB / 2;
   const CY = VB / 2;
-  const R = 112;
+  const R = 128;
   const N = RADAR_DIM_LIST.length;
   const RINGS = [0.2, 0.4, 0.6, 0.8, 1];
-  const toXY = (radius: number, angleDeg: number): [number, number] => {
+  const toXY = (radius: number, angleDeg: number): { x: number; y: number } => {
     const a = (angleDeg * Math.PI) / 180;
-    return [CX + radius * Math.cos(a), CY + radius * Math.sin(a)];
+    return { x: CX + radius * Math.cos(a), y: CY + radius * Math.sin(a) };
   };
   const angleOf = (i: number) => -90 + i * (360 / N);
   const VISUAL_FLOOR = 0.22;
   const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
   const ringPoints = (radius: number): string =>
-    RADAR_DIM_LIST.map((_, i) => toXY(radius, angleOf(i)).join(',')).join(' ');
+    RADAR_DIM_LIST.map((_, i) => {
+      const p = toXY(radius, angleOf(i));
+      return `${p.x},${p.y}`;
+    }).join(' ');
   const polyPoints = (vals: Record<string, number>): string =>
-    RADAR_DIM_LIST.map((dim, i) => toXY(R * visualValue(vals[dim] ?? 0), angleOf(i)).join(',')).join(' ');
-  const labelPos = (i: number) => {
-    const angle = angleOf(i);
-    const rad = R + 22;
-    const [x, y] = toXY(rad, angle);
-    const anchor = Math.abs(Math.cos((angle * Math.PI) / 180)) < 0.25
-      ? 'middle'
-      : Math.cos((angle * Math.PI) / 180) > 0
-      ? 'start'
-      : 'end';
-    return { x, y, anchor };
-  };
+    RADAR_DIM_LIST.map((dim, i) => {
+      const p = toXY(R * visualValue(vals[dim] ?? 0), angleOf(i));
+      return `${p.x},${p.y}`;
+    }).join(' ');
 
-  const ringsSvg = RINGS.map((scale, idx) =>
-    `<polygon points="${ringPoints(R * scale)}" fill="none" stroke="#C2A877" stroke-opacity="${idx === RINGS.length - 1 ? 0.6 : 0.30}" stroke-width="${idx === RINGS.length - 1 ? 1.5 : 1.0}" ${idx === RINGS.length - 1 ? '' : 'stroke-dasharray="2 3"'}/>`
-  ).join('');
+  const rings = RINGS.map((scale, idx) => {
+    const isOuter = idx === RINGS.length - 1;
+    return JSX('polygon', {
+      key: `ring-${idx}`,
+      points: ringPoints(R * scale),
+      fill: 'none',
+      stroke: '#C2A877',
+      strokeOpacity: isOuter ? 0.6 : 0.3,
+      strokeWidth: isOuter ? 1.6 : 1.0,
+      strokeDasharray: isOuter ? undefined : '2 3',
+    });
+  });
 
-  const axesSvg = RADAR_DIM_LIST.map((_, i) => {
-    const [x, y] = toXY(R, angleOf(i));
-    return `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#C2A877" stroke-opacity="0.30" stroke-width="0.8"/>`;
-  }).join('');
+  const axes = RADAR_DIM_LIST.map((_, i) => {
+    const p = toXY(R, angleOf(i));
+    return JSX('line', {
+      key: `axis-${i}`,
+      x1: CX,
+      y1: CY,
+      x2: p.x,
+      y2: p.y,
+      stroke: '#C2A877',
+      strokeOpacity: 0.3,
+      strokeWidth: 0.8,
+    });
+  });
 
-  const labelsSvg = RADAR_DIM_LIST.map((dim, i) => {
-    const pos = labelPos(i);
-    const yOffset =
-      Math.sin((angleOf(i) * Math.PI) / 180) < -0.5
-        ? pos.y - 2
-        : Math.sin((angleOf(i) * Math.PI) / 180) > 0.5
-        ? pos.y + 12
-        : pos.y + 4;
-    return `<text x="${pos.x}" y="${yOffset}" text-anchor="${pos.anchor}" fill="#6F5A3E" font-size="20" font-family="'Noto Serif SC', serif" font-weight="600">${RADAR_DIM_LABELS[dim] ?? dim}</text>`;
-  }).join('');
-
-  const aPoly = polyPoints(valuesA);
-  const bPoly = polyPoints(valuesB);
   const dotsA = RADAR_DIM_LIST.map((dim, i) => {
-    const [x, y] = toXY(R * visualValue(valuesA[dim] ?? 0), angleOf(i));
-    return `<circle cx="${x}" cy="${y}" r="2.4" fill="#A8884E" stroke="#F8F2E8" stroke-width="1.1"/>`;
-  }).join('');
+    const p = toXY(R * visualValue(valuesA[dim] ?? 0), angleOf(i));
+    return JSX('circle', {
+      key: `dotA-${i}`,
+      cx: p.x,
+      cy: p.y,
+      r: 2.8,
+      fill: '#A8884E',
+      stroke: '#F8F2E8',
+      strokeWidth: 1.2,
+    });
+  });
   const dotsB = RADAR_DIM_LIST.map((dim, i) => {
-    const [x, y] = toXY(R * visualValue(valuesB[dim] ?? 0), angleOf(i));
-    return `<circle cx="${x}" cy="${y}" r="2.4" fill="#2A211B" stroke="#F8F2E8" stroke-width="1.1"/>`;
-  }).join('');
+    const p = toXY(R * visualValue(valuesB[dim] ?? 0), angleOf(i));
+    return JSX('circle', {
+      key: `dotB-${i}`,
+      cx: p.x,
+      cy: p.y,
+      r: 2.8,
+      fill: '#2A211B',
+      stroke: '#F8F2E8',
+      strokeWidth: 1.2,
+    });
+  });
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${VB} ${VB}">
-    <g>${ringsSvg}</g>
-    <g>${axesSvg}</g>
-    <polygon points="${aPoly}" fill="rgba(168,136,78,0.18)" stroke="#A8884E" stroke-width="2.0" stroke-linejoin="round"/>
-    <polygon points="${bPoly}" fill="rgba(42,33,27,0.08)" stroke="#2A211B" stroke-width="2.0" stroke-dasharray="4 3" stroke-linejoin="round"/>
-    <g>${dotsA}</g>
-    <g>${dotsB}</g>
-    <g>${labelsSvg}</g>
-  </svg>`;
+  const svg = JSX('svg', {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: size,
+    height: size,
+    viewBox: `0 0 ${VB} ${VB}`,
+    children: [
+      JSX('g', { key: 'rings', children: rings }),
+      JSX('g', { key: 'axes', children: axes }),
+      JSX('polygon', {
+        key: 'polyA',
+        points: polyPoints(valuesA),
+        fill: 'rgba(168,136,78,0.20)',
+        stroke: '#A8884E',
+        strokeWidth: 2.4,
+        strokeLinejoin: 'round',
+      }),
+      JSX('polygon', {
+        key: 'polyB',
+        points: polyPoints(valuesB),
+        fill: 'rgba(42,33,27,0.10)',
+        stroke: '#2A211B',
+        strokeWidth: 2.4,
+        strokeDasharray: '4 3',
+        strokeLinejoin: 'round',
+      }),
+      JSX('g', { key: 'dotsA', children: dotsA }),
+      JSX('g', { key: 'dotsB', children: dotsB }),
+    ],
+  });
+
+  const labels = buildRadarLabels(JSX, size, VB, R + 28, 28);
+  return { svg, labels };
 }
 
 // ── 底部品牌行（共用）──────────────────────────────────────────────────────
@@ -682,11 +795,18 @@ function buildSelfCard(
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = is3to4 ? 190 : 150;
-    const radarSVG = `data:image/svg+xml;base64,${Buffer.from(buildRadarSVG(d.radar, radarSize)).toString("base64")}`;
+    const radarSize = is3to4 ? 220 : 150;
+    // SVG 几何体 + satori 绝对定位标签：satori 不支持嵌套 SVG 的 <text>，
+    // 故把中文字符维度标签放到 satori 自己的文字层，字体清晰可读。
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize);
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "12px" },
-      children: [JSX("img", { src: radarSVG, width: radarSize, height: radarSize, style: { display: "block" } })],
+      children: [
+        JSX("div", {
+          style: { position: "relative", width: radarSize, height: radarSize, display: "flex" },
+          children: [radarSVG, ...radarLabels],
+        }),
+      ],
     });
   })() : null;
 
@@ -906,24 +1026,30 @@ function buildFriendCard(
 
   // 合香卡（CP 共振核心产物）——分享图统一精简行「合香 {名} · 隔 X 调」
   // 完整三调+解读留给页面 CpBlendCard（避免分享图 3:4 内容溢出被裁）
+  // 当 diffTones 为 0 时显示「同调」而非「隔 0 调」，避免文案生硬。
+  const cpDiffText = d.cpDiffTones === undefined ? undefined : d.cpDiffTones === 0 ? "同调" : `隔 ${d.cpDiffTones} 调`;
   const cpLine = d.cpBlendName ? JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "14px" : "18px" },
     children: [
       JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "15px" }, children: "合香" }),
       JSX("span", { style: { color: INK, fontSize: is3to4 ? "32px" : "24px", fontWeight: 600, marginLeft: is3to4 ? "18px" : "14px" }, children: d.cpBlendName }),
-      d.cpDiffTones !== undefined ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "15px", marginLeft: is3to4 ? "14px" : "12px" }, children: `隔 ${d.cpDiffTones} 调` }) : null,
+      cpDiffText ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "15px", marginLeft: is3to4 ? "14px" : "12px" }, children: cpDiffText }) : null,
     ].filter(Boolean),
   }) : null;
 
   // 双人香气光谱对比（仅 3:4，金=A / 墨=B）
   const dualRadarEl = (is3to4 && d.radarA && d.radarB) ? (() => {
-    const rSize = 200;
-    const rSvg = `data:image/svg+xml;base64,${Buffer.from(buildDualRadarSVG(d.radarA!, d.radarB!, rSize)).toString("base64")}`;
+    const rSize = 230;
+    // SVG 几何体 + satori 绝对定位标签：避免嵌套 SVG <text> 字体丢失。
+    const { svg: rSvg, labels: rLabels } = buildDualRadarSVG(JSX, d.radarA!, d.radarB!, rSize);
     return JSX("div", {
       style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "12px" },
       children: [
         secHead("香气光谱对比"),
-        JSX("img", { src: rSvg, width: rSize, height: rSize, style: { display: "block", marginTop: "6px" } }),
+        JSX("div", {
+          style: { position: "relative", width: rSize, height: rSize, display: "flex" },
+          children: [rSvg, ...rLabels],
+        }),
         JSX("div", {
           style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "10px" },
           children: [
