@@ -119,7 +119,8 @@ export function getRecommendations(personalityName: string): readonly Recommenda
       floral: radarRaw['花香'],
     };
     const { calChoices, pathLabels } = inferArchetypeCal(type);
-    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, id);
+    // canonical/原型视图：用按 16 原型去重的尝试香分配表，避免 16 原型共用尝试香
+    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, id, true);
     if (calibrated.length === 0) return SAMPLE_RECOMMENDATIONS;
     return calibrated.map((r) => ({
       name: r.name,

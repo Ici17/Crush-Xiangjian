@@ -505,6 +505,61 @@ function buildBudgetAssignment(): Map<string, string> {
   return buildBudgetDirectionAssignment();
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// 原型级预算分配表（v3，2026-08-21）：
+// 解决「16 原型共用 8 支尝试香」的可见重复。
+// buildBudgetDirectionAssignment 按 calKey（27 槽）去重，但 inferArchetypeCal
+// 把 16 原型收拢成 8 个 calKey，导致原型/Codex/分享卡（canonical）视图出现重复。
+// 本表按 16 原型各自贪心选香（用各原型自身雷达 + 推断校准），保证 16 支互不重复。
+// 真实用户路径（useArchetypeBudget=false）不调用本表，仍走 calKey，保留校准对齐。
+// ════════════════════════════════════════════════════════════════════════════
+let _archetypeBudgetAssignment: Map<string, string> | null = null;
+function buildArchetypeBudgetAssignment(): Map<string, string> {
+  if (_archetypeBudgetAssignment) return _archetypeBudgetAssignment;
+  const archs = PERSONALITY_TYPES as {
+    id: string;
+    radarScores: ScentVector;
+    scentDirection?: string;
+    description?: string;
+    mbtiAlias?: string;
+    name?: string;
+  }[];
+  const budgetPool = (Object.values(PERFUMES) as Perfume[]).filter((p) => p.tier === 'budget');
+
+  type Cand = { archId: string; perfume: string; score: number };
+  const cands: Cand[] = [];
+  for (const a of archs) {
+    const { calChoices, pathLabels } = inferArchetypeCal(a);
+    const prefs = parseCalPreferences(calChoices);
+    if (!prefs) continue;
+    const radarEn = normalizeRadarToEn(a.radarScores as Record<string, number>);
+    for (const p of budgetPool) {
+      cands.push({ archId: a.id, perfume: p.name, score: totalScore(p, radarEn, prefs, pathLabels) });
+    }
+  }
+
+  // 贪心全局去重：按得分降序，每个原型拿其最佳且未被占用的香
+  const used = new Set<string>();
+  const assigned = new Map<string, string>();
+  for (const c of [...cands].sort((x, y) => y.score - x.score)) {
+    if (assigned.has(c.archId)) continue;
+    if (used.has(c.perfume)) continue;
+    assigned.set(c.archId, c.perfume);
+    used.add(c.perfume);
+  }
+  // 兜底：极端情况下池 < 16 时，未分配原型取其自身最高分
+  for (const a of archs) {
+    if (assigned.has(a.id)) continue;
+    const top = cands.filter((c) => c.archId === a.id).sort((x, y) => y.score - x.score)[0];
+    if (top) {
+      assigned.set(a.id, top.perfume);
+      used.add(top.perfume);
+    }
+  }
+  _archetypeBudgetAssignment = assigned;
+  return assigned;
+}
+
 export interface CalibratedRecommendation {
   name: string;
   brand: string;
@@ -573,6 +628,7 @@ export function getCalibratedRecommendations(
   calChoices: string[],
   pathLabels: string[] = [],
   archetypeId?: string,
+  useArchetypeBudget = false,
 ): CalibratedRecommendation[] {
   const prefs = parseCalPreferences(calChoices);
   if (!prefs) return [];
@@ -735,7 +791,12 @@ export function getCalibratedRecommendations(
   // 核心改进：分配用 calKey 而非 archetypeId，用户校准方向改变时仍能匹配到适合的平价香。
   // 覆盖时按「用户本次真实校准 + 真实雷达」重算 match%，保证展示的匹配度对该用户诚实。
   const calKey = getCalKey(calChoices);
-  const fixedName = buildBudgetDirectionAssignment().get(calKey);
+  // 原型/Codex/分享卡（canonical）视图：按 16 原型各自锁定一支不重复尝试香，
+  // 避免 16 原型因 calKey 收拢成 8 个而共用尝试香（可见重复）。
+  // 真实用户路径（useArchetypeBudget=false）仍按 calKey 分配，保留其校准对齐特性。
+  const fixedName = useArchetypeBudget && archetypeId
+    ? buildArchetypeBudgetAssignment().get(archetypeId)
+    : buildBudgetDirectionAssignment().get(calKey);
   const fixedPerfume = fixedName ? (PERFUMES as Record<string, Perfume>)[fixedName] : undefined;
   if (fixedPerfume && fixedPerfume.tier === 'budget') {
       const fixedScore = totalScore(fixedPerfume, radarEn, prefs!, pathLabels);
