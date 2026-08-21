@@ -320,81 +320,6 @@ function inferFamily(notes?: string): string | undefined {
   return sorted[0][0];
 }
 
-// ── 视觉锤：per-personality 线性手绘母题 + 极淡色晕（方案 A 增补）──
-type MotifStyle = "wave" | "ridge" | "dune" | "ember" | "line" | "dots";
-const PERSONALITY_VISUAL: Record<string, { color: string; motif: MotifStyle }> = {
-  暗流: { color: "#3A5A7A", motif: "wave" },
-  荒岛: { color: "#C9B79C", motif: "ridge" },
-  残温: { color: "#B07256", motif: "ember" },
-  裂岸: { color: "#7C8B8A", motif: "ridge" },
-  寒岭: { color: "#6E8CA0", motif: "ridge" },
-  极夜: { color: "#4A4A6E", motif: "dots" },
-  砾迹: { color: "#A8927A", motif: "dots" },
-  冲浪: { color: "#D98A4A", motif: "wave" },
-  温砾: { color: "#C19A6B", motif: "dune" },
-  空号: { color: "#8A8A8A", motif: "line" },
-  冷砚: { color: "#4E5C5A", motif: "line" },
-  渊海: { color: "#2E5A6E", motif: "wave" },
-  沉湾: { color: "#6E8E8A", motif: "dune" },
-  霜冷: { color: "#9DB0C0", motif: "line" },
-  荒原: { color: "#B08968", motif: "dune" },
-  烬生: { color: "#9A4A3A", motif: "ember" },
-};
-
-function motifMarkup(motif: MotifStyle, W: number, H: number, color: string): string {
-  const stroke = `stroke="${color}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.13"`;
-  const y0 = Math.round(H * 0.22);
-  const y1 = Math.round(H * 0.34);
-  const y2 = Math.round(H * 0.46);
-  const a = Math.round(H * 0.03);
-  if (motif === "wave") {
-    // F 方案：去掉全宽水印波浪线，仅保留 buildMotifSVG 中的 5% 暖色铺底，避免横线压标题、画面更干净
-    return "";
-  }
-  if (motif === "ridge") {
-    const p = `M0 ${y1} L ${W * 0.2} ${y0} L ${W * 0.4} ${y1 + a} L ${W * 0.6} ${y0 - a} L ${W * 0.8} ${y1} L ${W} ${y0}`;
-    return `<path d="${p}" ${stroke}/>`;
-  }
-  if (motif === "dune") {
-    const p = `M0 ${y1} Q ${W * 0.3} ${y0} ${W * 0.5} ${y1} T ${W} ${y1}`;
-    return `<path d="${p}" ${stroke}/>`;
-  }
-  if (motif === "ember") {
-    return [0.2, 0.35, 0.5, 0.65, 0.8]
-      .map((fx) => {
-        const x = Math.round(W * fx);
-        const top = Math.round(y0 - H * 0.05);
-        const bot = Math.round(y1);
-        return `<path d="M${x} ${bot} L ${x} ${top}" ${stroke}/>`;
-      })
-      .join("");
-  }
-  if (motif === "line") {
-    return [y0, y1, y2]
-      .map((y) => {
-        const seg = Math.round(W * 0.18);
-        return `<path d="M${seg} ${y} L ${W - seg} ${y}" ${stroke}/>`;
-      })
-      .join("");
-  }
-  // dots
-  return [0.25, 0.4, 0.55, 0.7, 0.85]
-    .map((fx, i) => {
-      const x = Math.round(W * fx);
-      const y = i % 2 === 0 ? y0 : y1;
-      return `<circle cx="${x}" cy="${y}" r="3" fill="${color}" opacity="0.13"/>`;
-    })
-    .join("");
-}
-
-function buildMotifSVG(name: string, W: number, H: number): string {
-  const v = PERSONALITY_VISUAL[name] ?? { color: C.GOLD, motif: "line" as MotifStyle };
-  const wash = `<rect x="0" y="0" width="${W}" height="${H}" fill="${v.color}" opacity="0.05"/>`;
-  const motif = motifMarkup(v.motif, W, H, v.color);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${wash}${motif}</svg>`;
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-}
-
 // ── 香气图谱（六维雷达图）──────────────────────────────────────────────────
 // 维度顺序：上=木质，顺时针 → 清新 → 东方 → 美食 → 柑橘 → 花香
 const RADAR_DIM_LIST = ['木质', '清新', '东方', '美食', '柑橘', '花香'];
@@ -453,7 +378,12 @@ function buildRadarLabels(
   });
 }
 
-function buildRadarSVG(JSX: any, values: Record<string, number>, size: number): RadarRenderResult {
+function buildRadarSVG(
+  JSX: any,
+  values: Record<string, number>,
+  size: number,
+  labelFontSize = 34
+): RadarRenderResult {
   const VB = 460;
   const CX = VB / 2;
   const CY = VB / 2;
@@ -537,7 +467,7 @@ function buildRadarSVG(JSX: any, values: Record<string, number>, size: number): 
     ],
   });
 
-  const labels = buildRadarLabels(JSX, size, VB, R + 32, 34);
+  const labels = buildRadarLabels(JSX, size, VB, R + 32, labelFontSize);
   return { svg, labels };
 }
 
@@ -794,11 +724,10 @@ function buildSelfCard(
   });
 
   // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
+  // 3:4 下放大到 280px，标签字号 42px，确保维度名与香调名清晰可读。
   const radarEl = (is3to4 && d.radar) ? (() => {
-    const radarSize = is3to4 ? 220 : 150;
-    // SVG 几何体 + satori 绝对定位标签：satori 不支持嵌套 SVG 的 <text>，
-    // 故把中文字符维度标签放到 satori 自己的文字层，字体清晰可读。
-    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize);
+    const radarSize = 280;
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 42);
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "12px" },
       children: [
@@ -887,9 +816,6 @@ function buildSelfCard(
     children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "21px" : "22px", letterSpacing: "0.12em" }, children: d.radarTop3.join(" · ") })],
   }) : null;
 
-  // 视觉锤：per-personality 线性手绘母题（极淡背景层，强化品牌记忆）
-  const motifImg = JSX("img", { src: buildMotifSVG(d.name, W, H), width: W, height: H, style: { position: "absolute", top: "0px", left: "0px", display: "block" } });
-
   const centerChildren: any[] = [eyebrow, hero, heroRule];
   // 1:1 空间有限，把用香哲学放在顶部人物小传的原位置；3:4 保持「三支香 → 用香哲学 → 香调偏好」深度流
   if (philosophyEl && !is3to4) centerChildren.push(secHead("用香哲学"), philosophyEl);
@@ -908,7 +834,6 @@ function buildSelfCard(
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
-      motifImg,
       masthead,
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" },
