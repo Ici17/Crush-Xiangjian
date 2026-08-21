@@ -315,8 +315,10 @@ function ResultInner() {
   }, [personalityName]);
 
   // ── 下载分享图（服务端 API 渲染）──
-  const handleSaveShareImage = useCallback(async (format: '1to1' | '3to4' = '1to1') => {
-    if (!personalityName) return;
+  // 返回结构化结果，由调用方决定：桌面端直接下载 / 移动端微信内联预览长按保存
+  type SaveResult = { ok: boolean; method: 'download' | 'preview'; url?: string; error?: string };
+  const handleSaveShareImage = useCallback(async (format: '1to1' | '3to4' = '1to1'): Promise<SaveResult> => {
+    if (!personalityName) return { ok: false, method: 'download', error: 'no personality' };
     // 运行时从 DOM 读当前 state，避免声明顺序问题
     const recs = recommendations; // 运行时读取，当前值
     const dims = shareRadarRaw
@@ -346,7 +348,6 @@ function ResultInner() {
     const flatNotes = (n?: { top: string[]; heart: string[]; base: string[] }) =>
       n ? [...n.top, ...n.heart, ...n.base].join('·') : '';
 
-    const base = typeof window !== 'undefined' ? window.location.origin : 'https://crushxiangjian.com';
     const params = new URLSearchParams({
       scene: 'self', format,
       name: personalityName,
@@ -368,28 +369,67 @@ function ResultInner() {
       brandB: recs[1]?.brand ?? '',
       brandC: recs[2]?.brand ?? '',
     });
-    const res = await fetch(`/api/share-card?${params}`);
-    if (!res.ok) return;
+    let res: Response;
+    try {
+      res = await fetch(`/api/share-card?${params}`);
+    } catch (e) {
+      console.error('[share] fetch failed', e);
+      return { ok: false, method: 'download', error: 'network' };
+    }
+    if (!res.ok) {
+      console.error('[share] API', res.status);
+      return { ok: false, method: 'download', error: `API ${res.status}` };
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+
+    // 微信 / iOS：浏览器不触发 a.download，改为内联预览让用户长按保存
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isWX = /MicroMessenger/i.test(ua);
+    const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    if (isWX || isIOS) {
+      return { ok: true, method: 'preview', url };
+    }
+
+    // 桌面端：直接下载（延迟释放 blob URL，确保下载已开始）
     const link = document.createElement('a');
     link.download = `crush香鉴-${personalityName}-${format}.png`;
     link.href = url;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return { ok: true, method: 'download' };
   }, [personalityName]); // 不声明 recommendations/shareRadarDims，运行时读取
+
+  // 统一保存入口：根据结果给出真实反馈（下载成功 / 内联预览 / 失败），不再假成功
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const triggerSave = useCallback(async (format: '1to1' | '3to4' = '1to1') => {
+    const r = await handleSaveShareImage(format);
+    if (!r.ok) {
+      setShareHint('分享图生成失败，请重试');
+      return;
+    }
+    if (r.method === 'preview' && r.url) {
+      setPreviewUrl(r.url);
+    } else {
+      setShareHint('分享图已保存 ✓');
+      setShowShareGuide(false);
+    }
+  }, [personalityName]);
 
   const personality = getPersonality(personalityName);
 
   // ── 分享意图函数（锁定/解锁统一调用）━━
-  // 顺序：保存分享图（html2canvas）→ 复制邀请链接 → 弹引导弹层
+  // 顺序：保存分享图（预览/下载）→ 复制邀请链接 → 弹引导弹层
   const handleShare = useCallback(async () => {
-    try { handleSaveShareImage(); } catch {}
+    setPreviewUrl(null);
+    await triggerSave('1to1');
     try {
       await navigator.clipboard.writeText(shareLink);
     } catch {}
     setShowShareGuide(true);
-  }, [shareLink, personalityName]);
+  }, [shareLink, personalityName, triggerSave]);
 
   // 动态推荐：同步读缓存 → useEffect 异步补算
   // 优先使用校准匹配，降级为固定映射
@@ -1174,15 +1214,13 @@ function ResultInner() {
       {/* ━━━ 分享引导弹层（琥珀主题）━━━ */}
       <ShareGuideModal
         isOpen={showShareGuide}
-        onClose={() => setShowShareGuide(false)}
+        onClose={() => { setShowShareGuide(false); setPreviewUrl(null); }}
         onCopyLink={() => {
           navigator.clipboard.writeText(shareLink).catch(() => {});
           setShareHint('链接已复制 ✓');
         }}
-        onSaveImage={(format) => {
-          handleSaveShareImage(format);
-          setShareHint('分享图已保存 ✓');
-        }}
+        onSaveImage={(format) => { triggerSave(format); }}
+        previewUrl={previewUrl}
         isInWeChat={isInWeChat()}
       />
     </main>
