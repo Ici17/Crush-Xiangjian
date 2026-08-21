@@ -301,7 +301,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       URL.revokeObjectURL(url);
       showToast(format === '1to1' ? '朋友圈分享图已下载 ✓' : '小红书分享图已下载 ✓');
     } catch (e) {
-      console.error(e);
+      console.error('[friend] 分享图下载失败', e);
       showToast('分享图生成失败，请重试');
     } finally {
       setShareLoading(false);

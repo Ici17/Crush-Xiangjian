@@ -57,6 +57,7 @@ function addDays(s: string, n: number): string {
 }
 
 function loadState(): HistoryState {
+  if (typeof window === 'undefined') return { visited: [], freezes: 0, lastFreezeStreak: 0 };
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
@@ -74,6 +75,7 @@ function loadState(): HistoryState {
 }
 
 function saveState(s: HistoryState): void {
+  if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {

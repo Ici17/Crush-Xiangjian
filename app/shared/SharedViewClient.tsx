@@ -143,7 +143,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
       URL.revokeObjectURL(url);
       showToast('分享图已保存');
     } catch (e) {
-      console.error(e);
+      console.error('[shared] 分享图下载失败', e);
       showToast('分享图生成失败，请重试');
     }
   }

@@ -357,7 +357,7 @@ export const STORAGE_KEYS = {
 } as const;
 
 /** 英文雷达 key → 中文 key（0-100 → 0-1）*/
-const RADAR_KEY_MAP: Record<string, RadarDim> = {
+export const RADAR_KEY_MAP: Record<string, RadarDim> = {
   woody: '木质',
   fresh: '清新',
   oriental: '东方',
