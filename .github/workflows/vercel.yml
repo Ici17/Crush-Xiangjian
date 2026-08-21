@@ -16,7 +16,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - run: npm ci
+      # 必须带 --include=optional：sharp 的原生 libvips 二进制
+      # (@img/sharp-libvips-linux-x64) 是可选依赖，CI 默认会省略，
+      # 导致部署到 Vercel 的 lambda 运行期 ERR_DLOPEN_FAILED:
+      # libvips-cpp.so.8.18.3，/api/share-card 全部 500。
+      - run: npm ci --include=optional
 
       - run: npm run build
         env:
