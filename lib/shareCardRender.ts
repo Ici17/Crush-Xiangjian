@@ -333,47 +333,71 @@ interface RadarRenderResult { svg: any; labels: any[]; }
  */
 function buildRadarLabels(
   JSX: any,
+  values: Record<string, number>,
   size: number,
   vb: number,
   labelRadius: number,
-  fontSize: number
+  nameFontSize: number,
+  showValue = true
 ): any[] {
   const CX = vb / 2;
   const CY = vb / 2;
   const scale = size / vb;
   const N = RADAR_DIM_LIST.length;
   const angleOf = (i: number) => -90 + i * (360 / N);
-  const box = Math.round(fontSize * 2.5);
+  const nameBox = Math.round(nameFontSize * 2.3);
+  const valFontSize = Math.round(nameFontSize * 0.6);
+  const boxW = nameBox + 18;
+  const boxH = showValue ? nameBox + valFontSize + 8 : nameBox;
   return RADAR_DIM_LIST.map((dim, i) => {
     const angle = angleOf(i);
     const rad = (angle * Math.PI) / 180;
     const x = CX + labelRadius * Math.cos(rad);
     const y = CY + labelRadius * Math.sin(rad);
-    const left = x * scale - box / 2;
-    const top = y * scale - box / 2;
+    const left = x * scale - boxW / 2;
+    const top = y * scale - boxH / 2;
+    const val = Math.round((values[dim] ?? 0) * 100);
+    const children: any[] = [
+      JSX('span', {
+        style: {
+          color: '#5A4632',
+          fontSize: nameFontSize,
+          fontWeight: 600,
+          fontFamily: "'Noto Serif SC', serif",
+          textAlign: 'center',
+          lineHeight: 1.05,
+        },
+        children: RADAR_DIM_LABELS[dim] ?? dim,
+      }),
+    ];
+    if (showValue) {
+      children.push(JSX('span', {
+        style: {
+          color: '#A8884E',
+          fontSize: valFontSize,
+          fontWeight: 500,
+          fontFamily: "'Noto Serif SC', serif",
+          textAlign: 'center',
+          marginTop: '3px',
+          lineHeight: 1,
+        },
+        children: String(val),
+      }));
+    }
     return JSX('div', {
       key: `lab-${i}`,
       style: {
         position: 'absolute',
         left: `${left}px`,
         top: `${top}px`,
-        width: `${box}px`,
-        height: `${box}px`,
+        width: `${boxW}px`,
+        height: `${boxH}px`,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
       },
-      children: [JSX('span', {
-        style: {
-          color: '#6F5A3E',
-          fontSize: fontSize,
-          fontWeight: 600,
-          fontFamily: "'Noto Serif SC', serif",
-          textAlign: 'center',
-          lineHeight: 1.1,
-        },
-        children: RADAR_DIM_LABELS[dim] ?? dim,
-      })],
+      children,
     });
   });
 }
@@ -413,10 +437,10 @@ function buildRadarSVG(
       key: `ring-${idx}`,
       points: ringPoints(R * scale),
       fill: 'none',
-      stroke: '#C2A877',
-      strokeOpacity: isOuter ? 0.6 : 0.32,
-      strokeWidth: isOuter ? 2.0 : 1.2,
-      strokeDasharray: isOuter ? undefined : '3 4',
+      stroke: '#9C7B47',
+      strokeOpacity: isOuter ? 0.95 : 0.5,
+      strokeWidth: isOuter ? 2.6 : 1.5,
+      strokeDasharray: isOuter ? undefined : '5 4',
     });
   });
 
@@ -428,9 +452,9 @@ function buildRadarSVG(
       y1: CY,
       x2: p.x,
       y2: p.y,
-      stroke: '#C2A877',
-      strokeOpacity: 0.32,
-      strokeWidth: 1.0,
+      stroke: '#9C7B47',
+      strokeOpacity: 0.5,
+      strokeWidth: 1.3,
     });
   });
 
@@ -467,7 +491,7 @@ function buildRadarSVG(
     ],
   });
 
-  const labels = buildRadarLabels(JSX, size, VB, R + 32, labelFontSize);
+  const labels = buildRadarLabels(JSX, values, size, VB, R + 34, labelFontSize, true);
   return { svg, labels };
 }
 
@@ -504,10 +528,10 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
       key: `ring-${idx}`,
       points: ringPoints(R * scale),
       fill: 'none',
-      stroke: '#C2A877',
-      strokeOpacity: isOuter ? 0.6 : 0.3,
-      strokeWidth: isOuter ? 1.6 : 1.0,
-      strokeDasharray: isOuter ? undefined : '2 3',
+      stroke: '#9C7B47',
+      strokeOpacity: isOuter ? 0.95 : 0.5,
+      strokeWidth: isOuter ? 2.2 : 1.3,
+      strokeDasharray: isOuter ? undefined : '4 3',
     });
   });
 
@@ -519,9 +543,9 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
       y1: CY,
       x2: p.x,
       y2: p.y,
-      stroke: '#C2A877',
-      strokeOpacity: 0.3,
-      strokeWidth: 0.8,
+      stroke: '#9C7B47',
+      strokeOpacity: 0.5,
+      strokeWidth: 1.1,
     });
   });
 
@@ -580,7 +604,7 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
     ],
   });
 
-  const labels = buildRadarLabels(JSX, size, VB, R + 28, 28);
+  const labels = buildRadarLabels(JSX, valuesA, size, VB, R + 26, 20, false);
   return { svg, labels };
 }
 
@@ -727,7 +751,7 @@ function buildSelfCard(
   // 3:4 下放大到 280px，标签字号 42px，确保维度名与香调名清晰可读。
   const radarEl = (is3to4 && d.radar) ? (() => {
     const radarSize = 280;
-    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 42);
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 20);
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "12px" },
       children: [
