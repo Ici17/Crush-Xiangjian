@@ -22,13 +22,6 @@ function weekdayCN(d: string): string {
   return WEEKDAYS[new Date(y, m - 1, day).getDay()];
 }
 
-function notesLine(p: DrawnPerfume): string {
-  const t = p.notes.top.join('·');
-  const h = p.notes.heart.join('·');
-  const b = p.notes.base.join('·');
-  return `前 ${t} ｜ 中 ${h} ｜ 后 ${b}`;
-}
-
 const STORE_KEY = 'crush_daily';
 const NOTE_KEY = (date: string) => `crush_daily_note_${date}`;
 const NOTE_MAX = 20;
@@ -156,7 +149,7 @@ export default function DailyPanel() {
               style={{
                 borderColor: c.main ? '#A8884E' : 'rgba(42,33,27,0.14)',
                 background: '#F8F2E8',
-                minHeight: 208,
+                minHeight: 236,
                 opacity: revealed ? 1 : 0.5,
                 transform: revealed ? 'translateY(0)' : 'translateY(8px)',
                 transition: `opacity .8s ease ${i * 0.18}s, transform .8s ease ${i * 0.18}s`,
@@ -179,49 +172,113 @@ export default function DailyPanel() {
 
               {/* 揭笺态 */}
               {revealed && (
-                <div className="p-3 flex flex-col h-full text-center">
-                  <div style={{ fontSize: '11px', color: '#8B7C68', letterSpacing: '0.2em' }}>
-                    {c.label}
+                <div className="px-2.5 py-3 flex flex-col h-full text-center">
+                  {/* 头部：标签 + 印 一行排布（更紧凑） */}
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span style={{ fontSize: '11px', color: '#8B7C68', letterSpacing: '0.22em' }}>
+                      {c.label}
+                    </span>
+                    {stamp ? (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          color: '#A8884E',
+                          border: '1px solid #A8884E',
+                          borderRadius: '3px',
+                          padding: '0 5px',
+                          lineHeight: 1.6,
+                          letterSpacing: '0.1em',
+                        }}
+                      >
+                        {stamp}
+                      </span>
+                    ) : null}
                   </div>
-                  {stamp ? (
-                    <div
-                      className="self-center mt-1"
-                      style={{
-                        fontSize: '12px',
-                        color: '#A8884E',
-                        border: '1px solid #A8884E',
-                        borderRadius: '4px',
-                        padding: '1px 6px',
-                      }}
-                    >
-                      {stamp}
-                    </div>
-                  ) : (
-                    <div style={{ height: '20px' }} />
-                  )}
+
+                  {/* 香名 */}
                   <div
                     style={{
                       fontFamily: 'Noto Serif SC, serif',
-                      fontSize: c.main ? '18px' : '15px',
+                      fontSize: c.main ? '16.5px' : '14px',
                       color: '#2C1810',
-                      marginTop: '6px',
-                      lineHeight: 1.3,
+                      marginTop: '10px',
+                      lineHeight: 1.25,
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
                     }}
                   >
                     {c.p.name}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#8B7C68', marginTop: '4px' }}>
-                    {c.p.brandCn}
-                  </div>
+
+                  {/* 品牌 */}
                   <div
                     style={{
-                      fontSize: '10px',
-                      color: '#A89A86',
-                      marginTop: 'auto',
-                      lineHeight: 1.5,
+                      fontSize: '10.5px',
+                      color: '#8B7C68',
+                      marginTop: '3px',
+                      letterSpacing: '0.04em',
                     }}
                   >
-                    {notesLine(c.p)}
+                    {c.p.brandCn}
+                  </div>
+
+                  {/* 金线分隔（视觉断点，区分「信息」与「诗意」） */}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ marginTop: '12px' }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '24px',
+                        height: '1px',
+                        background: 'rgba(168,136,78,0.55)',
+                      }}
+                    />
+                  </div>
+
+                  {/* 描述 · 诗化短评（填满中部留白的核心内容） */}
+                  <div
+                    style={{
+                      fontFamily: 'Noto Serif SC, serif',
+                      fontSize: '11.5px',
+                      color: '#5A4E3E',
+                      marginTop: '10px',
+                      lineHeight: 1.65,
+                      padding: '0 2px',
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {c.p.description}
+                  </div>
+
+                  {/* 香调 · 前/中/后 三行（更有签的层次，替代原单行长串） */}
+                  <div
+                    style={{
+                      marginTop: 'auto',
+                      paddingTop: '10px',
+                      borderTop: '1px dashed rgba(168,136,78,0.3)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '9px',
+                        color: '#A8884E',
+                        letterSpacing: '0.3em',
+                        marginBottom: '5px',
+                      }}
+                    >
+                      香 调
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#8B7C68', lineHeight: 1.55 }}>
+                      前 · {c.p.notes.top.join(' · ')}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#8B7C68', lineHeight: 1.55 }}>
+                      中 · {c.p.notes.heart.join(' · ')}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#8B7C68', lineHeight: 1.55 }}>
+                      后 · {c.p.notes.base.join(' · ')}
+                    </div>
                   </div>
                 </div>
               )}

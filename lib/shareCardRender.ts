@@ -115,9 +115,9 @@ export interface SharedShareData {
 export interface DailyShareData {
   scene: "daily";
   date: string; // YYYY-MM-DD (Asia/Shanghai)
-  main: { name: string; brandCn: string; notes: string; rarity: string };
-  inspirationA: { name: string; brandCn: string; notes: string; rarity: string };
-  inspirationB: { name: string; brandCn: string; notes: string; rarity: string };
+  main: { name: string; brandCn: string; description: string; notes: string; rarity: string };
+  inspirationA: { name: string; brandCn: string; description: string; notes: string; rarity: string };
+  inspirationB: { name: string; brandCn: string; description: string; notes: string; rarity: string };
   almanac?: { yi: string[]; ji: string[]; note: string };
   format?: "1to1" | "3to4";
 }
@@ -1176,31 +1176,71 @@ function buildDailyCard(
     children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "18px", letterSpacing: "0.2em" }, children: `${d.date.replace(/-/g, ".")} 星期${wd}` })],
   });
 
+  // 解析「前 X ｜ 中 Y ｜ 后 Z」为三段（用于三行香调展示）
+  function parseNotes(s: string): { top: string; heart: string; base: string } {
+    const parts = s.split(" ｜ ");
+    return {
+      top: parts[0]?.replace(/^前\s*/, "") ?? "",
+      heart: parts[1]?.replace(/^中\s*/, "") ?? "",
+      base: parts[2]?.replace(/^后\s*/, "") ?? "",
+    };
+  }
+
   // 单笺
-  const strip = (label: string, name: string, brand: string, notes: string, rarity: string, isMain: boolean) =>
+  const strip = (
+    label: string, name: string, brand: string, description: string,
+    notes: string, rarity: string, isMain: boolean
+  ) =>
     JSX("div", {
       style: {
         flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
         background: C.PAPER, border: `1px solid ${isMain ? GOLD : HAIR}`, borderRadius: "16px",
-        padding: is3to4 ? "22px 14px" : "18px 10px",
+        padding: is3to4 ? "20px 14px" : "16px 10px",
       },
       children: [
-        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "16px", letterSpacing: "0.2em" }, children: label }),
+        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "17px" : "15px", letterSpacing: "0.22em" }, children: label }),
         rarity
-          ? JSX("span", { style: { marginTop: "8px", color: GOLD, fontSize: is3to4 ? "18px" : "16px", border: `1px solid ${GOLD}`, borderRadius: "4px", padding: "1px 8px" }, children: rarity })
-          : JSX("span", { style: { marginTop: "8px", height: "22px" }, children: "" }),
-        JSX("span", { style: { color: INK, fontFamily: "serif", fontWeight: 700, fontSize: is3to4 ? "27px" : "22px", marginTop: "12px", textAlign: "center", lineHeight: 1.3 }, children: name }),
-        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "17px" : "15px", marginTop: "6px" }, children: brand }),
-        JSX("span", { style: { color: "#A89A86", fontSize: is3to4 ? "15px" : "13px", marginTop: is3to4 ? "16px" : "12px", textAlign: "center", lineHeight: 1.6 }, children: notes }),
+          ? JSX("span", { style: { marginTop: "6px", color: GOLD, fontSize: is3to4 ? "16px" : "14px", border: `1px solid ${GOLD}`, borderRadius: "4px", padding: "0px 7px", letterSpacing: "0.1em" }, children: rarity })
+          : JSX("span", { style: { marginTop: "6px", height: "20px" }, children: "" }),
+        JSX("span", { style: { color: INK, fontFamily: "serif", fontWeight: 700, fontSize: is3to4 ? "26px" : "22px", marginTop: "10px", textAlign: "center", lineHeight: 1.25, letterSpacing: "0.04em" }, children: name }),
+        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", marginTop: "4px" }, children: brand }),
+        // 金线分隔（与页面 UI 同步，区分信息与诗意）
+        JSX("div", {
+          style: { display: "flex", flexDirection: "row", alignItems: "center", marginTop: is3to4 ? "10px" : "8px" },
+          children: [JSX("span", { style: { display: "block", width: is3to4 ? "26px" : "22px", height: "1px", background: "rgba(168,136,78,0.55)" }, children: "" })],
+        }),
+        // 诗意短评（填满中部留白的核心内容）
+        JSX("span", {
+          style: {
+            display: "block", width: "100%", color: "#5A4E3E",
+            fontFamily: "serif", fontSize: is3to4 ? "15px" : "13px",
+            marginTop: is3to4 ? "8px" : "6px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em",
+          },
+          children: description,
+        }),
+        // 香调（与页面同步：前/中/后 三行小字）
+        JSX("div", {
+          style: {
+            display: "flex", flexDirection: "column", alignItems: "center",
+            marginTop: "auto", paddingTop: is3to4 ? "10px" : "8px", width: "100%",
+            borderTop: `1px dashed rgba(168,136,78,${is3to4 ? 0.3 : 0.35})`,
+          },
+          children: [
+            JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "13px" : "11px", letterSpacing: "0.3em", marginBottom: "4px" }, children: "香 调" }),
+            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `前 · ${parseNotes(notes).top}` }),
+            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `中 · ${parseNotes(notes).heart}` }),
+            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `后 · ${parseNotes(notes).base}` }),
+          ],
+        }),
       ],
     });
 
   const strips = JSX("div", {
     style: { display: "flex", flexDirection: "row", gap: is3to4 ? "16px" : "14px", width: "100%", marginTop: "4px" },
     children: [
-      strip("启示", d.inspirationA.name, d.inspirationA.brandCn, d.inspirationA.notes, d.inspirationA.rarity, false),
-      strip("主香", d.main.name, d.main.brandCn, d.main.notes, d.main.rarity, true),
-      strip("启示", d.inspirationB.name, d.inspirationB.brandCn, d.inspirationB.notes, d.inspirationB.rarity, false),
+      strip("启示", d.inspirationA.name, d.inspirationA.brandCn, d.inspirationA.description, d.inspirationA.notes, d.inspirationA.rarity, false),
+      strip("主香", d.main.name, d.main.brandCn, d.main.description, d.main.notes, d.main.rarity, true),
+      strip("启示", d.inspirationB.name, d.inspirationB.brandCn, d.inspirationB.description, d.inspirationB.notes, d.inspirationB.rarity, false),
     ],
   });
 

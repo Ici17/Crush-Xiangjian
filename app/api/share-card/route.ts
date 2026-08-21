@@ -206,6 +206,7 @@ export async function GET(req: NextRequest) {
     const fmt = (p: DrawnPerfume) => ({
       name: p.name,
       brandCn: p.brandCn,
+      description: p.description,
       notes: `前 ${p.notes.top.join("·")} ｜ 中 ${p.notes.heart.join("·")} ｜ 后 ${p.notes.base.join("·")}`,
       rarity: RARITY_LABEL[p.rarity],
     });
