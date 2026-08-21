@@ -72,6 +72,7 @@ function parseRadarParam(raw: string | null): Record<string, number> | undefined
 }
 
 export async function GET(req: NextRequest) {
+ try {
   const sp = req.nextUrl.searchParams;
   const scene = sp.get("scene") ?? "";
   const format = (sp.get("format") as "1to1" | "3to4") ?? "1to1";
@@ -242,17 +243,17 @@ export async function GET(req: NextRequest) {
     data = d;
   }
 
-  try {
-    const pngBuffer = await renderShareCardCached(data, format);
-    const headers = new Headers({
-      "Content-Type": "image/png",
-      "Content-Length": String(pngBuffer.byteLength),
-      "Cache-Control": "public, max-age=300, s-maxage=300",
-      "Vary": "Accept-Encoding",
-    });
-    return new NextResponse(new Uint8Array(pngBuffer), { status: 200, headers });
-  } catch (err) {
-    console.error("[/api/share-card] Render error:", err);
-    return NextResponse.json({ error: "Render failed", detail: String(err) }, { status: 500 });
-  }
+  const pngBuffer = await renderShareCardCached(data, format);
+  const headers = new Headers({
+    "Content-Type": "image/png",
+    "Content-Length": String(pngBuffer.byteLength),
+    "Cache-Control": "public, max-age=300, s-maxage=300",
+    "Vary": "Accept-Encoding",
+  });
+  return new NextResponse(new Uint8Array(pngBuffer), { status: 200, headers });
+ } catch (err) {
+  console.error("[/api/share-card] Unhandled error:", err);
+  const detail = err instanceof Error ? (err.stack || err.message) : String(err);
+  return NextResponse.json({ error: "share-card failed", detail }, { status: 500 });
+ }
 }

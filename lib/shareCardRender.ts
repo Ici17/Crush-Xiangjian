@@ -19,7 +19,6 @@
  *   6. 绝对定位：父 div 需 display:flex，overlay 子 div 也需 display:flex
  */
 
-import sharp from "sharp";
 import QRCode from "qrcode";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -607,6 +606,9 @@ export async function renderShareCard(
   format: "1to1" | "3to4" = "1to1"
 ): Promise<Buffer> {
   const { svgRaw } = await buildSvg(data, format);
+  // sharp 改为运行时动态 import：避免顶层原生模块 import 在 serverless 运行时
+  // 加载失败导致整模块崩溃（/api/share-card 全部 500）。
+  const sharp = (await import("sharp")).default;
   const pngBuffer = await sharp(Buffer.from(svgRaw)).png({ compressionLevel: 8 }).toBuffer();
   return pngBuffer;
 }
