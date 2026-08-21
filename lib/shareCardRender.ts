@@ -25,6 +25,14 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RADAR_DIM_LABELS } from "@/lib/personalities";
 
+// ── 强制打包追踪 sharp 的 libvips 原生库 ─────────────────────────────────────
+// sharp 在运行时通过 dlopen 动态加载 libvips 的 .so，打包器（Turbopack/NFT）无法
+// 静态追踪，导致 Vercel serverless 部署的 lambda 缺失 libvips-cpp.so，运行期
+// ERR_DLOPEN_FAILED。这里用字面量 require 强制追踪，把对应平台的 libvips 包打进
+// 函数产物。本地非 linux-x64 环境没有这些包，用 try 容错，不影响开发构建。
+try { require("@img/sharp-libvips-linux-x64"); } catch { /* 非 linux-x64 忽略 */ }
+try { require("@img/sharp-libvips-linuxmusl-x64"); } catch { /* 非 linux-musl 忽略 */ }
+
 // ── 类型定义 ───────────────────────────────────────────────────────────────
 
 export type ShareScene = "self" | "friend" | "shared" | "daily";
