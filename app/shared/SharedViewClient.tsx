@@ -12,8 +12,10 @@ import {
 } from '@/lib/personalities';
 import RadarChart from '@/components/RadarChart';
 import PersonalityIcon from '@/components/PersonalityIcon';
+import ShareImagePreviewModal from '@/components/ShareImagePreviewModal';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
+import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 
 function Toast({ message }: { message: string }) {
   return (
@@ -36,6 +38,8 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
   const [stagger, setStagger] = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 微信 / iOS 预览保存：内联展示图片供用户长按保存（blob URL 由弹层关闭时释放）
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const router = useRouter();
   const myStatus = useMyTestStatus();
 
@@ -112,6 +116,14 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     setTimeout(() => setToast(null), 2000);
   };
 
+  // 关闭预览弹层并释放 blob URL（避免内存泄漏）
+  const handleClosePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
   async function handleCopyLink() {
     if (!shareLink) return;
     try {
@@ -132,18 +144,21 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
         inv: encodeInvite(mappedName),
         format: '3to4',
       });
-      const res = await fetch(`/api/share-card?${params}`);
-      if (!res.ok) throw new Error('render failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `${personalityName}的香气人格.png`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      showToast('分享图已保存');
+      const filename = `${mappedName}的香气人格.png`;
+      const r = await saveShareCard(params, filename);
+      if (!r.ok) {
+        showToast('分享图生成失败，请重试');
+        return;
+      }
+      if (r.method === 'preview' && r.url) {
+        // 微信 / iOS：内联预览，用户长按保存
+        setPreviewUrl(r.url);
+      } else {
+        // 桌面端：saveShareCard 已触发下载
+        showToast('分享图已保存 ✓');
+      }
     } catch (e) {
-      console.error('[shared] 分享图下载失败', e);
+      console.error('[shared] 分享图生成失败', e);
       showToast('分享图生成失败，请重试');
     }
   }
@@ -436,6 +451,13 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
           </div>
         </div>
       )}
+      {/* ── 微信 / iOS 分享图预览（长按保存） ── */}
+      <ShareImagePreviewModal
+        previewUrl={previewUrl}
+        onClose={handleClosePreview}
+        isInWeChat={isWeChat()}
+      />
+
     </main>
   );
 }

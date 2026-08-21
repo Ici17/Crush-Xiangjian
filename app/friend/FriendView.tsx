@@ -20,7 +20,9 @@ import { markCpLit, getCpLitCount, CP_TOTAL } from "@/lib/cpCodex";
 import PersonalityIcon from "@/components/PersonalityIcon";
 import RadarChart from "@/components/RadarChart";
 import CpBlendCard from "@/components/CpBlendCard";
+import ShareImagePreviewModal from "@/components/ShareImagePreviewModal";
 import { PERSONALITY_NAME_MAP, getRadarScores, brandLabel, getRecommendations } from "@/lib/personalities";
+import { saveShareCard, isWeChat } from "@/lib/saveShareImage";
 
 /** 契合度四档解读 */
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
@@ -105,6 +107,8 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [showSharePicker, setShowSharePicker] = useState(false);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // 微信 / iOS 预览保存：内联展示图片供用户长按保存（blob URL 由弹层关闭时释放）
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // 「我的灵魂香气榜」名单（来自 localStorage 邀请记录）
   const [friendList, setFriendList] = useState<Array<{ name: string }>>([]);
   // ⑦ 合香双人链接：?cp=<encA>~<encB> 与 ?me=<enc>（有人称时直接进结果态）
@@ -238,6 +242,14 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     setTimeout(() => setToast(null), 2000);
   }, []);
 
+  // 关闭预览弹层并释放 blob URL（避免内存泄漏）
+  const handleClosePreview = useCallback(() => {
+    setPreviewUrl((url) => {
+      if (url) URL.revokeObjectURL(url);
+      return null;
+    });
+  }, []);
+
   const handleCopyInvite = useCallback(async () => {
     if (!inviteLink) return;
     try {
@@ -290,18 +302,22 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       });
       // 加 cache-buster 避免旧图缓存
       params.append('_t', String(Date.now()));
-      const res = await fetch(`/api/share-card?${params}`);
-      if (!res.ok) throw new Error('render failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `crush香鉴-${shareA.name}x${shareB.name}-${format}.png`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      showToast(format === '1to1' ? '朋友圈分享图已下载 ✓' : '小红书分享图已下载 ✓');
+      const filename = `crush香鉴-${shareA.name}x${shareB.name}-${format}.png`;
+      const r = await saveShareCard(params, filename);
+      if (!r.ok) {
+        showToast('分享图生成失败，请重试');
+        return;
+      }
+      setShowSharePicker(false);
+      if (r.method === 'preview' && r.url) {
+        // 微信 / iOS：内联预览，用户长按保存
+        setPreviewUrl(r.url);
+      } else {
+        // 桌面端：saveShareCard 已触发下载
+        showToast(format === '1to1' ? '朋友圈分享图已保存 ✓' : '小红书分享图已保存 ✓');
+      }
     } catch (e) {
-      console.error('[friend] 分享图下载失败', e);
+      console.error('[friend] 分享图生成失败', e);
       showToast('分享图生成失败，请重试');
     } finally {
       setShareLoading(false);
@@ -978,6 +994,13 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
           </div>
         </div>
       )}
+
+      {/* ── 微信 / iOS 分享图预览（长按保存） ── */}
+      <ShareImagePreviewModal
+        previewUrl={previewUrl}
+        onClose={handleClosePreview}
+        isInWeChat={isWeChat()}
+      />
 
     </main>
   );
