@@ -1244,95 +1244,83 @@ function buildDailyCard(
     ],
   });
 
-  // 今日宜忌（增强晒图玄学钩子；1:1 极简单行，3:4 两列块）
+  // 今日宜忌（两列块：1:1 与 3:4 均完整展示，填满中下部留白）
   const alm = d.almanac;
   const almanacBlock = alm
-    ? is3to4
-      ? JSX("div", {
-          style: {
-            display: "flex", flexDirection: "column", width: "100%", marginTop: "18px",
-            padding: "16px 18px", background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "16px",
-          },
-          children: [
-            JSX("div", {
-              style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "10px" },
-              children: [JSX("span", { style: { color: INK, fontSize: "22px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
-            }),
-            JSX("div", {
-              style: { display: "flex", flexDirection: "row", gap: "20px", width: "100%" },
-              children: [
-                JSX("div", {
-                  style: { flex: 1, display: "flex", flexDirection: "column" },
-                  children: [
-                    JSX("span", { style: { color: GOLD, fontSize: "17px", letterSpacing: "0.1em" }, children: "宜" }),
-                    ...alm.yi.map((x, i) =>
-                      JSX("span", { key: i, style: { color: INK, fontSize: "18px", lineHeight: 1.8, marginTop: i === 0 ? 4 : 0 }, children: x })),
-                  ],
-                }),
-                JSX("div", {
-                  style: { flex: 1, display: "flex", flexDirection: "column" },
-                  children: [
-                    JSX("span", { style: { color: "#9A8E7C", fontSize: "17px", letterSpacing: "0.1em" }, children: "忌" }),
-                    ...alm.ji.map((x, i) =>
-                      JSX("span", { key: i, style: { color: "#6B5E4C", fontSize: "18px", lineHeight: 1.8, marginTop: i === 0 ? 4 : 0 }, children: x })),
-                  ],
-                }),
-              ],
-            }),
-            JSX("span", {
-              style: { display: "block", textAlign: "center", color: MUTED, fontSize: "16px", fontStyle: "italic", marginTop: "12px", lineHeight: 1.6 },
-              children: alm.note,
-            }),
-          ],
-        })
-      : JSX("div", {
-          style: { display: "flex", flexDirection: "column", width: "100%", marginTop: "12px" },
-          children: [
-            JSX("div", {
-              style: { display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: "10px", fontSize: "14px", lineHeight: 1.6, color: INK },
-              children: [
-                JSX("span", { style: { color: GOLD }, children: `宜 ${alm.yi.join("·")}` }),
-                JSX("span", { style: { color: "#B6A892" }, children: "｜" }),
-                JSX("span", { style: { color: "#9A8E7C" }, children: `忌 ${alm.ji.join("·")}` }),
-              ],
-            }),
-            JSX("span", {
-              style: { display: "block", textAlign: "center", color: MUTED, fontSize: "13px", fontStyle: "italic", marginTop: "6px", lineHeight: 1.5 },
-              children: alm.note,
-            }),
-          ],
-        })
+    ? JSX("div", {
+        style: {
+          display: "flex", flexDirection: "column", width: "100%",
+          marginTop: is3to4 ? "22px" : "18px",
+          padding: is3to4 ? "18px 22px" : "14px 16px",
+          background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "16px",
+        },
+        children: [
+          JSX("div", {
+            style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "8px" },
+            children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "22px" : "18px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
+          }),
+          JSX("div", {
+            style: { display: "flex", flexDirection: "row", gap: is3to4 ? "24px" : "16px", width: "100%" },
+            children: [
+              JSX("div", {
+                style: { flex: 1, display: "flex", flexDirection: "column" },
+                children: [
+                  JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "17px" : "14px", letterSpacing: "0.1em" }, children: "宜" }),
+                  ...alm.yi.map((x, i) =>
+                    JSX("span", { key: i, style: { color: INK, fontSize: is3to4 ? "18px" : "14px", lineHeight: 1.7, marginTop: i === 0 ? (is3to4 ? 6 : 4) : 0 }, children: x })),
+                ],
+              }),
+              JSX("div", {
+                style: { flex: 1, display: "flex", flexDirection: "column" },
+                children: [
+                  JSX("span", { style: { color: "#9A8E7C", fontSize: is3to4 ? "17px" : "14px", letterSpacing: "0.1em" }, children: "忌" }),
+                  ...alm.ji.map((x, i) =>
+                    JSX("span", { key: i, style: { color: "#6B5E4C", fontSize: is3to4 ? "18px" : "14px", lineHeight: 1.7, marginTop: i === 0 ? (is3to4 ? 6 : 4) : 0 }, children: x })),
+                ],
+              }),
+            ],
+          }),
+          JSX("span", {
+            style: { display: "block", textAlign: "center", color: MUTED, fontSize: is3to4 ? "16px" : "13px", fontStyle: "italic", marginTop: is3to4 ? "12px" : "8px", lineHeight: 1.6 },
+            children: alm.note,
+          }),
+        ],
+      })
     : null;
 
   // 结语
   const footnote = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: is3to4 ? "20px" : "16px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: is3to4 ? "16px" : "12px" },
     children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
   });
 
-  // 页脚
+  // 页脚（品牌 + 二维码，整体放在底部，避免中部大段留白）
   const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "16px", borderTop: `1px solid ${HAIR}` },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", paddingTop: is3to4 ? "18px" : "14px", borderTop: `1px solid ${HAIR}` },
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
         children: [
-          JSX("span", { style: { color: INK, fontSize: "24px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
-          JSX("span", { style: { color: MUTED, fontSize: "15px", fontStyle: "italic", marginTop: "8px" }, children: "今日，被某种气息接住。" }),
+          JSX("span", { style: { color: INK, fontSize: is3to4 ? "26px" : "24px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
+          JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", marginTop: "8px" }, children: "今日，被某种气息接住。" }),
         ],
       }),
       JSX("img", { src: qrBase64, width: qrSize, height: qrSize, style: { borderRadius: "8px", border: `1px solid ${HAIR}`, background: C.WHITE } }),
     ],
   });
 
+  // 将上部内容与底部落款分组，用 justifyContent: space-between 让内容自然顶满画布
+  const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [masthead, eyebrow, dateLine, strips, almanacBlock] });
+  const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [footnote, bottomRow] });
+
   return JSX("div", {
     style: {
-      display: "flex", flexDirection: "column", alignItems: "center",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
       width: `${W}px`, height: `${H}px`,
       background: C.BG, padding: pad, position: "relative",
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
-    children: [masthead, eyebrow, dateLine, strips, almanacBlock, footnote, bottomRow],
+    children: [topSection, bottomSection],
   });
 }
 

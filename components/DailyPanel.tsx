@@ -14,6 +14,8 @@ import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/d
 import ScentCodex from '@/components/ScentCodex';
 import PerfumeBottleShowcase from '@/components/PerfumeBottleShowcase';
 import IncenseRitual from '@/components/IncenseRitual';
+import ShareGuideModal from '@/components/ShareGuideModal';
+import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -45,6 +47,8 @@ export default function DailyPanel() {
   const [streak, setStreak] = useState<StreakView | null>(null);
   const [frozeGap, setFrozeGap] = useState(false);
   const [grantedFreeze, setGrantedFreeze] = useState(false);
+  const [showShareGuide, setShowShareGuide] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -115,7 +119,29 @@ export default function DailyPanel() {
     { p: draw.inspirations[1], label: '启示', main: false },
   ];
 
-  const shareUrl = `/api/share-card?scene=daily&date=${today}&format=1to1`;
+  const handleSaveShareImage = async (format: '1to1' | '3to4') => {
+    const params = new URLSearchParams({ scene: 'daily', date: today, format });
+    const res = await saveShareCard(params, `crush香签-${today}-${format}.png`);
+    if (!res.ok) {
+      // 兜底：直接打开图片
+      window.open(`/api/share-card?${params.toString()}`, '_blank');
+      setShowShareGuide(false);
+      return;
+    }
+    if (res.method === 'preview' && res.url) {
+      setPreviewUrl(res.url);
+      return;
+    }
+    setShowShareGuide(false);
+  };
+
+  const closeShareGuide = () => {
+    setShowShareGuide(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
 
   return (
     <div className="px-5 pt-2 pb-10 animate-fadeIn">
@@ -315,16 +341,22 @@ export default function DailyPanel() {
           {holding ? '静候中…' : '静候揭笺'}
         </button>
       ) : (
-        <a
-          href={shareUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => setShowShareGuide(true)}
           className="block w-full mt-3 rounded-full py-3.5 text-[15px] font-medium text-center"
           style={{ fontFamily: 'Noto Sans SC, sans-serif', background: '#2C1810', color: '#FAF3EA' }}
         >
           分享今日香签 →
-        </a>
+        </button>
       )}
+
+      <ShareGuideModal
+        isOpen={showShareGuide}
+        onClose={closeShareGuide}
+        onSaveImage={handleSaveShareImage}
+        previewUrl={previewUrl}
+        isInWeChat={isWeChat()}
+      />
 
       {/* ── 今日宜忌 · 留白（揭笺后第二屏） ── */}
       {revealed && (
