@@ -1,6 +1,8 @@
 import { ImageResponse } from 'next/og';
+import QRCode from 'qrcode';
 import { PERSONALITIES, getRecommendations, PERSONALITY_NAME_MAP } from '@/lib/personalities';
 
+// edge runtime：ImageResponse 在 nodejs 下触发本机 sharp/libvips colourspace 异常，edge 渲染栈无此问题
 export const runtime = 'edge';
 
 export async function GET(request: Request) {
@@ -14,16 +16,25 @@ export async function GET(request: Request) {
   const brand = firstRec?.brand ?? '';
   const perfume = firstRec?.name ?? '';
 
+  // 真实可扫码二维码：指向该人格结果页（不再是占位白框）
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://crushxiangjian.com';
+  const qrUrl = `${base}/result?p=${encodeURIComponent(name)}`;
+  const qrSvg = await QRCode.toString(qrUrl, {
+    type: 'svg',
+    margin: 2,
+    color: { dark: '#2C1810', light: '#FAF3EA' },
+  });
+  const qrDataUrl = `data:image/svg+xml;base64,${btoa(qrSvg)}`;
+
   return new ImageResponse(
     (
       <div
         style={{
           width: '100%',
           height: '100%',
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
           background: 'linear-gradient(160deg, #2C1810 0%, #4A2E1A 55%, #FAF3EA 100%)',
           fontFamily: 'serif',
         }}
@@ -31,17 +42,19 @@ export async function GET(request: Request) {
         {/* 顶部标签 */}
         <div
           style={{
+            position: 'absolute',
+            top: 32,
+            left: 60,
+            right: 60,
             display: 'flex',
-            width: 1100,
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: 40,
           }}
         >
-          <span style={{ fontSize: 26, color: '#D4A574', letterSpacing: '0.35em' }}>
+          <span style={{ fontSize: 24, color: '#D4A574', letterSpacing: '0.35em' }}>
             YOUR SOUL SCENT
           </span>
-          <span style={{ fontSize: 26, color: '#D4A574', letterSpacing: '0.15em' }}>
+          <span style={{ fontSize: 24, color: '#D4A574', letterSpacing: '0.15em' }}>
             Crush 香鉴
           </span>
         </div>
@@ -49,13 +62,17 @@ export async function GET(request: Request) {
         {/* 人格名 */}
         <div
           style={{
+            position: 'absolute',
+            top: 72,
+            left: 0,
+            width: 1200,
             display: 'flex',
-            fontSize: 168,
+            justifyContent: 'center',
+            fontSize: 108,
             color: '#FAF3EA',
             fontWeight: 700,
             letterSpacing: '0.04em',
             lineHeight: 1,
-            marginBottom: 24,
           }}
         >
           {name}
@@ -64,12 +81,19 @@ export async function GET(request: Request) {
         {/* tagline */}
         <div
           style={{
+            position: 'absolute',
+            top: 176,
+            left: 0,
+            width: 1200,
             display: 'flex',
-            fontSize: 40,
+            justifyContent: 'center',
+            fontSize: 34,
             color: '#D4A574',
-            marginBottom: 56,
             fontStyle: 'italic',
             letterSpacing: '0.05em',
+            lineHeight: 1.3,
+            textAlign: 'center',
+            padding: '0 120px',
           }}
         >
           「{tagline}」
@@ -78,11 +102,12 @@ export async function GET(request: Request) {
         {/* 分隔线 */}
         <div
           style={{
-            display: 'flex',
-            width: 480,
+            position: 'absolute',
+            top: 222,
+            left: 390,
+            width: 420,
             height: 2,
             background: 'linear-gradient(90deg, transparent 0%, #D4A574 50%, transparent 100%)',
-            marginBottom: 56,
           }}
         />
 
@@ -90,71 +115,67 @@ export async function GET(request: Request) {
         {brand && perfume && (
           <div
             style={{
+              position: 'absolute',
+              top: 240,
+              left: 0,
+              width: 1200,
               display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              background: 'rgba(250,243,234,0.08)',
-              border: '1px solid rgba(212,165,116,0.3)',
-              borderRadius: 24,
-              padding: '28px 52px',
-              marginBottom: 60,
+              justifyContent: 'center',
             }}
           >
-            <span style={{ fontSize: 22, color: '#D4A574', letterSpacing: '0.3em', marginBottom: 12 }}>
-              本命香水
-            </span>
-            <span style={{ fontSize: 44, color: '#FAF3EA', fontWeight: 500 }}>
-              {brand} · {perfume}
-            </span>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                background: 'rgba(250,243,234,0.08)',
+                border: '1px solid rgba(212,165,116,0.3)',
+                borderRadius: 20,
+                padding: '18px 44px',
+              }}
+            >
+              <span style={{ fontSize: 20, color: '#D4A574', letterSpacing: '0.3em', marginBottom: 10 }}>
+                本命香水
+              </span>
+              <span style={{ fontSize: 40, color: '#FAF3EA', fontWeight: 500 }}>
+                {brand} · {perfume}
+              </span>
+            </div>
           </div>
         )}
 
-        {/* CTA */}
+        {/* CTA + 真实二维码（并排） */}
         <div
           style={{
+            position: 'absolute',
+            top: 382,
+            left: 0,
+            width: 1200,
             display: 'flex',
+            justifyContent: 'center',
             alignItems: 'center',
-            gap: 16,
+            gap: 24,
           }}
         >
-          <span style={{ fontSize: 28, color: '#FAF3EA', letterSpacing: '0.1em' }}>
+          <span style={{ fontSize: 26, color: '#FAF3EA', letterSpacing: '0.1em', lineHeight: 1.4 }}>
             长按识别二维码 · 测你的灵魂香气 →
           </span>
-        </div>
-
-        {/* 二维码占位（白底方框） */}
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            background: '#FFFFFF',
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 24,
-            fontSize: 14,
-            color: '#8B5E3C',
-          }}
-        >
-          {/* QR placeholder — replaced at render time by og:image service */}
-          <span style={{ fontSize: 12, color: '#C4A882', textAlign: 'center', lineHeight: 1.4 }}>
-            二维码
-          </span>
+          <img src={qrDataUrl} width={110} height={110} alt="二维码" style={{ borderRadius: 10 }} />
         </div>
 
         {/* 底部 */}
         <div
           style={{
             position: 'absolute',
-            bottom: 32,
+            bottom: 28,
+            left: 60,
+            right: 60,
             display: 'flex',
-            width: 1100,
             justifyContent: 'space-between',
           }}
         >
-          <span style={{ fontSize: 22, color: '#8B5E3C' }}>crushxiangjian.com</span>
-          <span style={{ fontSize: 22, color: '#8B5E3C', fontStyle: 'italic' }}>
+          <span style={{ fontSize: 20, color: '#8B5E3C' }}>crushxiangjian.com</span>
+          <span style={{ fontSize: 20, color: '#8B5E3C', fontStyle: 'italic' }}>
             找到与你共振的那一支香
           </span>
         </div>
