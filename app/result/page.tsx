@@ -34,7 +34,7 @@ import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
 import PaymentModal, { type PaymentContext } from '@/components/PaymentModal';
 import UnlockedContent, { detectFamily, FAMILY_COLORS, FAMILY_BG } from '@/components/UnlockedContent';
 import ScarcityStrip from '@/components/ScarcityStrip';
-import { markPaid, getPaidLevel, PRICE_CONFIG, type PriceKey } from '@/lib/payment';
+import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining, getPromoRemainingMs, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
 import GuardianScentCard from '@/components/GuardianScentCard';
@@ -158,6 +158,21 @@ function ResultInner() {
   const [paidLevel, setPaidLevel] = useState<number>(0);
   const [justPaid, setJustPaid] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+
+  // 限时免费活动态（客户端挂载后判定，避免 SSR 水合不一致）
+  const [promoFree, setPromoFree] = useState(false);
+  const [promoRemaining, setPromoRemaining] = useState('');
+  useEffect(() => {
+    if (isPromoFree()) {
+      setPromoFree(true);
+      const tick = () => setPromoRemaining(formatPromoRemaining(getPromoRemainingMs()));
+      tick();
+      const id = setInterval(tick, 60_000);
+      return () => clearInterval(id);
+    }
+  }, []);
+  // 付费 或 限时免费 任一命中 → 视为已解锁（驱动付费墙 / 模糊遮罩 / 解锁徽章）
+  const unlocked = paidLevel >= 2 || promoFree;
 
   // 分享引导弹层状态
   const [showShareGuide, setShowShareGuide] = useState(false);
@@ -529,6 +544,22 @@ function ResultInner() {
           </div>
         )}
 
+        {/* 限时免费活动横幅（活动期内常驻，告知用户当前为临时免费） */}
+        {promoFree && (
+          <div
+            className="sticky top-0 z-40 text-center text-sm py-2 px-4 shadow-sm"
+            style={{
+              background: 'linear-gradient(135deg,#3D2817,#5C3826)',
+              color: '#F8EAD9',
+              backdropFilter: 'blur(4px)',
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}
+          </div>
+        )}
+
         {/* 未测试示例提示横幅（裸开 / 无测试记录时出现，不破坏既有渲染） */}
         {showUntestedHint && (
           <div
@@ -558,7 +589,7 @@ function ResultInner() {
           className="relative flex flex-col items-center justify-center text-center px-6 pt-8 pb-3.5 min-h-[200px]"
           aria-label="人格揭晓"
         >
-          {paidLevel >= 2 && (
+          {unlocked && (
             <div
               className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] rounded-full"
               style={{
@@ -616,14 +647,14 @@ function ResultInner() {
               <span className="h-px w-6 bg-amber-400" />
             </div>
           )}
-          {revealed && paidLevel >= 2 && (
+          {revealed && unlocked && (
             <motion.div
               className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-4 py-1.5 rounded-full bg-amber-100 text-amber-700"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.4 }}
             >
-              ✦ 已解锁完整版报告
+              {promoFree ? '✦ 限时免费 · 完整版开放中' : '✦ 已解锁完整版报告'}
             </motion.div>
           )}
           </div>
@@ -650,7 +681,7 @@ function ResultInner() {
         )}
 
         {/* ━━━ 锁定态：雷达图 + 本命香水 + 免费解锁 ━━━ */}
-        {paidLevel < 2 && (
+        {!unlocked && (
           <>
             {/* ━━━ 雷达图（纳入首屏可见区）━━━ */}
             <section className="px-6 pt-6 pb-8" aria-label="香气光谱雷达图">
@@ -732,7 +763,7 @@ function ResultInner() {
                   ? '进阶香'
                   : '尝试香';
               // 锁定态：本命香全展示，其余 blur
-              const isLocked = paidLevel < 2 && !isSignature;
+              const isLocked = !unlocked && !isSignature;
               // 锁定态瓶型配色与解锁版统一：按香调族动态着色
               const family = detectFamily(personality.direction, rec.notesStructured.top);
               return (
@@ -971,7 +1002,7 @@ function ResultInner() {
         )}
 
         {/* ━━━ 已解锁内容 / 付费墙（条件渲染）━━━ */}
-        {paidLevel >= 2 ? (
+        {unlocked ? (
           <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} perfumes={displayPerfumes} />
         ) : (
         /* ━━━ 内联付费墙 ━━━ */

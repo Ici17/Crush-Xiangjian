@@ -122,3 +122,43 @@ export async function initiatePayment(_req: PaymentRequest): Promise<PaymentResu
   console.warn("[payment] 支付通道待接入", _req);
   return { ok: false };
 }
+
+// ============================================================
+// 限时免费活动（营销开关：活动期内全部付费模块免费开放）
+// ============================================================
+// 用途：临时把「完整版」所有付费模块设为免费；活动到期自动恢复付费墙。
+// 关闭方式：把 enabled 改为 false，或把 endTime 设为过去时间 —— 均无需改动其他代码。
+export const LIMITED_FREE = {
+  enabled: true,
+  // 活动截止时间（北京时间，ISO 8601 含时区）。超过此刻即恢复付费墙。
+  endTime: '2026-09-30T23:59:59+08:00', // 【可按需修改】限时免费截止时间
+} as const;
+
+/** 当前是否处于「限时免费」活动期（客户端安全：SSR/无 window 时返回 false，避免水合不一致） */
+export function isPromoFree(): boolean {
+  if (!LIMITED_FREE.enabled) return false;
+  if (typeof window === 'undefined') return false;
+  const end = new Date(LIMITED_FREE.endTime).getTime();
+  if (!Number.isFinite(end)) return false;
+  return Date.now() < end;
+}
+
+/** 限时免费剩余毫秒；非活动期返回 0 */
+export function getPromoRemainingMs(): number {
+  if (!LIMITED_FREE.enabled) return 0;
+  const end = new Date(LIMITED_FREE.endTime).getTime();
+  if (!Number.isFinite(end)) return 0;
+  return Math.max(0, end - Date.now());
+}
+
+/** 把剩余毫秒格式化为「X 天 Y 小时」/「Y 小时 Z 分」/「Z 分」 */
+export function formatPromoRemaining(ms: number): string {
+  if (ms <= 0) return '已结束';
+  const totalMinutes = Math.floor(ms / 60000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days} 天 ${hours} 小时`;
+  if (hours > 0) return `${hours} 小时 ${minutes} 分`;
+  return `${minutes} 分`;
+}
