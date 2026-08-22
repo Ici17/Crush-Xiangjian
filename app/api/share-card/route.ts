@@ -30,7 +30,7 @@
  *   perfumeNameA  A 的本命香名（必填）
  *   perfumeNameB  B 的本命香名（必填）
  *   score         契合度 0-100（必填）
- *   tier          tier 标签（默认"灵魂伴侣"）
+ *   tier          tier 标签（默认"气息同频"）
  *   story         关系解读句（默认"两种香气的碰撞，让彼此独一无二的共鸣悄然发生。"）
  *   notesA/B      双方签名香三调关键词，点分隔（可选）
  *   brandA/B      双方签名香品牌名（可选）
@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
     const scoreRaw = sp.get("score");
     const perfumeNameA = sp.get("perfumeNameA") ?? "";
     const perfumeNameB = sp.get("perfumeNameB") ?? "";
-    const tier = sp.get("tier") ?? "灵魂伴侣";
+    const tier = sp.get("tier") ?? "气息同频";
     const story = sp.get("story") ?? "两种香气的碰撞，让彼此独一无二的共鸣悄然发生。";
     const shared = sp.get("shared") ? sp.get("shared")!.split(",").filter(Boolean) : undefined;
     const inv = sp.get("inv") ?? "";

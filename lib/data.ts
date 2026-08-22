@@ -660,7 +660,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     name: "残温",
     mbtiAlias: "温暖守护型",
     tagline: "我的温度，恰好暖你一人",
-    description: "你有一种天然的治愈力，坐在你旁边就让人觉得安心。不争不抢，却让身边的人变得更好。",
+    description: "你有一种天然的安定感，坐在你旁边就让人觉得安心。不争不抢，却让身边的人变得更好。",
     scentDirection: "温暖治愈：白花+橙花+麝香，干净温暖有安全感",
     radarScores: { floral: 85, woody: 40, fresh: 50, oriental: 45, citrus: 65, gourmand: 55 },
     matchingReport: {

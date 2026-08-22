@@ -556,7 +556,7 @@ function ResultInner() {
             role="status"
             aria-live="polite"
           >
-            🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}
+            🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}（结果为娱乐性参考）
           </div>
         )}
 

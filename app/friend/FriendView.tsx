@@ -28,7 +28,7 @@ import { saveShareCard, isWeChat } from "@/lib/saveShareImage";
 function getCompatibilityStory(score: number): { tier: string; copy: string } {
   if (score >= 75)
     return {
-      tier: "灵魂伴侣",
+      tier: "气息同频",
       copy: "你们的香气频率高度共振——靠近，就像回到了该在的地方。",
     };
   if (score >= 55)
@@ -706,7 +706,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   朋友的<span className="font-bold">{shareB.name}</span>
                 </p>
                 <p className="font-serif text-amber-700/80 text-sm mb-4">
-                  = {result.score >= 75 ? '灵魂共振' : result.score >= 65 ? '互补搭档' : result.score >= 55 ? '有趣的碰撞' : result.score >= 42 ? '气味互补' : '不同的香气世界'}
+                  = {result.score >= 75 ? '气息同频' : result.score >= 65 ? '默契成对' : result.score >= 55 ? '有趣的碰撞' : result.score >= 42 ? '气味互补' : '不同的香气世界'}
                 </p>
                 <p className="text-amber-700/90 font-sans text-sm leading-relaxed text-left">
                   你的<span className="font-medium">{shareA.name}</span>特质为这段关系提供定调，

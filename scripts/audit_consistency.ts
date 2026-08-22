@@ -198,7 +198,7 @@ for (const p of PERSONALITIES) {
 // 10. 朋友匹配 16×16
 // ─────────────────────────────────────────────────────────
 console.log('【10】朋友匹配 calculateCompatibility（16×16）');
-const GRADES = new Set(['灵魂伴侣', '天生一对', '互补有趣', '各有所爱', '气质迥异']);
+const GRADES = new Set(['气息同频', '默契成对', '互补有趣', '各有所爱', '气质迥异']);
 let friendPairs = 0;
 let nonDet = 0;
 for (let i = 0; i < PERSONALITY_TYPES.length; i++) {
