@@ -1173,7 +1173,7 @@ function ResultInner() {
 
       {/* ━━━ 底部固定 CTA（智能单/双按钮）━━━ */}
       <div
-        className="fixed left-0 right-0 bottom-0 px-[18px] pt-3 bg-cream/90 backdrop-blur-md border-t border-amber-100 z-10"
+        className="sticky left-0 right-0 bottom-0 px-[18px] pt-3 bg-cream/90 backdrop-blur-md border-t border-amber-100 z-10"
         style={{ paddingBottom: 'calc(8px + var(--safe-bottom))' }}
         role="toolbar"
         aria-label={hasFriend ? '分享和查看契合度' : '分享测试结果'}

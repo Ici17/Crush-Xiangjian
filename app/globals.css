@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* H5 底部安全区变量：供 calc(8px + var(--safe-bottom)) 等内联样式使用 */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 @layer base {
   * {
     box-sizing: border-box;

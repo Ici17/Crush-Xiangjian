@@ -359,7 +359,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   }
 
   return (
-    <main className="min-h-dvh bg-cream pb-36">
+    <main className="min-h-dvh bg-cream pb-8">
       <style>{`
         @keyframes fadeInDown {
           from { opacity: 0; transform: translate(-50%, -12px); }
@@ -899,7 +899,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
 
           {/* 底部引导：未测时 */}
           {!myType && (
-            <div className="fixed bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-md border-t border-amber-100 p-4 safe-bottom z-30">
+            <div className="sticky bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-md border-t border-amber-100 p-4 safe-bottom z-30">
               <Link
                 href="/question"
                 className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"
