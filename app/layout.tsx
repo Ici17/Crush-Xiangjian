@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
+import PageTracker from "@/components/PageTracker";
 
 export const metadata: Metadata = {
   title: "Crush香鉴 | 你的灵魂，藏在哪种香气里",
@@ -68,6 +69,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased flex flex-col min-h-screen">
+        <PageTracker />
         {children}
         <SiteFooter />
       </body>

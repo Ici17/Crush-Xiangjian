@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MemorySceneSection from '@/components/MemorySceneSection';
 import { getMemoryScene, type PerfumeSnapshot } from '@/lib/memoryScenes';
+import { track } from '@/lib/analytics';
 import {
   getPersonality,
   getRadarScores,
@@ -200,6 +201,7 @@ function ResultInner() {
       setPathLabels(getPathLabelsFromStorage());
       setIsDemo(false);
       setShowUntestedHint(false);
+      track('result_view', { source: 'sample' });
     } else if (demoName) {
       // 演示模式：预览任意人格，不污染真实邀请链
       const name = demoName === '1' || demoName === '' ? '暗流' : decodeURIComponent(demoName);
@@ -218,6 +220,7 @@ function ResultInner() {
         // 注册自己为邀请者（让朋友 B 能标记我）
         setAsInviter(name);
         setShowUntestedHint(false);
+        track('test_complete');
       } else {
         // 无 URL 参数、也无本地测试记录 → 裸开 / 未测试，用黄金兜底「暗流」并提示示例
         setShowUntestedHint(true);
@@ -334,6 +337,7 @@ function ResultInner() {
   type SaveResult = { ok: boolean; method: 'download' | 'preview'; url?: string; error?: string };
   const handleSaveShareImage = useCallback(async (format: '1to1' | '3to4' = '1to1'): Promise<SaveResult> => {
     if (!personalityName) return { ok: false, method: 'download', error: 'no personality' };
+    track('share_card_generate', { format });
     // 运行时从 DOM 读当前 state，避免声明顺序问题
     const recs = recommendations; // 运行时读取，当前值
     const dims = shareRadarRaw

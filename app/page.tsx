@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
 import { TOTAL_PERFUMES } from '@/lib/data';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
+import { track } from '@/lib/analytics';
 import PersonalityIcon from '@/components/PersonalityIcon';
 import DailyPanel from '@/components/DailyPanel';
 
@@ -116,6 +117,7 @@ export default function LandingPage() {
   };
 
   const handleStartTest = (): void => {
+    track('test_start');
     router.push('/question');
   };
 

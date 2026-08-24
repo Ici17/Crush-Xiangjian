@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { track } from "@/lib/analytics";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PERSONALITY_TYPES, type PersonalityType } from "@/lib/data";
@@ -222,6 +223,18 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       setResult(null);
     }
   }, [inviterType, myType, friendType]);
+
+  // 进入好友匹配页即记一次「开始」（匿名，无 PII）
+  useEffect(() => {
+    track('friend_match_start');
+  }, []);
+
+  // 匹配结果算出后记一次「完成」
+  useEffect(() => {
+    if (result) {
+      track('friend_match_complete', { tier: getCompatibilityStory(result.score).tier });
+    }
+  }, [result]);
 
   const shareA = inviterType ?? myType;
   const shareB = inviterType ? myType : friendType;
