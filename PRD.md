@@ -57,7 +57,7 @@
 | 分享图渲染成功率 | `/api/share-card` 返回 200 比例（satori/sharp 环节） | 【待确认】建议 ≥ 99% |
 | 内容合规拦截率 | 宜忌/签文是否触发平台审核限流 | 不应出现迷信/医疗/财务暗示（见第十章） |
 | 首屏性能 | LCP / 可交互时间（移动端弱网） | 【待确认】 |
-| 数据口径一致性 | 香水总数在 README/代码/分享页文案三处不一致（151/225/110），需统一 | 必须修正后再对外 |
+| 数据口径一致性 | 香水库真实 225 支（BASE 48 + EXTRA 177），代码 `TOTAL_PERFUMES` 动态值已正确；README/源码注释/分享页 footer 已统一为 225 | 已统一 |
 
 ---
 
@@ -314,7 +314,7 @@ components/             RadarChart / CpBlendCard / DailyPanel / GuardianScentCar
 | 稀有度「以印代框」 | 常香无印 / 雅香金印「雅」/ 隐香印 + 笺底加深 |
 | 移动端约束 | 容器 `max-w-[430px]`，安全区 `var(--safe-bottom)` |
 
-> ⚠️ **口径不一致待修**：香水总数在 README（151/225）、代码注释（「151 支香水库」）、分享页 footer（「110支香水库」）三处不同；品牌金在 README 与落地页（用 `#A8884E`）写法不同。建议统一为单一数据源（以 `TOTAL_PERFUMES` 动态值为准）。
+> ✅ **口径已统一**：香水库真实 225 支（BASE 48 + EXTRA 177），唯一真源为 `TOTAL_PERFUMES`（`Object.keys(PERFUMES).length`，动态计算）。README/源码注释（data.ts/matchPerfumes.ts/personalities.ts/assign_guardian.ts）/ 分享页 footer 已全部改为 225；footer 现动态读取 `TOTAL_PERFUMES`，扩库无需再改文案。品牌金统一 `#A8884E`。
 
 ---
 
@@ -331,7 +331,7 @@ components/             RadarChart / CpBlendCard / DailyPanel / GuardianScentCar
 |---|---|---|
 | **支付未接通** | 高 | `initiatePayment()` 返回 `{ok:false}`，无真实收款/订单/对账；当前仅靠 `localStorage` 乐观解锁，易被绕过且无营收。需【待确认】接入服务商 + 服务端校验。 |
 | **无后端/无账号** | 中 | 用户数据全在 `localStorage`，换设备/清缓存即丢失，无法做真实留存/营收分析。 |
-| **数据口径混乱** | 中 | 香水数 151/225/110 三处不一致；品牌色多处写法。需统一。 |
+| **数据口径混乱** | 低 | 香水库数量已全部统一为 225（动态 `TOTAL_PERFUMES`）；品牌金统一 `#A8884E`。 |
 | **分享图渲染依赖** | 中 | satori/sharp 在服务端渲染，中文字体（Noto Serif/Sans SC）需正确加载，否则出现「豆腐块」乱码（历史上已发生并修复）。 |
 | **内容审核限流** | 中 | 香签/签文若措辞不慎易触发平台迷信审核；需持续守「玄学的壳，审美的核」。 |
 | **裂变合规** | 中 | 「邀请 3 人享折扣」需避免被判定为诱导分享/多级分销；当前为本地计数，无服务端风控。 |
@@ -392,8 +392,8 @@ components/             RadarChart / CpBlendCard / DailyPanel / GuardianScentCar
 
 ### 11.2 附录 A：已知遗留 / 待办（代码实证）
 - 支付接口为空实现，需接入真实服务商 + 服务端校验。
-- 香水总数口径三处不一致，需统一为 `TOTAL_PERFUMES` 动态值并修正文案。
-- 分享页 footer「110支香水库」与 README/数据不符，建议改为动态值。
+- 香水库数量已核对并统一为 225 支（BASE 48 + EXTRA 177），唯一真源 `TOTAL_PERFUMES` 动态值；README/源码注释/footer 已同步。
+- 分享页 footer 已改为动态读取 `TOTAL_PERFUMES`（当前 225），与 README/数据一致。
 - `/preview`、`/privacy`、`/terms`、`/api/og` 页面存在但本次未逐一核读，【待确认】内容完整性。
 - 雷达图中文标签渲染曾出现乱码/字号过大，已修复（div 层 + 20px 级字号 + 网格加深）。
 

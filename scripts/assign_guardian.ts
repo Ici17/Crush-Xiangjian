@@ -1,4 +1,4 @@
-// 从完整香水库（151 款）为 16 人格计算「最优不重复」本命守护香分配
+// 从完整香水库（225 款）为 16 人格计算「最优不重复」本命守护香分配
 // 评分：cosineSimilarity18D（前/中/后调分阶段加权余弦，产品真实匹配算法）
 // 求解：匈牙利算法（最大化总契合度 + 香水互不重复）
 import { PERFUMES, PERSONALITY_TYPES, type Perfume } from "@/lib/data";

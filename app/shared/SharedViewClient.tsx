@@ -16,6 +16,7 @@ import ShareImagePreviewModal from '@/components/ShareImagePreviewModal';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
+import { TOTAL_PERFUMES } from '@/lib/data';
 
 function Toast({ message }: { message: string }) {
   return (
@@ -383,7 +384,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             </div>
             <p className="text-amber-800 font-sans text-xs font-medium">Crush香鉴</p>
           </div>
-          <p className="text-amber-400/50 font-sans text-[10px] mt-1">10题 · 16人格 · 110支香水库</p>
+          <p className="text-amber-400/50 font-sans text-[10px] mt-1">10题 · 16人格 · {TOTAL_PERFUMES}支香水库</p>
         </div>
       </div>
 

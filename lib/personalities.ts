@@ -142,7 +142,7 @@ export function getRecommendations(personalityName: string): readonly Recommenda
 }
 
 /**
- * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 151 支香水库动态推荐
+ * 校准匹配推荐：优先读取 localStorage 中的校准答案，从 225 支香水库动态推荐
  * @returns 校准推荐结果，若无校准数据则退回固定映射
  */
 /** 动态推荐缓存 schema 版本（Recommendation shape 变化时 +1，老缓存自动失效）
