@@ -143,7 +143,7 @@ crushxiangjian/
 │   ├── CpCodex.tsx            # ⑦ 气味 CP 图鉴(16×16 网格 + 进度)
 │   └── SiteFooter.tsx         # 全站页脚(定价说明 + 客服邮箱 + 法律链接)
 ├── lib/
-│   ├── data.ts             # 16 人格 + 110 香水 + 问卷 + 匹配算法
+│   ├── data.ts             # 16 人格 + 225 香水 + 问卷 + 匹配算法
 │   ├── personalities.ts    # 人格扩展数据(隐藏面/反差香/底稿/推荐缓存)
 │   ├── payment.ts          # 三档价格配置 + localStorage 解锁状态 + 预留支付接口
 │   ├── friendMatch.ts      # 朋友契合度计算

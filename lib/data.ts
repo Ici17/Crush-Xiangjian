@@ -352,7 +352,7 @@ export const PERFUMES_BASE: Record<string, Perfume> = {
     intensity: 2, longevity: 2,
     tier: "premium",
     priceRange: "¥500-700/30ml",
-    description: "英吉利海峡的海岸风，清新而治愈。",
+    description: "英吉利海峡的海岸风，清新而舒缓。",
   },
   呵欠: {
     id: "呵欠",
@@ -646,7 +646,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     mbtiAlias: "自由探索型",
     tagline: "有光的地方，就是目的地",
     description: "你是那种被丢到荒岛上，也能跟椰子树聊一下午的人。永远对世界保持好奇，随时准备出发。",
-    scentDirection: "阳光活力：柑橘+无花果+海洋，清新又治愈",
+    scentDirection: "阳光活力：柑橘+无花果+海洋，清新又舒缓",
     radarScores: { floral: 50, woody: 30, fresh: 90, oriental: 30, citrus: 95, gourmand: 60 },
     matchingReport: {
       coreMessage: "你的存在本身就像一瓶好香——让人忍不住想靠近。",
@@ -661,7 +661,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     mbtiAlias: "温暖守护型",
     tagline: "我的温度，恰好暖你一人",
     description: "你有一种天然的安定感，坐在你旁边就让人觉得安心。不争不抢，却让身边的人变得更好。",
-    scentDirection: "温暖治愈：白花+橙花+麝香，干净温暖有安全感",
+    scentDirection: "温暖舒缓：白花+橙花+麝香，干净温暖有安全感",
     radarScores: { floral: 85, woody: 40, fresh: 50, oriental: 45, citrus: 65, gourmand: 55 },
     matchingReport: {
       coreMessage: "你的温柔不是软弱，是你最强大的武器。",
@@ -751,7 +751,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     mbtiAlias: "热情社交型",
     tagline: "愿把快乐，分你一半",
     description: "你是朋友圈里的暖阳，热情好客，善于照顾每个人的情绪。容易满足，也容易感染他人。",
-    scentDirection: "温暖甜美：棉花+鼠尾草+柑橘，干净温暖的治愈感",
+    scentDirection: "温暖甜美：棉花+鼠尾草+柑橘，干净温暖的舒缓感",
     radarScores: { floral: 60, woody: 30, fresh: 70, oriental: 25, citrus: 80, gourmand: 65 },
     matchingReport: {
       coreMessage: "你的温暖不需要理由，它就是你最真实的模样。",
@@ -856,7 +856,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
     mbtiAlias: "温柔力量型",
     tagline: "柔软是表，烈火在内",
     description: "你是那种让人越相处越喜欢的人才。外表温柔得体，内心有自己的坚持，不张扬但有力量。",
-    scentDirection: "精致治愈：棉麻+玫瑰+白茶，精致干净有治愈感",
+    scentDirection: "精致舒缓：棉麻+玫瑰+白茶，精致干净有舒缓感",
     radarScores: { floral: 70, woody: 55, fresh: 60, oriental: 40, citrus: 45, gourmand: 50 },
     matchingReport: {
       coreMessage: "你的温柔是最被低估的力量，它能融化这个世界最坚硬的东西。",
