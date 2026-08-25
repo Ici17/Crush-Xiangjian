@@ -779,6 +779,32 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 </button>
               </div>
             </section>
+
+            {/* 6. 回流钩子：再测更多朋友 / 合香图鉴（社交裂变闭环）*/}
+            <section
+              className={`transition-all duration-500 ${
+                staggerResult[4] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+              }`}
+            >
+              <div className="rounded-2xl border border-amber-200 bg-white/70 p-5 text-center">
+                <p className="font-serif font-semibold text-amber-900 text-sm mb-1">还想测更多朋友？</p>
+                <p className="text-amber-600/70 font-sans text-xs mb-4 leading-relaxed">
+                  一个人可以测多位朋友，<br />你们的香气频率会一一浮现
+                </p>
+                <Link
+                  href={inviteLink ?? `/friend?inv=${encodeInvite(shareA.name)}`}
+                  className="block w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all mb-2.5 shadow-brand"
+                >
+                  邀请朋友来测 →
+                </Link>
+                <Link
+                  href="/codex"
+                  className="block w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors"
+                >
+                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL} →
+                </Link>
+              </div>
+            </section>
           </div>
         </div>
       )}

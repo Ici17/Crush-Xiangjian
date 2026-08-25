@@ -338,7 +338,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             href={friendLink}
             className="block w-full py-3 bg-white border border-amber-300 text-amber-800 rounded-full font-sans font-medium text-sm text-center active:scale-95 transition-all hover:border-amber-500"
           >
-            测完看契合度 →
+            测测我们的契合度 →
           </Link>
 
           {myStatus.completed && (

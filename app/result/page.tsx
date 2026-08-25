@@ -1212,19 +1212,35 @@ function ResultInner() {
             </Link>
           </div>
         ) : (
-          /* 无朋友参与：单分享 CTA */
-          <button
-            onClick={handleShare}
-            className="w-full border-none rounded-full shadow-brand text-amber-50 font-medium transition-transform duration-200 active:scale-[0.98]"
-            style={{
-              fontSize: '16px',
-              padding: '16px 0',
-              background: 'linear-gradient(135deg, #b45309, #92400e)',
-            }}
-            aria-label="分享我的灵魂香气"
-          >
-            分享我的灵魂香气
-          </button>
+          /* 无朋友参与：分享 + 邀请朋友测契合度 双 CTA（与有朋友态视觉一致，补最后一公里入口）*/
+          <div className="flex gap-3">
+            <button
+              onClick={handleShare}
+              className="flex-1 border-none rounded-full shadow-brand text-amber-50 font-medium transition-transform duration-200 active:scale-[0.98]"
+              style={{
+                fontSize: '15px',
+                padding: '15px 0',
+                background: 'linear-gradient(135deg, #b45309, #92400e)',
+              }}
+              aria-label="分享我的灵魂香气"
+            >
+              分享我的灵魂香气
+            </button>
+            <Link
+              href="/friend"
+              className="flex-1 flex items-center justify-center rounded-full font-medium transition-transform duration-200 active:scale-[0.98]"
+              style={{
+                fontSize: '15px',
+                padding: '15px 0',
+                background: 'transparent',
+                border: '1.5px solid #8B5E3C',
+                color: '#8B5E3C',
+              }}
+              aria-label="邀请朋友测契合度"
+            >
+              邀请朋友测契合度 →
+            </Link>
+          </div>
         )}
       </div>
 

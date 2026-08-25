@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
 import { TOTAL_PERFUMES } from '@/lib/data';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
+import { encodeInvite } from '@/lib/inviteState';
 import { track } from '@/lib/analytics';
 import PersonalityIcon from '@/components/PersonalityIcon';
 import DailyPanel from '@/components/DailyPanel';
@@ -551,6 +552,21 @@ export default function LandingPage() {
                 aria-label={`查看 ${selected.name} 示例报告`}
               >
                 查看该人格示例报告
+              </button>
+
+              <button
+                onClick={() => {
+                  const inv =
+                    myStatus.completed && myStatus.personalityName
+                      ? `/friend?inv=${encodeInvite(myStatus.personalityName)}`
+                      : '/friend';
+                  router.push(inv);
+                }}
+                className="block w-full text-center bg-white border border-amber-300 text-amber-700 rounded-full mb-2.5 transition-all hover:border-amber-500"
+                style={{ fontSize: '15px', padding: '14px 0', fontFamily: 'Noto Sans SC, sans-serif' }}
+                aria-label="邀请朋友测契合度"
+              >
+                邀请朋友测契合度 →
               </button>
 
               <button
