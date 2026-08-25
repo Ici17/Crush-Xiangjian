@@ -133,7 +133,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     } catch {}
   }
 
-  async function handleSaveImage(format: '1to1' | '3to4' = '3to4') {
+  async function handleSaveImage(format: '3to4' = '3to4') {
     if (!mappedName || !personality || !firstRec) return;
     try {
       const params = new URLSearchParams({
@@ -152,12 +152,12 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
         return;
       }
       if (r.method === 'preview' && r.url) {
-        // 微信 / iOS：内联预览，用户长按保存（切换比例时释放旧图）
+        // 微信 / iOS：内联预览，用户长按保存（重新生成时释放旧图）
         const url = r.url;
         setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
       } else {
         // 桌面端：saveShareCard 已触发下载
-        showToast(format === '1to1' ? '朋友圈分享图已保存 ✓' : '小红书分享图已保存 ✓');
+        showToast('分享图已保存 ✓');
       }
     } catch (e) {
       console.error('[shared] 分享图生成失败', e);

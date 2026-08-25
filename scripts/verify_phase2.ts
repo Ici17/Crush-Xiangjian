@@ -74,9 +74,9 @@ async function main() {
   assert(missedCells.length === 18, `missed=18 (08-01..09 与 08-11..19，实际 ${missedCells.length})`);
   assert(futureCells.length === 11, `future=11 (08-21..31，实际 ${futureCells.length})`);
 
-  console.log('\n— 5. daily 分享卡并入宜忌（1:1 / 3:4）—');
+  console.log('\n— 5. daily 分享卡并入宜忌（3:4 长图）—');
   const dates = ['2026-08-20', '2026-01-01', '2026-12-31'];
-  const fmts: ('1to1' | '3to4')[] = ['1to1', '3to4'];
+  const fmts: '3to4'[] = ['3to4'];
   for (const date of dates) {
     const draw = drawDaily(date);
     const alm = drawAlmanac(date);
@@ -98,7 +98,7 @@ async function main() {
       assert(ok, `daily ${date} ${f} 含宜忌渲染 (${buf.byteLength} bytes, 宜${alm.yi.length}/忌${alm.ji.length})`);
     }
   }
-  // 额外存一张 1:1 与 3:4 到 /tmp 供视觉确认
+  // 额外存一张 3:4 长图到 /tmp 供视觉确认（1:1 已下线）
   const draw = drawDaily('2026-08-20');
   const alm = drawAlmanac('2026-08-20');
   const fmt = (p: DrawnPerfume) => ({
@@ -113,11 +113,9 @@ async function main() {
     inspirationB: fmt(draw.inspirations[1]),
     almanac: { yi: alm.yi, ji: alm.ji, note: alm.note },
   };
-  const b1 = await renderShareCard(sample, '1to1');
   const b3 = await renderShareCard(sample, '3to4');
-  require('fs').writeFileSync('/tmp/daily_almanac_1.png', b1);
   require('fs').writeFileSync('/tmp/daily_almanac_3.png', b3);
-  console.log('  💾 已存 /tmp/daily_almanac_1.png / _3.png');
+  console.log('  💾 已存 /tmp/daily_almanac_3.png');
 
   console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
   if (fail > 0) process.exit(1);

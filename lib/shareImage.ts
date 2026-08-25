@@ -1,8 +1,9 @@
 /**
- * Crush香鉴 — 分享图生成
+ * Crush香鉴 — 分享图生成（旧版 html2canvas 客户端截图路径）
  *
+ * 注意：主链路已改用服务端 satori 渲染（lib/shareCardRender.ts + /api/share-card），
+ * 输出统一为 3:4 长图（1080×1620）；本文件仅作兼容保留，不再支持多尺寸。
  * 使用 html2canvas 将 DOM 元素截图，生成可分享的图片。
- * 支持多尺寸：小红书（3:4）、朋友圈（1:1）、微信封面（9:16）
  */
 
 export interface ShareImageOptions {

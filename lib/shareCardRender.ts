@@ -8,7 +8,7 @@
  *
  * 技术栈：satori（JSX→SVG）+ sharp（SVG→PNG）+ qrcode
  * 字体：Noto Serif SC（public/fonts，运行时读磁盘 / 失败则同源HTTP拉取）
- * 输出：1:1 (1080×1080) / 3:4 (1080×1440)
+ * 输出：3:4 (1080×1620) 长图 — 适配微信转发 / 小红书 / 朋友圈
  *
  * ⚠️ satori 布局规则（v0.29）：
  *   1. 所有 <div> 必须显式 display: flex / contents / none
@@ -17,6 +17,7 @@
  *   4. <p>/<ul> 等默认不是 flex → 用 <div>/<span> 代替
  *   5. 分隔线：用 <span> + border-top
  *   6. 绝对定位：父 div 需 display:flex，overlay 子 div 也需 display:flex
+ *   7. overflow:hidden 不生效 → 用显式高度约束各 section
  */
 
 import QRCode from "qrcode";
@@ -63,7 +64,7 @@ export interface SelfShareData {
   // 3:4 专属深度内容（用香哲学 / 香调偏好）
   scentPhilosophy?: string; // 用香哲学（编辑式金句）
   radarTop3?: string[]; // 香调偏好 top 3
-  format?: "1to1" | "3to4";
+  format?: "3to4";
 }
 
 export interface FriendShareData {
@@ -94,7 +95,7 @@ export interface FriendShareData {
   cpLine?: string; // 合香解读（启示体）
   cpNotes?: string; // 合香三调（前/中/后 点分隔）
   inviteCode: string;
-  format?: "1to1" | "3to4";
+  format?: "3to4";
 }
 
 export interface SharedShareData {
@@ -109,7 +110,7 @@ export interface SharedShareData {
   radarTop3?: string[]; // 香调偏好 top 3 (3:4)（已弃用，保留兼容）
   scentPhilosophy?: string; // 用香哲学（编辑式金句，与 self 卡统一）
   inviteCode: string;
-  format?: "1to1" | "3to4";
+  format?: "3to4";
 }
 
 export interface DailyShareData {
@@ -119,7 +120,7 @@ export interface DailyShareData {
   inspirationA: { name: string; brandCn: string; description: string; notes: string; rarity: string };
   inspirationB: { name: string; brandCn: string; description: string; notes: string; rarity: string };
   almanac?: { yi: string[]; ji: string[]; note: string };
-  format?: "1to1" | "3to4";
+  format?: "3to4";
 }
 
 export type ShareCardData = SelfShareData | FriendShareData | SharedShareData | DailyShareData;
@@ -629,8 +630,8 @@ function buildFooterBand(
   return JSX("div", {
     style: {
       display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-      width: "100%", marginTop: "auto",
-      background: C.INK, borderRadius: "20px", padding: "26px 30px", boxSizing: "border-box",
+      width: "100%", marginTop: "36px",
+      background: C.INK, borderRadius: "20px", padding: "22px 30px", boxSizing: "border-box",
     },
     children: [
       JSX("img", {
@@ -641,8 +642,8 @@ function buildFooterBand(
         style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flexGrow: 1, marginLeft: "26px" },
         children: [
           JSX("span", { style: { color: C.PAPER, fontSize: "32px", fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1.2, textAlign: "right" }, children: ctaMain }),
-          JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "24px", marginTop: "8px", lineHeight: 1.35, textAlign: "right" }, children: ctaSub }),
-          JSX("span", { style: { color: C.MUTED, fontSize: "28px", marginTop: "12px", letterSpacing: "0.04em", textAlign: "right" }, children: linkText }),
+          JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "24px", marginTop: "6px", lineHeight: 1.35, textAlign: "right" }, children: ctaSub }),
+          JSX("span", { style: { color: C.MUTED, fontSize: "28px", marginTop: "10px", letterSpacing: "0.04em", textAlign: "right" }, children: linkText }),
         ],
       }),
     ],
@@ -654,14 +655,19 @@ function buildFooterBand(
 // 内部：只构建并返回 satori 的 SVG（便于本地布局验证）
 async function buildSvg(
   data: ShareCardData,
-  format: "1to1" | "3to4" = "1to1"
+  format: "3to4" = "3to4"
 ): Promise<{ svgRaw: string; W: number; H: number }> {
   const fontData = await getFont();
   const W = 1080;
-  const H = format === "1to1" ? 1080 : 1440;
-  const pad = format === "3to4" ? "80px 64px" : "52px";
-  // 二维码放大：原 108/100px → 屏显≈35px（扫不出）；现 260px → 屏显≈83px，微信长按识别稳定可扫
-  const qrSize = 260;
+  // 两段式自适应高度（2026-08-25）：
+  // 1) 用超高空画布（2200）渲染，footer 紧跟内容自然流动（无 flexGrow 拉伸）
+  // 2) renderShareCard 里逐行扫描真实内容底，裁掉底部空白、保留 52px 留白
+  // → 各场景高度自动贴合内容，彻底杜绝「内容超高 → footer 被挤出画布被裁」
+  const H = 2200;
+  // 上下留白 52：顶部由布局使用，底部由裁切逻辑还原
+  const pad = "52px 64px";
+  // 二维码：240px（屏显≈77px，长按识别稳定可扫；同时避免撑高 footer）
+  const qrSize = 240;
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
 
@@ -709,20 +715,48 @@ async function buildSvg(
 
 export async function renderShareCard(
   data: ShareCardData,
-  format: "1to1" | "3to4" = "1to1"
+  format: "3to4" = "3to4"
 ): Promise<Buffer> {
   const { svgRaw } = await buildSvg(data, format);
   // sharp 改为运行时动态 import：避免顶层原生模块 import 在 serverless 运行时
   // 加载失败导致整模块崩溃（/api/share-card 全部 500）。
   const sharp = (await import("sharp")).default;
-  const pngBuffer = await sharp(Buffer.from(svgRaw)).png({ compressionLevel: 8 }).toBuffer();
-  return pngBuffer;
+
+  // ── 两段式自适应高度 · 第二段：扫描真实内容底，裁掉高空画布的底部空白 ──
+  // 高空画布（2200）只是脚手架：footer 已改为 marginTop 紧跟内容自然流动，
+  // 内容超高也只会被画布底部留白吸收，绝不会再把 footer 挤出画布被裁。
+  // 1) SVG 直接光栅化为 raw 像素（不落中间 PNG，省一次编解码）
+  // 2) 自底向上找最后一行含墨色的行 → 内容真实底边 contentBottom
+  //    背景 #FAF3EA 的 R≈250；阈值取 210：墨字/墨底(R≈44)与金线(R≈168)都命中，
+  //    而浅色底纹的 R 均在 210 以上，不会误判
+  // 3) 裁到 contentBottom + 52px（还原设计底部留白）再编码 PNG
+  const { data: px, info } = await sharp(Buffer.from(svgRaw))
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const ch = info.channels;
+  const rowStride = info.width * ch;
+  let contentBottom = info.height - 1;
+  for (let y = info.height - 1; y >= 0; y--) {
+    const rowStart = y * rowStride;
+    let hasInk = false;
+    for (let x = 0; x < info.width; x++) {
+      if (px[rowStart + x * ch] < 210) { hasInk = true; break; } // 只看 R 通道即可区分
+    }
+    if (hasInk) { contentBottom = y; break; }
+  }
+
+  const finalH = Math.min(info.height, contentBottom + 1 + 52);
+  return await sharp(px, { raw: { width: info.width, height: info.height, channels: ch } })
+    .extract({ left: 0, top: 0, width: info.width, height: finalH })
+    .png({ compressionLevel: 8 })
+    .toBuffer();
 }
 
 // 调试/验证用：返回 SVG 字符串（供本地布局溢出检测）
 export async function renderShareCardSVG(
   data: ShareCardData,
-  format: "1to1" | "3to4" = "1to1"
+  format: "3to4" = "3to4"
 ): Promise<string> {
   const { svgRaw } = await buildSvg(data, format);
   return svgRaw;
@@ -737,54 +771,67 @@ function buildSelfCard(
   JSX: any, d: SelfShareData, W: number, H: number, pad: string,
   qrBase64: string, qrSize: number, _base: string, fontData: Buffer
 ) {
-  const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 报头：品牌小标 + 下方短居中灰杠（轻量锚点，与名字处金色短杠呼应）
+  // ── 3:4 单一长图：所有字号按屏显 0.32 倍率、目标 ≥ 11pt 反推升级 ──
+  // 屏显 11pt ≈ 14.6px screen，对应画布 PX = 14.6 / 0.32 ≈ 46
+  // → 正文 ≥ 28、品牌 ≥ 22、标题 ≥ 50、雷达标签 ≥ 42
+
+  // 报头：品牌小标 + 下方短居中灰杠（轻量锚点）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "12px" : "22px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: "10px" },
     children: [
-      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: is3to4 ? "14px" : "16px" }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: "12px" }, children: "" }),
     ],
   });
 
   // eyebrow
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "10px" : "10px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "25px" : "22px", letterSpacing: "0.26em" }, children: "灵魂香气鉴定" })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "6px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "32px", letterSpacing: "0.26em" }, children: "灵魂香气鉴定" })],
   });
 
   // 巨型人格名（字标）
   const hero = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "54px" : "50px", fontWeight: 700, lineHeight: 1.1, letterSpacing: "0.06em" }, children: d.name })],
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "6px" },
+    children: [JSX("span", { style: { color: INK, fontSize: "76px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "0.06em" }, children: d.name })],
   });
   const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "2px", background: GOLD, marginTop: is3to4 ? "12px" : "10px", marginBottom: is3to4 ? "10px" : "10px" },
+    style: { display: "flex", width: "120px", height: "3px", background: GOLD },
   });
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "14px" },
-    children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "21px" : "21px", fontStyle: "italic", textAlign: "center", lineHeight: 1.85 }, children: d.tagline })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: "8px", marginBottom: "8px" },
+    children: [JSX("span", { style: { color: "#5A4A39", fontSize: "32px", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }, children: d.tagline })],
   });
 
-  // 区块小标题（纯文字标签，去掉右侧灰色细杠）
-  const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: is3to4 ? "14px" : "14px", marginBottom: "8px" },
+  // 记忆点（令人心动的瞬间）—— HERO 区块
+  // 行宽 840（padding 56×2）：≈28 字/行，真实文案 max 55 字（p95=54）→ 2 行；
+  // 截断 58 字兜底：即使 3 行（49px）也有余量，不会挤爆 1620 画布
+  const memoryText = !d.memoryScene ? "" : d.memoryScene.length > 58 ? `${d.memoryScene.slice(0, 56)}…` : d.memoryScene;
+  const memoryHead = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginTop: "4px", marginBottom: "6px" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "23px" : "20px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { color: GOLD, fontSize: "30px", letterSpacing: "0.24em", whiteSpace: "nowrap" }, children: "令人心动的瞬间" }),
     ],
   });
+  const memoryEl = d.memoryScene ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "56px", paddingRight: "56px", marginBottom: "4px" },
+    children: [
+      memoryHead,
+      JSX("span", { style: { color: "#4A3C2E", fontSize: "30px", lineHeight: 1.65, textAlign: "center", letterSpacing: "0.02em" }, children: memoryText }),
+    ],
+  }) : null;
 
-  // 香气图谱（六维雷达图）——1:1 空间有限不展示，仅 3:4 展示
-  // 3:4 下放大到 280px，标签字号 42px，确保维度名与香调名清晰可读。
-  const radarEl = (is3to4 && d.radar) ? (() => {
+  // 香气图谱（六维雷达图）—— 3:4 专属深度内容
+  const radarEl = d.radar ? (() => {
+    // 雷达 280：为 1620 画布腾空间；标签 36px 屏显 ≈ 11.5pt 仍达标
     const radarSize = 280;
-    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 30);
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 36);
     return JSX("div", {
-      style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "12px" },
+      style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: "6px", marginBottom: "6px" },
       children: [
         JSX("div", {
           style: { position: "relative", width: radarSize, height: radarSize, display: "flex" },
@@ -794,7 +841,7 @@ function buildSelfCard(
     });
   })() : null;
 
-  // 香气台账（左侧瓶型按香调染色，发丝线分隔，无白卡）
+  // 香气台账（左侧瓶型按香调染色）
   const perfumeNotes = [d.notesA, d.notesB, d.notesC].map((n) => compactNotes(n, 4));
   const perfumeBrands = [d.brandA, d.brandB, d.brandC];
   const ledgerRows = [d.perfumeA, d.perfumeB, d.perfumeC].map((p, i) => {
@@ -802,85 +849,70 @@ function buildSelfCard(
     const brand = perfumeBrands[i];
     const family = inferFamily(notes);
     const accent = family ? (BOTTLE_COLOR[family] ?? GOLD) : (TIER_COLOR[p.tier] ?? GOLD);
-    const bottleSize = is3to4 ? 60 : 56;
+    const bottleSize = 76;
     const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVG(family ?? p.tier, bottleSize)).toString("base64")}`;
     return JSX("div", {
       style: {
         display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-        paddingTop: is3to4 ? "4px" : "5px", paddingBottom: is3to4 ? "4px" : "5px",
+        paddingTop: "4px", paddingBottom: "4px",
       },
       children: [
-        JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: is3to4 ? "18px" : "16px" } }),
+        JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", flexShrink: 0, marginRight: "22px" } }),
         JSX("div", {
-          style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "12px" },
+          style: { display: "flex", flexDirection: "column", alignItems: "flex-start", flexGrow: 1, marginRight: "16px" },
           children: [
-            JSX("span", { style: { color: accent, fontSize: is3to4 ? "14px" : "13px", letterSpacing: "0.22em", marginBottom: "4px" }, children: p.tier }),
-            JSX("span", { style: { color: INK, fontSize: is3to4 ? "21px" : "20px", fontWeight: 600, marginBottom: (brand || notes) ? "3px" : "0px" }, children: p.name }),
-            brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "13px" : "12px", letterSpacing: "0.14em", marginBottom: notes ? "3px" : "0px" }, children: brand }) : null,
-            notes ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "12px" : "12px", letterSpacing: "0.03em", lineHeight: 1.35 }, children: notes }) : null,
+            JSX("span", { style: { color: accent, fontSize: "22px", letterSpacing: "0.22em", marginBottom: "4px" }, children: p.tier }),
+            JSX("span", { style: { color: INK, fontSize: "30px", fontWeight: 600, lineHeight: 1.2, marginBottom: (brand || notes) ? "4px" : "0px" }, children: p.name }),
+            brand ? JSX("span", { style: { color: MUTED, fontSize: "24px", letterSpacing: "0.14em", marginBottom: notes ? "3px" : "0px" }, children: brand }) : null,
+            notes ? JSX("span", { style: { color: MUTED, fontSize: "22px", letterSpacing: "0.03em", lineHeight: 1.35 }, children: notes }) : null,
           ].filter(Boolean),
         }),
-        JSX("span", { style: { color: INK, fontSize: is3to4 ? "34px" : "30px", fontWeight: 500, lineHeight: 1, paddingTop: "2px", flexShrink: 0 }, children: `${p.match}%` }),
+        JSX("span", { style: { color: INK, fontSize: "48px", fontWeight: 500, lineHeight: 1, paddingTop: "2px", flexShrink: 0 }, children: `${p.match}%` }),
       ],
     });
   });
   const ledger = JSX("div", { style: { display: "flex", flexDirection: "column", width: "100%" }, children: ledgerRows });
 
-  // 记忆点（令人心动的瞬间）——HERO 区块，1:1 与 3:4 均完整展示、不截断（标题去两侧灰杠）
-  const memoryHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: "6px" },
+  // 用香哲学（编辑式金句）
+  const philosophyEl = (d.scentPhilosophy) ? JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "40px", paddingRight: "40px", marginTop: "6px" },
     children: [
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "21px" : "19px", letterSpacing: "0.24em", whiteSpace: "nowrap" }, children: t }),
-    ],
-  });
-  const memoryEl = d.memoryScene ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: is3to4 ? "0px" : "6px", marginBottom: "0px", paddingLeft: is3to4 ? "90px" : "70px", paddingRight: is3to4 ? "90px" : "70px" },
-    children: [
-      memoryHead("令人心动的瞬间"),
-      JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "18px" : "16px", lineHeight: 1.95, textAlign: "center", letterSpacing: "0.02em" }, children: d.memoryScene }),
+      JSX("span", { style: { color: INK, fontSize: "28px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" }, children: `“${d.scentPhilosophy}”` }),
     ],
   }) : null;
+
+  // 注：「香调偏好 top3」区块已移除——与六维雷达图信息重复，
+  // 且 1620 画布下挤占底部品牌带空间（2026-08-25 版式收敛）
+
+  // 分段小标题（统一金线锚 + 文字）
+  const secHead = (t: string) => JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "10px", marginBottom: "6px" },
+    children: [
+      JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
+    ],
+  });
 
   // 页脚品牌带（大二维码 + 长按识别引导，弥补静态图缺少交互性）
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
 
-  // 用香哲学（编辑式金句）：1:1 / 3:4 均展示，替换原「气味底稿 / 人物小传」深度块
-  // 引号内联成对包裹正文，避免单独浮置的前引号显得像多余字符
-  const philosophyEl = (d.scentPhilosophy) ? JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: is3to4 ? "24px" : "16px", paddingRight: is3to4 ? "24px" : "16px", marginTop: "0px", marginBottom: is3to4 ? "0px" : "8px" },
-    children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "18px" : "16px", lineHeight: 1.9, textAlign: "center", letterSpacing: "0.02em" }, children: `“${d.scentPhilosophy}”` }),
-    ],
-  }) : null;
-
-  // 3:4 专属：香调偏好 top 3
-  const radarTop3El = (is3to4 && d.radarTop3 && d.radarTop3.length > 0) ? JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "0px" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "21px" : "22px", letterSpacing: "0.12em" }, children: d.radarTop3.join(" · ") })],
-  }) : null;
-
-  const centerChildren: any[] = [eyebrow, hero, heroRule];
-  // 1:1 空间有限，把用香哲学放在顶部人物小传的原位置；3:4 保持「三支香 → 用香哲学 → 香调偏好」深度流
-  if (philosophyEl && !is3to4) centerChildren.push(secHead("用香哲学"), philosophyEl);
-  centerChildren.push(tagline);
-  if (memoryEl) centerChildren.push(memoryEl); // 记忆点 HERO：置于三香之前
-  if (radarEl) { centerChildren.push(secHead("香气图谱"), radarEl); }
+  const centerChildren: any[] = [masthead, eyebrow, hero, heroRule, tagline];
+  if (memoryEl) centerChildren.push(memoryEl); // HERO 区：记忆点紧贴 tagline 后
+  if (radarEl) centerChildren.push(secHead("香气图谱"), radarEl);
   centerChildren.push(secHead("为你调的三支香"), ledger);
-  if (philosophyEl && is3to4) centerChildren.push(secHead("用香哲学"), philosophyEl);
-  if (radarTop3El) centerChildren.push(secHead("香调偏好"), radarTop3El);
+  if (philosophyEl) centerChildren.push(secHead("用香哲学"), philosophyEl);
 
   return JSX("div", {
     style: {
       display: "flex", flexDirection: "column", alignItems: "center",
-      width: `${W}px`, height: `${H}px`,
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
       background: C.BG, padding: pad, position: "relative",
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
-      masthead,
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" },
+        style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
         children: centerChildren,
       }),
       bottomRow,
@@ -897,32 +929,32 @@ function buildFriendCard(
   JSX: any, d: FriendShareData, W: number, H: number, pad: string,
   qrBase64: string, qrSize: number, _base: string, _satori: any, buildRingSVGFn: (score: number, size: number) => string, fontData: Buffer
 ) {
-  const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
-  const ringSize = is3to4 ? 240 : 220;
+  // 圆环 240（原 280）：1620 画布下腾出 40px，90px 分数在环内仍舒展
+  const ringSize = 240;
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVGFn(d.score, ringSize)).toString("base64")}`;
 
   // 报头：发丝线 + 品牌小标
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "26px" : "30px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "18px" },
     children: [
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
-      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
     ],
   });
 
   // eyebrow
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "22px" : "26px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.28em" }, children: "香气默契鉴定 · COMPATIBILITY" })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "28px", letterSpacing: "0.28em" }, children: "香气默契鉴定 · COMPATIBILITY" })],
   });
 
   // 区块小标题（带发丝线）
   const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "0px", marginBottom: "10px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "14px", marginBottom: "12px" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
+      JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
       JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
     ],
   });
@@ -931,36 +963,36 @@ function buildFriendCard(
   const pairCol = (name: string, perfumeName: string, brand: string | undefined, notes: string | undefined, align: "flex-start" | "flex-end") => JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: align, flex: "0 0 40%" },
     children: [
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "74px" : "60px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.04em" }, children: name }),
+      JSX("span", { style: { color: INK, fontSize: "84px", fontWeight: 600, lineHeight: 1.05, letterSpacing: "0.04em" }, children: name }),
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: align, marginTop: "14px" },
+        style: { display: "flex", flexDirection: "column", alignItems: align, marginTop: "16px" },
         children: [
-          JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "21px" : "18px", letterSpacing: "0.04em" }, children: `本命香 · ${perfumeName || ""}` }),
-          brand ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", letterSpacing: "0.14em", marginTop: "6px" }, children: brand }) : null,
-          notes ? JSX("span", { style: { color: "#7A6A56", fontSize: is3to4 ? "15px" : "13px", letterSpacing: "0.03em", marginTop: "6px" }, children: notes }) : null,
+          JSX("span", { style: { color: MUTED, fontSize: "26px", letterSpacing: "0.04em" }, children: `本命香 · ${perfumeName || ""}` }),
+          brand ? JSX("span", { style: { color: MUTED, fontSize: "22px", letterSpacing: "0.14em", marginTop: "10px" }, children: brand }) : null,
+          notes ? JSX("span", { style: { color: "#7A6A56", fontSize: "22px", letterSpacing: "0.03em", marginTop: "8px", lineHeight: 1.5 }, children: notes }) : null,
         ].filter(Boolean),
       }),
     ],
   });
   const pair = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", width: "100%", marginBottom: is3to4 ? "18px" : "20px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", width: "100%", marginBottom: "20px" },
     children: [
       pairCol(d.nameA, d.perfumeNameA, d.brandA, d.notesA, "flex-start"),
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "52px" : "42px", alignSelf: "center" }, children: "×" }),
+      JSX("span", { style: { color: GOLD, fontSize: "60px", alignSelf: "center" }, children: "×" }),
       pairCol(d.nameB, d.perfumeNameB, d.brandB, d.notesB, "flex-end"),
     ],
   });
 
   // 共鸣度核心视觉：双细线圆环 + 居中数字 + 上方小标
   const ringContainer = JSX("div", {
-    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: is3to4 ? "14px" : "18px" },
+    style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: "16px" },
     children: [
       JSX("img", { src: ringBase64, width: ringSize, height: ringSize, style: { position: "absolute", top: "0px", left: "0px" } }),
       JSX("div", {
         style: { position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
         children: [
-          JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "17px" : "15px", letterSpacing: "0.28em", marginBottom: is3to4 ? "10px" : "8px" }, children: "共鸣度" }),
-          JSX("span", { style: { color: INK, fontSize: is3to4 ? "76px" : "66px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.02em" }, children: String(d.score) }),
+          JSX("span", { style: { color: GOLD, fontSize: "22px", letterSpacing: "0.28em", marginBottom: "12px" }, children: "共鸣度" }),
+          JSX("span", { style: { color: INK, fontSize: "90px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.02em" }, children: String(d.score) }),
         ],
       }),
     ],
@@ -968,18 +1000,18 @@ function buildFriendCard(
 
   // tier 徽章（描边胶囊）
   const tierBadge = JSX("div", {
-    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: is3to4 ? "10px 36px" : "10px 30px", marginTop: is3to4 ? "8px" : "10px", marginBottom: is3to4 ? "18px" : "22px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "28px" : "25px", letterSpacing: "0.14em" }, children: d.tier })],
+    style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${GOLD}`, borderRadius: "999px", padding: "12px 40px", marginTop: "10px", marginBottom: "14px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "32px", letterSpacing: "0.14em" }, children: d.tier })],
   });
 
-  // 关系解读句
+  // 关系解读句（安全截断 72 字：最多 3 行，防止挤爆画布）
+  const storyText = d.story.length > 72 ? `${d.story.slice(0, 70)}…` : d.story;
   const story = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "14px" },
-    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: is3to4 ? "28px" : "24px", textAlign: "center", lineHeight: 1.7 }, children: d.story })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px" },
+    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: "32px", textAlign: "center", lineHeight: 1.5 }, children: storyText })],
   });
 
   // 相处建议句（基于 tier 生成一句克制建议）
-  // 键同时覆盖「新档名（气息同频/默契成对）」与「旧档名/旧副标题（灵魂伴侣/灵魂共振/天生一对/互补搭档…）」以兼容旧分享参数
   const ADVICE_MAP: Record<string, string> = {
     "气息同频": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
     "默契成对": "他补上你缺的那一味，别急着调成一样。",
@@ -996,31 +1028,28 @@ function buildFriendCard(
   };
   const adviceText = ADVICE_MAP[d.tier] ?? "香气不同没关系，相遇本身就是一次调香。";
   const advice = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "16px" : "20px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "23px" : "21px", fontStyle: "italic", textAlign: "center", lineHeight: 1.6 }, children: adviceText })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "20px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "28px", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }, children: adviceText })],
   });
 
   // 合香卡（CP 共振核心产物）——分享图统一精简行「合香 {名} · 隔 X 调」
-  // 完整三调+解读留给页面 CpBlendCard（避免分享图 3:4 内容溢出被裁）
-  // 当 diffTones 为 0 时显示「同调」而非「隔 0 调」，避免文案生硬。
   const cpDiffText = d.cpDiffTones === undefined ? undefined : d.cpDiffTones === 0 ? "同调" : `隔 ${d.cpDiffTones} 调`;
   const cpLine = d.cpBlendName ? JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "14px" : "18px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
     children: [
-      JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "15px" }, children: "合香" }),
-      JSX("span", { style: { color: INK, fontSize: is3to4 ? "32px" : "24px", fontWeight: 600, marginLeft: is3to4 ? "18px" : "14px" }, children: d.cpBlendName }),
-      cpDiffText ? JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "18px" : "15px", marginLeft: is3to4 ? "14px" : "12px" }, children: cpDiffText }) : null,
+      JSX("span", { style: { color: GOLD, fontSize: "26px" }, children: "合香" }),
+      JSX("span", { style: { color: INK, fontSize: "38px", fontWeight: 600, marginLeft: "20px" }, children: d.cpBlendName }),
+      cpDiffText ? JSX("span", { style: { color: MUTED, fontSize: "24px", marginLeft: "18px" }, children: cpDiffText }) : null,
     ].filter(Boolean),
   }) : null;
 
-  // 双人香气光谱对比（仅 3:4，金=A / 墨=B）
-  const dualRadarEl = (is3to4 && d.radarA && d.radarB) ? (() => {
-    const rSize = 230;
-    // SVG 几何体 + satori 绝对定位标签：避免嵌套 SVG <text> 字体丢失。
+  // 双人香气光谱对比（仅长图，金=A / 墨=B）
+  const dualRadarEl = (d.radarA && d.radarB) ? (() => {
+    // 双雷达 260（原 280）：为 1620 画布腾空间
+    const rSize = 260;
     const { svg: rSvg, labels: rLabels } = buildDualRadarSVG(JSX, d.radarA!, d.radarB!, rSize);
-    // 注：dualRadar 内部标签字号在 buildDualRadarSVG 中设为 30，与放大后的整体字号一致
     return JSX("div", {
-      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "12px" },
+      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "0px" },
       children: [
         secHead("香气光谱对比"),
         JSX("div", {
@@ -1028,29 +1057,29 @@ function buildFriendCard(
           children: [rSvg, ...rLabels],
         }),
         JSX("div", {
-          style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "10px" },
+          style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "14px" },
           children: [
-            JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#A8884E", marginRight: "8px" }, children: "" }),
-            JSX("span", { style: { color: INK, fontSize: "28px", marginRight: "22px" }, children: d.nameA }),
-            JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#2A211B", marginRight: "8px" }, children: "" }),
-            JSX("span", { style: { color: INK, fontSize: "28px" }, children: d.nameB }),
+            JSX("span", { style: { display: "flex", width: "16px", height: "16px", borderRadius: "4px", background: "#A8884E", marginRight: "10px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "32px", marginRight: "28px" }, children: d.nameA }),
+            JSX("span", { style: { display: "flex", width: "16px", height: "16px", borderRadius: "4px", background: "#2A211B", marginRight: "10px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "32px" }, children: d.nameB }),
           ],
         }),
       ],
     });
   })() : null;
 
-  // 共享香调（发丝线胶囊，1:1 与 3:4 均显示，最多 4 个）
+  // 共享香调（发丝线胶囊）
   const sharedEl = d.sharedNotes && d.sharedNotes.length > 0
     ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap" },
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginTop: "8px" },
         children: [
-          JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "22px" : "19px", letterSpacing: "0.2em", marginRight: "14px" }, children: "共享香调" }),
+          JSX("span", { style: { color: MUTED, fontSize: "26px", letterSpacing: "0.2em", marginRight: "18px" }, children: "共享香调" }),
           ...d.sharedNotes.slice(0, 4).map((n, i) =>
             JSX("div", {
               key: i,
-              style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${HAIR}`, borderRadius: "999px", padding: is3to4 ? "9px 26px" : "7px 20px", margin: "4px", background: "rgba(255,255,255,0.4)" },
-              children: [JSX("span", { style: { color: "#5A4A39", fontSize: is3to4 ? "22px" : "19px" }, children: n })],
+              style: { display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${HAIR}`, borderRadius: "999px", padding: "10px 28px", margin: "6px", background: "rgba(255,255,255,0.4)" },
+              children: [JSX("span", { style: { color: "#5A4A39", fontSize: "26px" }, children: n })],
             })
           ),
         ],
@@ -1069,13 +1098,13 @@ function buildFriendCard(
   return JSX("div", {
     style: {
       display: "flex", flexDirection: "column", alignItems: "center",
-      width: `${W}px`, height: `${H}px`,
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
       background: C.BG, padding: pad,
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
       masthead,
-      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center", width: "100%" }, children: centerChildren }),
+      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: centerChildren }),
       bottomRow,
     ],
   });
@@ -1090,17 +1119,18 @@ function buildSharedCard(
   JSX: any, d: SharedShareData, W: number, H: number, pad: string,
   qrBase64: string, qrSize: number, _base: string, buildBottleSVGFn: (tier: string, size: number) => string, fontData: Buffer
 ) {
-  const is3to4 = H > W;
-  const bottleSize = is3to4 ? 200 : 170;
+  const bottleSize = 220;
   const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVGFn("本命香", bottleSize)).toString("base64")}`;
+
+  const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
   // 品牌行
   const brandLine = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: is3to4 ? "24px" : "20px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "20px" },
     children: [
       JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
       JSX("span", {
-        style: { color: C.TEXT_MUTED, fontSize: "22px", letterSpacing: "0.2em", whiteSpace: "nowrap", marginLeft: "8px", marginRight: "8px" },
+        style: { color: C.TEXT_MUTED, fontSize: "26px", letterSpacing: "0.2em", whiteSpace: "nowrap", marginLeft: "14px", marginRight: "14px" },
         children: "Crush 香鉴",
       }),
       JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
@@ -1109,18 +1139,18 @@ function buildSharedCard(
 
   // 副标题
   const subtitle = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "12px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "10px" },
     children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "22px" }, children: `这是 ${d.sharerName} 的香气` }),
+      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "28px" }, children: `这是 ${d.sharerName} 的香气` }),
     ],
   });
 
   // 人格名大字
   const nameBlock = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: is3to4 ? "20px" : "16px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "20px" },
     children: [
       JSX("span", {
-        style: { color: C.AMBER_DARK, fontSize: is3to4 ? "96px" : "80px", fontWeight: 700, lineHeight: 1, letterSpacing: "0.06em" },
+        style: { color: C.AMBER_DARK, fontSize: "108px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "0.06em" },
         children: d.name,
       }),
     ],
@@ -1128,19 +1158,19 @@ function buildSharedCard(
 
   // description
   const descEl = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "16px" : "14px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
     children: [
-      JSX("span", { style: { color: C.AMBER_MID, fontSize: is3to4 ? "24px" : "22px", textAlign: "center", lineHeight: 1.5 }, children: d.description }),
+      JSX("span", { style: { color: C.AMBER_MID, fontSize: "30px", textAlign: "center", lineHeight: 1.5 }, children: d.description }),
     ],
   });
 
-  // 用香哲学（编辑式金句）：与 self 卡统一口径
+  // 用香哲学（编辑式金句）
   const philosophyEl = d.scentPhilosophy
     ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", paddingLeft: is3to4 ? "48px" : "36px", paddingRight: is3to4 ? "48px" : "36px", marginBottom: is3to4 ? "24px" : "20px" },
+        style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", paddingLeft: "60px", paddingRight: "60px", marginBottom: "24px" },
         children: [
           JSX("span", {
-            style: { color: C.AMBER_DARK, fontSize: is3to4 ? "23px" : "20px", lineHeight: 1.95, textAlign: "center", letterSpacing: "0.02em" },
+            style: { color: C.AMBER_DARK, fontSize: "30px", lineHeight: 1.7, textAlign: "center", letterSpacing: "0.02em" },
             children: `“${d.scentPhilosophy}”`,
           }),
         ],
@@ -1151,17 +1181,17 @@ function buildSharedCard(
   const perfumeBlock = JSX("div", {
     style: {
       display: "flex", flexDirection: "column", alignItems: "center",
-      background: C.WHITE, borderRadius: "20px",
+      background: C.WHITE, borderRadius: "24px",
       border: `1px solid ${C.AMBER_LIGHT}50`,
-      padding: is3to4 ? "24px 32px" : "20px 28px",
-      marginBottom: is3to4 ? "28px" : "24px",
+      padding: "28px 36px",
+      marginBottom: "32px",
       boxShadow: `0 4px 20px rgba(92,56,38,0.10)`,
     },
     children: [
-      JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", marginBottom: "12px" } }),
-      JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "24px" : "22px", fontWeight: 700, textAlign: "center", marginBottom: "8px" }, children: d.perfumeName }),
+      JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", marginBottom: "16px" } }),
+      JSX("span", { style: { color: C.AMBER_DARK, fontSize: "32px", fontWeight: 700, textAlign: "center", marginBottom: "12px" }, children: d.perfumeName }),
       JSX("div", {
-        style: { display: "flex", alignItems: "center", justifyContent: "center", background: TIER_BG["本命香"], borderRadius: "999px", padding: "5px 18px", border: `1px solid ${TIER_COLOR["本命香"]}40` },
+        style: { display: "flex", alignItems: "center", justifyContent: "center", background: TIER_BG["本命香"], borderRadius: "999px", padding: "6px 22px", border: `1px solid ${TIER_COLOR["本命香"]}40` },
         children: [JSX("span", { style: { color: TIER_COLOR["本命香"], fontSize: "28px", fontWeight: 600 }, children: "本命香" })],
       }),
     ],
@@ -1169,10 +1199,10 @@ function buildSharedCard(
 
   // CTA
   const ctaEl = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: is3to4 ? "20px" : "16px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "20px" },
     children: [
       JSX("span", {
-        style: { color: C.AMBER_ACCENT, fontSize: is3to4 ? "30px" : "26px", fontWeight: 700, letterSpacing: "0.04em" },
+        style: { color: C.AMBER_ACCENT, fontSize: "36px", fontWeight: 700, letterSpacing: "0.04em" },
         children: "3 分钟测你的香气 >",
       }),
     ],
@@ -1184,14 +1214,15 @@ function buildSharedCard(
 
   return JSX("div", {
     style: {
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
-      width: `${W}px`, height: `${H}px`,
+      // 两段式自适应：不钉底，footer 靠自身 marginTop 紧跟内容（高空画布下 space-between 会撑出大空档）
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
       background: C.BG, padding: pad,
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
       JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "center", flexGrow: 1, minHeight: "0", overflow: "hidden", justifyContent: "center" },
+        style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
         children: [brandLine, subtitle, nameBlock, descEl, ...(philosophyEl ? [philosophyEl] : []), perfumeBlock, ctaEl],
       }),
       bottomRow,
@@ -1228,33 +1259,32 @@ function buildDailyCard(
   JSX: any, d: DailyShareData, W: number, H: number, pad: string,
   qrBase64: string, qrSize: number, _base: string, fontData: Buffer
 ) {
-  const is3to4 = H > W;
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
   // 报头
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: is3to4 ? "16px" : "22px" },
+    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: "16px" },
     children: [
-      JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "24px" : "22px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: is3to4 ? "14px" : "16px" }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: "14px" }, children: "" }),
     ],
   });
 
   // 标题
   const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "14px" },
-    children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "30px" : "26px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "· 今日香签 ·" })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "12px" },
+    children: [JSX("span", { style: { color: INK, fontSize: "36px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "· 今日香签 ·" })],
   });
 
   // 日期 + 星期
   const [y, m, day] = d.date.split("-").map(Number);
   const wd = "日一二三四五六"[new Date(y, m - 1, day).getDay()];
   const dateLine = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "14px" : "18px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "20px" : "18px", letterSpacing: "0.2em" }, children: `${d.date.replace(/-/g, ".")} 星期${wd}` })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "26px", letterSpacing: "0.2em" }, children: `${d.date.replace(/-/g, ".")} 星期${wd}` })],
   });
 
-  // 解析「前 X ｜ 中 Y ｜ 后 Z」为三段（用于三行香调展示）
+  // 解析「前 X ｜ 中 Y ｜ 后 Z」为三段
   function parseNotes(s: string): { top: string; heart: string; base: string } {
     const parts = s.split(" ｜ ");
     return {
@@ -1272,49 +1302,46 @@ function buildDailyCard(
     JSX("div", {
       style: {
         flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-        background: C.PAPER, border: `1px solid ${isMain ? GOLD : HAIR}`, borderRadius: "16px",
-        padding: is3to4 ? "20px 14px" : "16px 10px",
+        background: C.PAPER, border: `1px solid ${isMain ? GOLD : HAIR}`, borderRadius: "18px",
+        padding: "22px 16px",
       },
       children: [
-        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "17px" : "15px", letterSpacing: "0.22em" }, children: label }),
+        JSX("span", { style: { color: MUTED, fontSize: "22px", letterSpacing: "0.22em" }, children: label }),
         rarity
-          ? JSX("span", { style: { marginTop: "6px", color: GOLD, fontSize: is3to4 ? "16px" : "14px", border: `1px solid ${GOLD}`, borderRadius: "4px", padding: "0px 7px", letterSpacing: "0.1em" }, children: rarity })
-          : JSX("span", { style: { marginTop: "6px", height: "20px" }, children: "" }),
-        JSX("span", { style: { color: INK, fontFamily: "serif", fontWeight: 700, fontSize: is3to4 ? "26px" : "22px", marginTop: "10px", textAlign: "center", lineHeight: 1.25, letterSpacing: "0.04em" }, children: name }),
-        JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", marginTop: "4px" }, children: brand }),
-        // 金线分隔（与页面 UI 同步，区分信息与诗意）
+          ? JSX("span", { style: { marginTop: "6px", color: GOLD, fontSize: "20px", border: `1px solid ${GOLD}`, borderRadius: "4px", padding: "0px 8px", letterSpacing: "0.1em" }, children: rarity })
+          : JSX("span", { style: { marginTop: "6px", height: "22px" }, children: "" }),
+        JSX("span", { style: { color: INK, fontFamily: "serif", fontWeight: 700, fontSize: "30px", marginTop: "12px", textAlign: "center", lineHeight: 1.25, letterSpacing: "0.04em" }, children: name }),
+        JSX("span", { style: { color: MUTED, fontSize: "20px", marginTop: "6px" }, children: brand }),
         JSX("div", {
-          style: { display: "flex", flexDirection: "row", alignItems: "center", marginTop: is3to4 ? "10px" : "8px" },
-          children: [JSX("span", { style: { display: "block", width: is3to4 ? "26px" : "22px", height: "1px", background: "rgba(168,136,78,0.55)" }, children: "" })],
+          style: { display: "flex", flexDirection: "row", alignItems: "center", marginTop: "12px" },
+          children: [JSX("span", { style: { display: "block", width: "30px", height: "1px", background: "rgba(168,136,78,0.55)" }, children: "" })],
         }),
-        // 诗意短评（填满中部留白的核心内容）
         JSX("span", {
           style: {
             display: "block", width: "100%", color: "#5A4E3E",
-            fontFamily: "serif", fontSize: is3to4 ? "15px" : "13px",
-            marginTop: is3to4 ? "8px" : "6px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em",
+            fontFamily: "serif", fontSize: "18px",
+            marginTop: "10px", textAlign: "center", lineHeight: 1.6, letterSpacing: "0.02em",
           },
           children: description,
         }),
-        // 香调（与页面同步：前/中/后 三行小字）
         JSX("div", {
           style: {
             display: "flex", flexDirection: "column", alignItems: "center",
-            marginTop: "auto", paddingTop: is3to4 ? "10px" : "8px", width: "100%",
-            borderTop: `1px dashed rgba(168,136,78,${is3to4 ? 0.3 : 0.35})`,
+            marginTop: "auto", paddingTop: "12px", width: "100%",
+            borderTop: `1px dashed rgba(168,136,78,0.3)`,
           },
           children: [
-            JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "13px" : "11px", letterSpacing: "0.3em", marginBottom: "4px" }, children: "香 调" }),
-            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `前 · ${parseNotes(notes).top}` }),
-            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `中 · ${parseNotes(notes).heart}` }),
-            JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "14px" : "12px", lineHeight: 1.55 }, children: `后 · ${parseNotes(notes).base}` }),
+            JSX("span", { style: { color: GOLD, fontSize: "16px", letterSpacing: "0.3em", marginBottom: "4px" }, children: "香 调" }),
+            JSX("span", { style: { color: MUTED, fontSize: "18px", lineHeight: 1.55 }, children: `前 · ${parseNotes(notes).top}` }),
+            JSX("span", { style: { color: MUTED, fontSize: "18px", lineHeight: 1.55 }, children: `中 · ${parseNotes(notes).heart}` }),
+            JSX("span", { style: { color: MUTED, fontSize: "18px", lineHeight: 1.55 }, children: `后 · ${parseNotes(notes).base}` }),
           ],
         }),
       ],
     });
 
   const strips = JSX("div", {
-    style: { display: "flex", flexDirection: "row", gap: is3to4 ? "16px" : "14px", width: "100%", marginTop: "4px" },
+    style: { display: "flex", flexDirection: "row", gap: "18px", width: "100%", marginTop: "4px" },
     children: [
       strip("启示", d.inspirationA.name, d.inspirationA.brandCn, d.inspirationA.description, d.inspirationA.notes, d.inspirationA.rarity, false),
       strip("主香", d.main.name, d.main.brandCn, d.main.description, d.main.notes, d.main.rarity, true),
@@ -1322,44 +1349,44 @@ function buildDailyCard(
     ],
   });
 
-  // 今日宜忌（两列块：1:1 与 3:4 均完整展示，填满中下部留白）
+  // 今日宜忌
   const alm = d.almanac;
   const almanacBlock = alm
     ? JSX("div", {
         style: {
           display: "flex", flexDirection: "column", width: "100%",
-          marginTop: is3to4 ? "22px" : "18px",
-          padding: is3to4 ? "18px 22px" : "14px 16px",
-          background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "16px",
+          marginTop: "20px",
+          padding: "20px 26px",
+          background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "18px",
         },
         children: [
           JSX("div", {
-            style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: is3to4 ? "12px" : "8px" },
-            children: [JSX("span", { style: { color: INK, fontSize: is3to4 ? "22px" : "18px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
+            style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "14px" },
+            children: [JSX("span", { style: { color: INK, fontSize: "28px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
           }),
           JSX("div", {
-            style: { display: "flex", flexDirection: "row", gap: is3to4 ? "24px" : "16px", width: "100%" },
+            style: { display: "flex", flexDirection: "row", gap: "28px", width: "100%" },
             children: [
               JSX("div", {
                 style: { flex: 1, display: "flex", flexDirection: "column" },
                 children: [
-                  JSX("span", { style: { color: GOLD, fontSize: is3to4 ? "17px" : "14px", letterSpacing: "0.1em" }, children: "宜" }),
+                  JSX("span", { style: { color: GOLD, fontSize: "22px", letterSpacing: "0.1em" }, children: "宜" }),
                   ...alm.yi.map((x, i) =>
-                    JSX("span", { key: i, style: { color: INK, fontSize: is3to4 ? "18px" : "14px", lineHeight: 1.7, marginTop: i === 0 ? (is3to4 ? 6 : 4) : 0 }, children: x })),
+                    JSX("span", { key: i, style: { color: INK, fontSize: "22px", lineHeight: 1.7, marginTop: i === 0 ? 8 : 0 }, children: x })),
                 ],
               }),
               JSX("div", {
                 style: { flex: 1, display: "flex", flexDirection: "column" },
                 children: [
-                  JSX("span", { style: { color: "#9A8E7C", fontSize: is3to4 ? "17px" : "14px", letterSpacing: "0.1em" }, children: "忌" }),
+                  JSX("span", { style: { color: "#9A8E7C", fontSize: "22px", letterSpacing: "0.1em" }, children: "忌" }),
                   ...alm.ji.map((x, i) =>
-                    JSX("span", { key: i, style: { color: "#6B5E4C", fontSize: is3to4 ? "18px" : "14px", lineHeight: 1.7, marginTop: i === 0 ? (is3to4 ? 6 : 4) : 0 }, children: x })),
+                    JSX("span", { key: i, style: { color: "#6B5E4C", fontSize: "22px", lineHeight: 1.7, marginTop: i === 0 ? 8 : 0 }, children: x })),
                 ],
               }),
             ],
           }),
           JSX("span", {
-            style: { display: "block", textAlign: "center", color: MUTED, fontSize: is3to4 ? "16px" : "13px", fontStyle: "italic", marginTop: is3to4 ? "12px" : "8px", lineHeight: 1.6 },
+            style: { display: "block", textAlign: "center", color: MUTED, fontSize: "20px", fontStyle: "italic", marginTop: "14px", lineHeight: 1.6 },
             children: alm.note,
           }),
         ],
@@ -1368,22 +1395,22 @@ function buildDailyCard(
 
   // 结语
   const footnote = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: is3to4 ? "16px" : "12px" },
-    children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: "18px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "20px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
   });
 
-  // 页脚品牌带（大二维码 + 长按识别引导）
+  // 页脚品牌带
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新 →", linkText);
 
-  // 将上部内容与底部落款分组，用 justifyContent: space-between 让内容自然顶满画布
   const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [masthead, eyebrow, dateLine, strips, almanacBlock] });
   const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [footnote, bottomRow] });
 
   return JSX("div", {
     style: {
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
-      width: `${W}px`, height: `${H}px`,
+      // 两段式自适应：不钉底，footer 靠自身 marginTop 紧跟内容（高空画布下 space-between 会撑出大空档）
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
       background: C.BG, padding: pad, position: "relative",
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
@@ -1393,7 +1420,7 @@ function buildDailyCard(
 
 export async function renderShareCardCached(
   data: ShareCardData,
-  format: "1to1" | "3to4" = "1to1"
+  format: "3to4" = "3to4"
 ): Promise<Buffer> {
   const key = _cacheKey(data, format);
   const cached = _cache.get(key);

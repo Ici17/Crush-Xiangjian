@@ -49,7 +49,6 @@ export default function DailyPanel() {
   const [grantedFreeze, setGrantedFreeze] = useState(false);
   const [showShareGuide, setShowShareGuide] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('3to4');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -120,9 +119,9 @@ export default function DailyPanel() {
     { p: draw.inspirations[1], label: '启示', main: false },
   ];
 
-  const handleSaveShareImage = async (format: '1to1' | '3to4') => {
+  const handleSaveShareImage = async (format: '3to4' = '3to4') => {
     const params = new URLSearchParams({ scene: 'daily', date: today, format });
-    const res = await saveShareCard(params, `crush香签-${today}-${format}.png`);
+    const res = await saveShareCard(params, `crush香签-${today}-3to4.png`);
     if (!res.ok) {
       // 兜底：直接打开图片
       window.open(`/api/share-card?${params.toString()}`, '_blank');
@@ -130,7 +129,7 @@ export default function DailyPanel() {
       return;
     }
     if (res.method === 'preview' && res.url) {
-      // 切换比例时释放旧图，避免 blob URL 泄漏
+      // 重新生成时释放旧图，避免 blob URL 泄漏
       const url = res.url;
       setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
       return;
@@ -365,10 +364,9 @@ export default function DailyPanel() {
       <ShareGuideModal
         isOpen={showShareGuide}
         onClose={closeShareGuide}
-        onSaveImage={(fmt) => { setShareFormat(fmt); handleSaveShareImage(fmt); }}
+        onSaveImage={handleSaveShareImage}
         previewUrl={previewUrl}
         isInWeChat={isWeChat()}
-        currentFormat={shareFormat}
         onCopyLink={handleCopyDailyLink}
       />
 

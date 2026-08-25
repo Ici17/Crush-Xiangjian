@@ -9,10 +9,10 @@ interface ShareImagePreviewModalProps {
   onClose: () => void;
   /** 是否微信环境（影响文案：保存到相册 vs 保存到本地） */
   isInWeChat?: boolean;
-  /** 提供则展示 1:1 / 3:4 即时切换（重新生成分享图） */
-  onSaveImage?: (format: '1to1' | '3to4') => void;
-  /** 当前比例（决定切换高亮；切换后由调用方再次传入或本组件内部维护） */
-  currentFormat?: '1to1' | '3to4';
+  /** 保留接口兼容 —— 当前仅支持 3to4，长按图保存即可，无需切换 */
+  onSaveImage?: (format: '3to4') => void;
+  /** 当前比例（默认 3to4，仅作为占位，UI 已不再呈现切换） */
+  currentFormat?: '3to4';
   /** 提供则展示「复制链接」按钮 */
   onCopyLink?: () => void;
 }
@@ -20,20 +20,15 @@ interface ShareImagePreviewModalProps {
 const COACH_KEY = 'crush_preview_coach_seen';
 
 /**
- * 分享图预览弹层（琥珀主题）
+ * 分享图预览弹层（琥珀主题）—— 竖版单一长图版。
  * 微信 / iOS 中 a.download 不生效，改为内联展示图片让用户长按保存。
- * 复用于好友匹配页、分享卡页、结果页（ShareGuideModal 预览分支会委派到此）；
- * 新增：1:1·3:4 即时切换、复制链接、微信分步引导、首次进入的 coach mark。
  */
 export default function ShareImagePreviewModal({
   previewUrl,
   onClose,
   isInWeChat = false,
-  onSaveImage,
-  currentFormat = '3to4',
   onCopyLink,
 }: ShareImagePreviewModalProps) {
-  const [fmt, setFmt] = useState<'1to1' | '3to4'>(currentFormat);
   const [showCoach, setShowCoach] = useState(false);
 
   // 预览态禁止页面滚动；微信首次进入展示一次性 coach mark
@@ -53,24 +48,12 @@ export default function ShareImagePreviewModal({
 
   if (!previewUrl) return null;
 
-  const switchFormat = (f: '1to1' | '3to4') => {
-    if (f === fmt) return;
-    setFmt(f);
-    setShowCoach(false);
-    onSaveImage?.(f);
-  };
-
   const dismissCoach = () => {
     setShowCoach(false);
     try {
       sessionStorage.setItem(COACH_KEY, '1');
     } catch { /* ignore */ }
   };
-
-  const formatTabs = [
-    { key: '1to1' as const, name: '朋友圈', desc: '1:1 正方形' },
-    { key: '3to4' as const, name: '小红书', desc: '3:4 竖版' },
-  ];
 
   return (
     <div
@@ -82,7 +65,7 @@ export default function ShareImagePreviewModal({
       aria-label="保存分享图"
     >
       <div
-        className="bg-[#FAF3EA] rounded-3xl w-[340px] max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-[#FAF3EA] rounded-3xl w-[340px] max-h-[92vh] overflow-hidden flex flex-col"
         style={{ boxShadow: '0 20px 60px rgba(44,24,16,0.3)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -94,6 +77,9 @@ export default function ShareImagePreviewModal({
               {isInWeChat ? '长按图片保存到相册' : '长按图片保存到本地'}
             </span>
           </div>
+          <p className="text-amber-950/80 font-sans text-[11px]">
+            竖版长图 · 适配小红书 / 朋友圈 / 微信对话
+          </p>
         </div>
 
         {/* 图片 + coach mark */}
@@ -109,7 +95,7 @@ export default function ShareImagePreviewModal({
               src={previewUrl}
               alt="分享图"
               className="mx-auto rounded-xl block"
-              style={{ maxHeight: 320, maxWidth: '100%', objectFit: 'contain' }}
+              style={{ maxHeight: 480, maxWidth: '100%', objectFit: 'contain' }}
             />
             {showCoach && (
               <button
@@ -124,7 +110,7 @@ export default function ShareImagePreviewModal({
 
         {/* 微信分步引导 */}
         {isInWeChat && (
-          <div className="px-6 pt-2 pb-1">
+          <div className="px-6 pt-3 pb-1">
             <div className="flex items-center justify-center gap-2 text-amber-700 font-sans text-[11px]">
               <span className="bg-amber-100 rounded-full w-5 h-5 inline-flex items-center justify-center">1</span>
               <span>长按图片「保存到相册」</span>
@@ -137,28 +123,7 @@ export default function ShareImagePreviewModal({
         )}
 
         {/* 底部操作区 */}
-        <div className="px-6 py-3 flex flex-col gap-2">
-          {/* 即时比例切换 */}
-          {onSaveImage && (
-            <div className="flex gap-2">
-              {formatTabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => switchFormat(t.key)}
-                  className={`flex-1 py-2.5 rounded-xl border transition-all ${
-                    fmt === t.key
-                      ? 'bg-amber-800 border-amber-800 text-amber-50'
-                      : 'bg-white border-amber-200 text-amber-700'
-                  }`}
-                >
-                  <div className="font-sans font-semibold text-sm">{t.name}</div>
-                  <div className="font-sans text-[10px] opacity-70 mt-0.5">{t.desc}</div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* 复制链接 */}
+        <div className="px-6 py-4 flex flex-col gap-2">
           {onCopyLink && (
             <button
               onClick={onCopyLink}

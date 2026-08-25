@@ -8,7 +8,7 @@
  *
  * Query params（按 scene 分组）：
  *   scene     self|friend|shared（必填）
- *   format    1to1|3to4（默认 1to1）
+ *   format    3to4（默认 3to4）— 1:1 已下线，全部统一为 3:4 长图
  *
  * scene=self:
  *   name          人格名（必填）
@@ -75,13 +75,11 @@ export async function GET(req: NextRequest) {
  try {
   const sp = req.nextUrl.searchParams;
   const scene = sp.get("scene") ?? "";
-  const format = (sp.get("format") as "1to1" | "3to4") ?? "3to4";
-
-  if (!["1to1", "3to4"].includes(format)) {
-    return NextResponse.json({ error: "format must be 1to1|3to4" }, { status: 400 });
-  }
+  // 入参容错：早期请求可能带 format=1to1，自动归一为 3to4（1:1 已下线）
+  const rawFormat = (sp.get("format") ?? "3to4") as string;
+  const format: "3to4" = rawFormat === "1to1" ? "3to4" : "3to4";
   if (!["self", "friend", "shared", "daily"].includes(scene)) {
-    return NextResponse.json({ error: "scene must be self|friend|shared" }, { status: 400 });
+    return NextResponse.json({ error: "scene must be self|friend|shared|daily" }, { status: 400 });
   }
 
   let data: ShareCardData;

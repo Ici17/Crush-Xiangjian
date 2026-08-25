@@ -335,7 +335,7 @@ function ResultInner() {
   // ── 下载分享图（服务端 API 渲染）──
   // 返回结构化结果，由调用方决定：桌面端直接下载 / 移动端微信内联预览长按保存
   type SaveResult = { ok: boolean; method: 'download' | 'preview'; url?: string; error?: string };
-  const handleSaveShareImage = useCallback(async (format: '1to1' | '3to4' = '1to1'): Promise<SaveResult> => {
+  const handleSaveShareImage = useCallback(async (format: '3to4' = '3to4'): Promise<SaveResult> => {
     if (!personalityName) return { ok: false, method: 'download', error: 'no personality' };
     track('share_card_generate', { format });
     // 运行时从 DOM 读当前 state，避免声明顺序问题
@@ -423,7 +423,7 @@ function ResultInner() {
 
   // 统一保存入口：根据结果给出真实反馈（下载成功 / 内联预览 / 失败），不再假成功
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const triggerSave = useCallback(async (format: '1to1' | '3to4' = '1to1') => {
+  const triggerSave = useCallback(async (format: '3to4' = '3to4') => {
     const r = await handleSaveShareImage(format);
     if (!r.ok) {
       setShareHint('分享图生成失败，请重试');
