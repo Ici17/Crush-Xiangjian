@@ -430,7 +430,9 @@ function ResultInner() {
       return;
     }
     if (r.method === 'preview' && r.url) {
-      setPreviewUrl(r.url);
+      // 微信 / iOS：内联预览（切换比例时释放旧图）
+      const url = r.url;
+      setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
     } else {
       setShareHint('分享图已保存 ✓');
       setShowShareGuide(false);
@@ -443,7 +445,7 @@ function ResultInner() {
   // 顺序：保存分享图（预览/下载）→ 复制邀请链接 → 弹引导弹层
   const handleShare = useCallback(async () => {
     setPreviewUrl(null);
-    await triggerSave('1to1');
+    await triggerSave('3to4');
     try {
       await navigator.clipboard.writeText(shareLink);
     } catch {}

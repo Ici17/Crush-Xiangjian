@@ -104,7 +104,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const [pickerTarget, setPickerTarget] = useState<"me">("me");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
-  const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('1to1');
+  const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('3to4');
   const [showSharePicker, setShowSharePicker] = useState(false);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -323,8 +323,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       }
       setShowSharePicker(false);
       if (r.method === 'preview' && r.url) {
-        // 微信 / iOS：内联预览，用户长按保存
-        setPreviewUrl(r.url);
+        // 微信 / iOS：内联预览，用户长按保存（切换比例时释放旧图）
+        const url = r.url;
+        setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
       } else {
         // 桌面端：saveShareCard 已触发下载
         showToast(format === '1to1' ? '朋友圈分享图已保存 ✓' : '小红书分享图已保存 ✓');
@@ -1039,6 +1040,9 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         previewUrl={previewUrl}
         onClose={handleClosePreview}
         isInWeChat={isWeChat()}
+        onSaveImage={(fmt) => generateShare(fmt)}
+        currentFormat={shareFormat}
+        onCopyLink={handleCopyInvite}
       />
 
     </main>

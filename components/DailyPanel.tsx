@@ -49,6 +49,7 @@ export default function DailyPanel() {
   const [grantedFreeze, setGrantedFreeze] = useState(false);
   const [showShareGuide, setShowShareGuide] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [shareFormat, setShareFormat] = useState<'1to1' | '3to4'>('3to4');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -129,10 +130,21 @@ export default function DailyPanel() {
       return;
     }
     if (res.method === 'preview' && res.url) {
-      setPreviewUrl(res.url);
+      // 切换比例时释放旧图，避免 blob URL 泄漏
+      const url = res.url;
+      setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return url; });
       return;
     }
     setShowShareGuide(false);
+  };
+
+  const [copyHint, setCopyHint] = useState<string | null>(null);
+  const handleCopyDailyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/daily?date=${today}`);
+      setCopyHint('今日香签链接已复制 ✓');
+      setTimeout(() => setCopyHint(null), 2000);
+    } catch { /* 静默 */ }
   };
 
   const closeShareGuide = () => {
@@ -353,10 +365,18 @@ export default function DailyPanel() {
       <ShareGuideModal
         isOpen={showShareGuide}
         onClose={closeShareGuide}
-        onSaveImage={handleSaveShareImage}
+        onSaveImage={(fmt) => { setShareFormat(fmt); handleSaveShareImage(fmt); }}
         previewUrl={previewUrl}
         isInWeChat={isWeChat()}
+        currentFormat={shareFormat}
+        onCopyLink={handleCopyDailyLink}
       />
+
+      {copyHint && (
+        <div className="fixed left-1/2 bottom-8 -translate-x-1/2 z-[80] bg-amber-900/90 text-amber-50 font-sans text-xs rounded-full px-4 py-2 shadow-lg">
+          {copyHint}
+        </div>
+      )}
 
       {/* ── 今日宜忌 · 留白（揭笺后第二屏） ── */}
       {revealed && (

@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
  try {
   const sp = req.nextUrl.searchParams;
   const scene = sp.get("scene") ?? "";
-  const format = (sp.get("format") as "1to1" | "3to4") ?? "1to1";
+  const format = (sp.get("format") as "1to1" | "3to4") ?? "3to4";
 
   if (!["1to1", "3to4"].includes(format)) {
     return NextResponse.json({ error: "format must be 1to1|3to4" }, { status: 400 });

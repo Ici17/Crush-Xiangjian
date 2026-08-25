@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ShareImagePreviewModal from '@/components/ShareImagePreviewModal';
 
 interface ShareGuideModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface ShareGuideModalProps {
   onSaveImage?: (format: '1to1' | '3to4') => void;
   previewUrl?: string | null;
   isInWeChat?: boolean;
+  /** 当前比例（预览分支委派给 ShareImagePreviewModal 时用于切换高亮） */
+  currentFormat?: '1to1' | '3to4';
 }
 
 /**
@@ -24,6 +27,7 @@ export default function ShareGuideModal({
   onSaveImage,
   previewUrl,
   isInWeChat = false,
+  currentFormat = '3to4',
 }: ShareGuideModalProps) {
   const [step, setStep] = useState<'menu' | 'format'>('menu');
   const [selectedFormat, setSelectedFormat] = useState<'1to1' | '3to4'>('1to1');
@@ -50,55 +54,17 @@ export default function ShareGuideModal({
     '3to4': { name: '小红书', desc: '3:4 竖版', icon: '▯' },
   } as const;
 
-  // 预览模式：微信/iOS 长按保存
+  // 预览模式：微信/iOS 长按保存 —— 委派给通用预览弹层（含 1:1/3:4 切换、复制链接、coach mark）
   if (previewUrl) {
     return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ backgroundColor: 'rgba(44,24,16,0.55)', backdropFilter: 'blur(4px)' }}
-        onClick={onClose}
-        role="dialog"
-        aria-modal
-        aria-label="保存分享图"
-      >
-        <div
-          className="bg-[#FAF3EA] rounded-3xl w-[340px] max-h-[90vh] overflow-hidden flex flex-col"
-          style={{ boxShadow: '0 20px 60px rgba(44,24,16,0.3)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-6 pt-5 pb-3 text-center">
-            <div className="inline-flex items-center gap-2 bg-amber-100 rounded-full px-4 py-1.5 mb-3">
-              <span className="text-amber-400 text-xs">◆</span>
-              <span className="text-amber-700 font-sans text-xs font-medium">长按图片保存</span>
-            </div>
-            <p className="text-amber-950 font-sans text-sm leading-relaxed mb-3">
-              {isInWeChat ? '长按下方图片，保存到相册' : '长按图片即可保存到本地'}
-            </p>
-          </div>
-          <div className="px-5 overflow-y-auto">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl}
-              alt="分享图"
-              className="mx-auto rounded-xl block"
-              style={{ maxHeight: 360, maxWidth: '100%', objectFit: 'contain' }}
-            />
-          </div>
-          <div className="px-6 py-3 text-center">
-            <p className="text-amber-600/70 font-sans text-xs leading-relaxed mb-3">
-              {isInWeChat
-                ? '① 长按图片「保存到相册」 ② 发送给好友或朋友圈'
-                : '长按图片 → 保存图片到相册'}
-            </p>
-            <button
-              onClick={onClose}
-              className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm"
-            >
-              知道了
-            </button>
-          </div>
-        </div>
-      </div>
+      <ShareImagePreviewModal
+        previewUrl={previewUrl}
+        onClose={onClose}
+        isInWeChat={isInWeChat}
+        onSaveImage={onSaveImage}
+        currentFormat={selectedFormat}
+        onCopyLink={onCopyLink}
+      />
     );
   }
 

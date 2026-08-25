@@ -604,7 +604,7 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
     ],
   });
 
-  const labels = buildRadarLabels(JSX, valuesA, size, VB, R + 26, 20, false);
+  const labels = buildRadarLabels(JSX, valuesA, size, VB, R + 26, 30, false);
   return { svg, labels };
 }
 
@@ -619,6 +619,36 @@ function brandRow(qrBase64: string, qrSize: number, showBrand = true) {
   };
 }
 
+// ── 页脚品牌带（大二维码 + 长按识别引导 + 短链兜底）────────────────────────
+// 替代原角落小二维码：墨底带 + 大白底二维码 + 「长按识别二维码」文案，
+// 让保存后的静态图自带行动召唤，弥补"缺少交互性"。
+function buildFooterBand(
+  JSX: any, qrBase64: string, qrSize: number,
+  ctaMain: string, ctaSub: string, linkText: string
+) {
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+      width: "100%", marginTop: "auto",
+      background: C.INK, borderRadius: "20px", padding: "26px 30px", boxSizing: "border-box",
+    },
+    children: [
+      JSX("img", {
+        src: qrBase64, width: qrSize, height: qrSize,
+        style: { borderRadius: "14px", background: C.WHITE, flexShrink: 0, border: `3px solid ${C.WHITE}` },
+      }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flexGrow: 1, marginLeft: "26px" },
+        children: [
+          JSX("span", { style: { color: C.PAPER, fontSize: "32px", fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1.2, textAlign: "right" }, children: ctaMain }),
+          JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "24px", marginTop: "8px", lineHeight: 1.35, textAlign: "right" }, children: ctaSub }),
+          JSX("span", { style: { color: C.MUTED, fontSize: "28px", marginTop: "12px", letterSpacing: "0.04em", textAlign: "right" }, children: linkText }),
+        ],
+      }),
+    ],
+  });
+}
+
 // ── 核心渲染函数（分发三场景）──────────────────────────────────────────────
 
 // 内部：只构建并返回 satori 的 SVG（便于本地布局验证）
@@ -630,7 +660,8 @@ async function buildSvg(
   const W = 1080;
   const H = format === "1to1" ? 1080 : 1440;
   const pad = format === "3to4" ? "80px 64px" : "52px";
-  const qrSize = format === "1to1" ? 108 : 100;
+  // 二维码放大：原 108/100px → 屏显≈35px（扫不出）；现 260px → 屏显≈83px，微信长按识别稳定可扫
+  const qrSize = 260;
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://crushxiangjian.com";
 
@@ -751,7 +782,7 @@ function buildSelfCard(
   // 3:4 下放大到 280px，标签字号 42px，确保维度名与香调名清晰可读。
   const radarEl = (is3to4 && d.radar) ? (() => {
     const radarSize = 280;
-    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 20);
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 30);
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "12px" },
       children: [
@@ -810,20 +841,9 @@ function buildSelfCard(
     ],
   }) : null;
 
-  // 页脚
-  const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "16px", borderTop: `1px solid ${HAIR}` },
-    children: [
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
-        children: [
-          JSX("span", { style: { color: INK, fontSize: "24px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
-          JSX("span", { style: { color: MUTED, fontSize: "15px", fontStyle: "italic", marginTop: "8px" }, children: "你身上，藏着哪种香气？" }),
-        ],
-      }),
-      JSX("img", { src: qrBase64, width: qrSize, height: qrSize, style: { borderRadius: "8px", border: `1px solid ${HAIR}`, background: C.WHITE } }),
-    ],
-  });
+  // 页脚品牌带（大二维码 + 长按识别引导，弥补静态图缺少交互性）
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
 
   // 用香哲学（编辑式金句）：1:1 / 3:4 均展示，替换原「气味底稿 / 人物小传」深度块
   // 引号内联成对包裹正文，避免单独浮置的前引号显得像多余字符
@@ -998,6 +1018,7 @@ function buildFriendCard(
     const rSize = 230;
     // SVG 几何体 + satori 绝对定位标签：避免嵌套 SVG <text> 字体丢失。
     const { svg: rSvg, labels: rLabels } = buildDualRadarSVG(JSX, d.radarA!, d.radarB!, rSize);
+    // 注：dualRadar 内部标签字号在 buildDualRadarSVG 中设为 30，与放大后的整体字号一致
     return JSX("div", {
       style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "12px" },
       children: [
@@ -1010,9 +1031,9 @@ function buildFriendCard(
           style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "10px" },
           children: [
             JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#A8884E", marginRight: "8px" }, children: "" }),
-            JSX("span", { style: { color: INK, fontSize: "18px", marginRight: "22px" }, children: d.nameA }),
+            JSX("span", { style: { color: INK, fontSize: "28px", marginRight: "22px" }, children: d.nameA }),
             JSX("span", { style: { display: "flex", width: "12px", height: "12px", borderRadius: "3px", background: "#2A211B", marginRight: "8px" }, children: "" }),
-            JSX("span", { style: { color: INK, fontSize: "18px" }, children: d.nameB }),
+            JSX("span", { style: { color: INK, fontSize: "28px" }, children: d.nameB }),
           ],
         }),
       ],
@@ -1036,20 +1057,9 @@ function buildFriendCard(
       })
     : null;
 
-  // 页脚
-  const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", marginTop: "auto", paddingTop: "18px", borderTop: `1px solid ${HAIR}` },
-    children: [
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
-        children: [
-          JSX("span", { style: { color: INK, fontSize: "22px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
-          JSX("span", { style: { color: MUTED, fontSize: "14px", fontStyle: "italic", marginTop: "6px" }, children: "你身上，藏着哪种香气？" }),
-        ],
-      }),
-      JSX("img", { src: qrBase64, width: qrSize, height: qrSize, style: { borderRadius: "8px", border: `1px solid ${HAIR}`, background: C.WHITE } }),
-    ],
-  });
+  // 页脚品牌带（大二维码 + 长按识别引导）
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "邀 TA 测测契合度 →", linkText);
 
   const centerChildren: any[] = [eyebrow, pair, ringContainer, tierBadge, story, advice];
   if (cpLine) centerChildren.push(cpLine);
@@ -1152,7 +1162,7 @@ function buildSharedCard(
       JSX("span", { style: { color: C.AMBER_DARK, fontSize: is3to4 ? "24px" : "22px", fontWeight: 700, textAlign: "center", marginBottom: "8px" }, children: d.perfumeName }),
       JSX("div", {
         style: { display: "flex", alignItems: "center", justifyContent: "center", background: TIER_BG["本命香"], borderRadius: "999px", padding: "5px 18px", border: `1px solid ${TIER_COLOR["本命香"]}40` },
-        children: [JSX("span", { style: { color: TIER_COLOR["本命香"], fontSize: "18px", fontWeight: 600 }, children: "本命香" })],
+        children: [JSX("span", { style: { color: TIER_COLOR["本命香"], fontSize: "28px", fontWeight: 600 }, children: "本命香" })],
       }),
     ],
   });
@@ -1168,23 +1178,9 @@ function buildSharedCard(
     ],
   });
 
-  // 品牌行 + QR
-  const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", paddingTop: "16px", borderTop: `1px solid ${C.AMBER_LIGHT}40` },
-    children: [
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center" },
-        children: [
-          JSX("span", { style: { color: C.AMBER_DARK, fontSize: "20px", fontWeight: 600, letterSpacing: "0.04em" }, children: "Crush 香鉴" }),
-          JSX("span", { style: { color: C.AMBER_MID, fontSize: "14px", fontStyle: "italic", lineHeight: 1.4, marginTop: "4px" }, children: "你身上，藏着哪种香气？" }),
-        ],
-      }),
-      JSX("img", {
-        src: qrBase64, width: qrSize, height: qrSize,
-        style: { borderRadius: "10px", border: `1px solid ${C.AMBER_LIGHT}60`, background: C.WHITE },
-      }),
-    ],
-  });
+  // 页脚品牌带（大二维码 + 长按识别引导）
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "3 分钟测你的香气 →", linkText);
 
   return JSX("div", {
     style: {
@@ -1376,20 +1372,9 @@ function buildDailyCard(
     children: [JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
   });
 
-  // 页脚（品牌 + 二维码，整体放在底部，避免中部大段留白）
-  const bottomRow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", width: "100%", paddingTop: is3to4 ? "18px" : "14px", borderTop: `1px solid ${HAIR}` },
-    children: [
-      JSX("div", {
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
-        children: [
-          JSX("span", { style: { color: INK, fontSize: is3to4 ? "26px" : "24px", fontWeight: 600, letterSpacing: "0.06em" }, children: "Crush 香鉴" }),
-          JSX("span", { style: { color: MUTED, fontSize: is3to4 ? "16px" : "14px", fontStyle: "italic", marginTop: "8px" }, children: "今日，被某种气息接住。" }),
-        ],
-      }),
-      JSX("img", { src: qrBase64, width: qrSize, height: qrSize, style: { borderRadius: "8px", border: `1px solid ${HAIR}`, background: C.WHITE } }),
-    ],
-  });
+  // 页脚品牌带（大二维码 + 长按识别引导）
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新 →", linkText);
 
   // 将上部内容与底部落款分组，用 justifyContent: space-between 让内容自然顶满画布
   const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [masthead, eyebrow, dateLine, strips, almanacBlock] });
