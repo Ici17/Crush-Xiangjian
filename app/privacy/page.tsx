@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "隐私政策 | Crush香鉴",
   description:
-    "Crush香鉴 隐私政策。我们不收集账号、不读取手机号，答题与雷达数据存储在您的设备本地，支付通道由第三方支付服务商处理（即将开放）。",
+    "Crush香鉴 隐私政策。我们不收集账号、不读取手机号，答题与雷达数据存储在您的设备本地；仅记录匿名使用事件用于产品改进，不含任何身份信息。支付通道由第三方支付服务商处理（即将开放）。",
 };
 
 export default function PrivacyPage() {
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
     >
       <h1 className="text-3xl font-semibold mb-2">隐私政策</h1>
       <p className="text-sm text-amber-700/80 mb-10">
-        最后更新：2026 年 8 月 6 日 · 生效日期：2026 年 8 月 6 日
+        最后更新：2026 年 8 月 25 日 · 生效日期：2026 年 8 月 25 日
       </p>
 
       <Section title="概述">
@@ -46,6 +46,13 @@ export default function PrivacyPage() {
             <strong>客服沟通</strong>：您主动发邮件给我们时，我们仅保留您提供的邮箱
             与沟通内容，用于回复与售后，不会用于营销。
           </li>
+          <li>
+            <strong>匿名使用统计</strong>：为改进产品体验，我们会记录
+            <strong>匿名</strong>的使用事件（例如完成测试、生成分享图、进入好友匹配），
+            每条仅含「事件类型」与「匿名会话标识」。该标识由本机随机生成并保存在
+            localStorage，清除浏览器数据即失效，<strong>不与任何身份信息关联</strong>，
+            也不包含姓名、手机号、微信 OpenID、邮箱或 IP 地址。我们不会据此建立用户画像。
+          </li>
         </ul>
       </Section>
 
@@ -69,6 +76,12 @@ export default function PrivacyPage() {
           <li>
             <strong>字体</strong>：Google Fonts（fonts.googleapis.com）— 加载 Noto Serif/Sans SC 字体。
             Google 可能会收到您的 IP，建议在意隐私的用户使用浏览器的隐私插件拦截。
+          </li>
+          <li>
+            <strong>微信小程序版本</strong>（如您通过微信小程序使用本服务）：登录态与
+            支付由微信提供。微信可能向我们回传<strong>微信 OpenID</strong>（仅用于校验您已
+            购买/解锁的权益，不用于用户画像或营销）；付费经由<strong>微信支付 / 微信虚拟支付</strong>
+            完成，资金结算遵循微信平台规则。我们不在小程序端收集除 OpenID 以外的身份信息。
           </li>
         </ul>
         我们不会将您的任何数据出售、出租或交换给广告平台或数据中介。
