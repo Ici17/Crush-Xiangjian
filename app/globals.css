@@ -5,6 +5,8 @@
 :root {
   /* H5 底部安全区变量：供 calc(8px + var(--safe-bottom)) 等内联样式使用 */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* 结果页顶部导航实测高度：sticky 横幅定位基准（避免被导航遮挡） */
+  --nav-h: 44px;
 }
 
 @layer base {
@@ -40,6 +42,16 @@
     @apply min-h-dvh bg-cream relative;
     max-width: 430px;
     margin: 0 auto;
+  }
+
+  /* 键盘聚焦可见性（无障碍）：Tab 键聚焦时清晰描边，不破坏圆角 */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #D4A574;
+    outline-offset: 2px;
+    border-radius: inherit;
   }
 
   /* 选中色 */

@@ -106,19 +106,19 @@ function RelationAdviceSection({ personalityName }: { personalityName: string })
     <section className="px-6 pb-10" aria-label="关系解读">
       <div className="flex items-center justify-center gap-3 mb-7">
         <span className="h-px w-6 bg-amber-400" />
-        <h2 className="font-serif text-lg font-medium text-amber-950">关系解读</h2>
+        <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
         <span className="h-px w-6 bg-amber-400" />
       </div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white border border-amber-100 rounded-xl p-4 text-left">
           <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初见印象</h4>
-          <p className="text-xs text-amber-800 leading-relaxed">
+          <p className="text-sm text-amber-800 leading-relaxed">
             {advice.firstMeeting}
           </p>
         </div>
         <div className="bg-white border border-amber-100 rounded-xl p-4 text-left">
           <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">亲密时刻</h4>
-          <p className="text-xs text-amber-800 leading-relaxed">
+          <p className="text-sm text-amber-800 leading-relaxed">
             {advice.intimateRelation}
           </p>
         </div>
@@ -526,7 +526,7 @@ function ResultInner() {
         {/* 支付成功提示横幅 */}
         {isDemo && (
           <div
-            className="sticky top-0 z-40 text-center py-1 px-4"
+            className="sticky top-[var(--nav-h)] z-40 text-center py-1 px-4"
             style={{
               background: 'rgba(250,238,218,0.65)',
               color: '#BA7517',
@@ -540,7 +540,7 @@ function ResultInner() {
         )}
         {justPaid && (
           <div
-            className="sticky top-0 z-40 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-amber-50 text-center text-sm py-2 px-4 shadow-md shimmer"
+            className="sticky top-[var(--nav-h)] z-40 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-amber-50 text-center text-sm py-2 px-4 shadow-md shimmer"
             role="status"
             aria-live="polite"
           >
@@ -551,7 +551,7 @@ function ResultInner() {
         {/* 限时免费活动横幅（活动期内常驻，告知用户当前为临时免费） */}
         {promoFree && (
           <div
-            className="sticky top-0 z-40 text-center text-sm py-2 px-4 shadow-sm"
+            className="sticky top-[var(--nav-h)] z-40 text-center text-sm py-2 px-4 shadow-sm"
             style={{
               background: 'linear-gradient(135deg,#3D2817,#5C3826)',
               color: '#F8EAD9',
@@ -590,7 +590,7 @@ function ResultInner() {
 
         {/* ━━━ 人格揭晓区 ━━━ */}
         <section
-          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 pb-3.5 min-h-[200px]"
+          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 pb-8 min-h-[200px]"
           aria-label="人格揭晓"
         >
           {unlocked && (
@@ -614,7 +614,7 @@ function ResultInner() {
           )}
 
           {revealed && (
-            <p className="text-amber-500 uppercase tracking-[0.3em] mb-2" style={{ fontSize: '11px', fontFamily: 'Noto Sans SC, sans-serif' }} aria-hidden>
+            <p className="text-amber-600 uppercase tracking-[0.3em] mb-2" style={{ fontSize: '11px', fontFamily: 'Noto Sans SC, sans-serif' }} aria-hidden>
               YOUR SOUL SCENT
             </p>
           )}
@@ -690,8 +690,7 @@ function ResultInner() {
             {/* ━━━ 雷达图（纳入首屏可见区）━━━ */}
             <section className="px-6 pt-6 pb-8" aria-label="香气光谱雷达图">
           <h3
-            className="font-serif text-amber-950 text-center mb-1"
-            style={{ fontSize: '24px' }}
+            className="font-serif text-amber-950 text-center mb-1 text-2xl"
           >
             你的香气光谱
           </h3>
@@ -719,7 +718,7 @@ function ResultInner() {
         {/* ━━━ 香气探索路径（下移至雷达图之后，保证雷达图纳入首屏）━━━ */}
         {pathLabels.length > 0 && (
           <div
-            className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-3.5"
+            className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-4"
             aria-label="香气探索路径"
           >
             <span
@@ -750,13 +749,13 @@ function ResultInner() {
         <section className="px-6 pt-4 pb-10" aria-label="本命香水推荐">
           <div className="flex items-center justify-center gap-3 mb-7">
             <span className="h-px w-6 bg-amber-400" />
-            <h2 className="font-serif text-lg font-medium text-amber-950">本命香水</h2>
+            <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
             三支香气，与你的灵魂产生共振
           </p>
-          <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar px-1">
             {recommendations.map((rec) => {
               // 展示角色用 role（方案 B：本命香可能来自 advanced 池，tier 是真实档位）
               const isSignature = rec.role === 'signature';
@@ -857,11 +856,11 @@ function ResultInner() {
                               : 'unlockFull'
                           );
                         }}
-                        className="absolute inset-0 flex items-center justify-center bg-amber-50/40 backdrop-blur-[1px]"
+                        className="absolute inset-x-0 bottom-0 h-1/2 flex items-end justify-center pb-3 bg-gradient-to-t from-[#FDF8F3] via-[#FDF8F3]/85 to-transparent"
                         aria-label={`查看 ${rec.name} 的完整香调档案`}
                       >
                         <span
-                          className="inline-flex items-center gap-1 bg-amber-800 text-amber-50 rounded-full px-3 py-1.5"
+                          className="inline-flex items-center gap-1 bg-amber-800 text-amber-50 rounded-full px-3 py-1.5 shadow-sm"
                           style={{ fontSize: '12px' }}
                         >
                           查看完整香调档案 →
@@ -898,7 +897,7 @@ function ResultInner() {
         <section className="px-6 pb-10" aria-label="性格解读">
           <div className="flex items-center justify-center gap-3 mb-7">
             <span className="h-px w-6 bg-amber-400" />
-            <h2 className="font-serif text-lg font-medium text-amber-950">性格解读</h2>
+            <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-amber-800" style={{ fontSize: '16px', lineHeight: 1.75 }}>
@@ -920,7 +919,7 @@ function ResultInner() {
         <section className="px-6 pb-10" aria-label="用香哲学">
           <div className="flex items-center justify-center gap-3 mb-7">
             <span className="h-px w-6 bg-amber-400" />
-            <h2 className="font-serif text-lg font-medium text-amber-950">用香哲学</h2>
+            <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
             <span className="h-px w-6 bg-amber-400" />
           </div>
           <p className="text-amber-800 italic text-center" style={{ fontSize: '16px', lineHeight: 1.75 }}>
@@ -932,7 +931,7 @@ function ResultInner() {
         <section className="px-6 pb-10" aria-label="香调偏好">
           <div className="flex items-center justify-center gap-3 mb-7">
             <span className="h-px w-6 bg-amber-400" />
-            <h2 className="font-serif text-lg font-medium text-amber-950">香调偏好</h2>
+            <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
             <span className="h-px w-6 bg-amber-400" />
           </div>
           {/* 6 维度数据条（始终清晰：免费内容）*/}
@@ -995,10 +994,10 @@ function ResultInner() {
                     测测你们的香气契合度
                   </p>
                   <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
-                    发给 TA → 一起测，看看你们的灵魂匹配等级
+                    发给 TA，一起测 → 看看你们的匹配等级
                   </p>
                 </div>
-                <span className="text-amber-400" style={{ fontSize: '18px' }}>→</span>
+                <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
               </div>
             </Link>
           </section>
@@ -1028,7 +1027,7 @@ function ResultInner() {
           <div
             className="relative bg-cream-dark border-2 border-amber-700 rounded-3xl p-6 mb-3 overflow-hidden shadow-brand"
             role="group"
-            aria-label={discounted ? '完整版 ¥20.9 已抵扣价' : '完整版 ¥29.9 限时 5 折'}
+            aria-label={`完整版 ¥${currentPrice} ${discounted ? '已抵扣价' : '限时优惠'}`}
           >
             {/* 右上角徽章 */}
             <div className="absolute right-4 top-4 bg-amber-700 text-amber-50 rounded-lg px-2 py-1" style={{ fontSize: '11px' }}>
@@ -1037,7 +1036,7 @@ function ResultInner() {
 
             {discounted && (
               <div className="absolute left-5 top-4 bg-amber-700 text-amber-50 rounded-lg px-2 py-1" style={{ fontSize: '11px' }}>
-                ✓ 好友已完成 · 已抵扣 ¥9
+                ✓ 好友已完成 · 已抵扣 ¥${savePrice}
               </div>
             )}
 
@@ -1130,9 +1129,9 @@ function ResultInner() {
               </div>
               <p className="text-amber-700 text-left mb-3" style={{ fontSize: '12px', lineHeight: 1.6 }}>
                 {inviteStatus.totalCompleted === 0 ? (
-                  <>邀请 <strong className="text-amber-950">3 位</strong> 好友完成测试，立减 <strong className="text-amber-950">{'¥9'}</strong> → 实付 <strong className="text-amber-950">{'¥20.9'}</strong></>
-                ) : (
-                  <>已邀请 <strong className="text-amber-950">{inviteStatus.totalCompleted}</strong> 位，再邀请 <strong className="text-amber-950">{3 - inviteStatus.totalCompleted}</strong> 位 → 解锁 <strong className="text-amber-950">{'¥20.9'}</strong></>
+                <>邀请 <strong className="text-amber-950">3 位</strong> 好友完成测试，立减 <strong className="text-amber-950">{`¥${savePrice}`}</strong> → 实付 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
+              ) : (
+                <>已邀请 <strong className="text-amber-950">{inviteStatus.totalCompleted}</strong> 位，再邀请 <strong className="text-amber-950">{3 - inviteStatus.totalCompleted}</strong> 位 → 解锁 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
                 )}
               </p>
               <button

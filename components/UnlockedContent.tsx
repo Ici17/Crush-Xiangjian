@@ -106,7 +106,7 @@ export default function UnlockedContent({
   }, [personality.description]);
 
   return (
-    <div className="animate-fadeIn space-y-10 pb-8">
+    <div className="animate-fadeIn space-y-12 pb-10">
       {justPaid && (
         <div
           className="shimmer mx-6 rounded-lg px-5 py-3 flex items-center gap-3"
@@ -122,10 +122,9 @@ export default function UnlockedContent({
       )}
 
       {/* ── 香气光谱：雷达图 ── */}
-      <section className="px-6 pt-6 pb-8" aria-label="香气光谱">
+      <section className="px-6" aria-label="香气光谱">
         <h3
-          className="font-serif text-amber-950 text-center mb-1"
-          style={{ fontSize: '24px' }}
+          className="font-serif text-amber-950 text-center mb-1 text-2xl"
         >
           你的香气光谱
         </h3>
@@ -144,7 +143,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 解析金句 ━━━ */}
-      <div className="px-6 pb-2 text-center">
+      <div className="px-6 text-center">
         <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
           {getParseQuote(personalityName)}
         </p>
@@ -157,10 +156,10 @@ export default function UnlockedContent({
         />
 
       {/* ━━━ 本命香水 ━━━ */}
-      <section className="px-6 pt-4 pb-10" aria-label="本命香水推荐">
+      <section className="px-6" aria-label="本命香水推荐">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">本命香水</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
@@ -177,7 +176,7 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="性格解读">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">性格解读</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <div className="space-y-4">
@@ -202,7 +201,7 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="用香哲学">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">用香哲学</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p
@@ -222,7 +221,7 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="香调偏好">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">香调偏好</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <div className="mb-5">
@@ -252,19 +251,19 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="关系解读">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">关系解读</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-white border border-amber-100 rounded-xl p-4">
             <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初次见面</h4>
-            <p className="text-xs text-amber-800 leading-relaxed">
+            <p className="text-sm text-amber-800 leading-relaxed">
               {advice.firstMeeting}
             </p>
           </div>
           <div className="bg-white border border-amber-100 rounded-xl p-4">
             <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">亲密关系</h4>
-            <p className="text-xs text-amber-800 leading-relaxed">
+            <p className="text-sm text-amber-800 leading-relaxed">
               {advice.intimateRelation}
             </p>
           </div>
@@ -276,7 +275,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ── 朋友匹配入口 ── */}
-      <section className="px-6 pb-2">
+      <section className="px-6">
         <a
           href="/friend"
           className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
@@ -354,7 +353,7 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="反差香">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">反差香</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">反差香</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-4" style={{ fontSize: '14px' }}>
@@ -369,7 +368,7 @@ export default function UnlockedContent({
       <section className="px-6" aria-label="气味底稿">
         <div className="flex items-center justify-center gap-3 mb-7">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-lg font-medium text-amber-950">气味底稿</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">气味底稿</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
