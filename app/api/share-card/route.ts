@@ -246,7 +246,9 @@ export async function GET(req: NextRequest) {
   const headers = new Headers({
     "Content-Type": "image/png",
     "Content-Length": String(pngBuffer.byteLength),
-    "Cache-Control": "public, max-age=300, s-maxage=300",
+    // 分享图禁用浏览器/CDN 缓存：样式迭代快，避免用户保存到旧版图片。
+    // 服务端仍有 5 分钟内存缓存（renderShareCardCached）保证并发性能。
+    "Cache-Control": "no-cache, no-store, must-revalidate",
     "Vary": "Accept-Encoding",
   });
   return new NextResponse(new Uint8Array(pngBuffer), { status: 200, headers });
