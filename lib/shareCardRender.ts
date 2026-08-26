@@ -407,7 +407,7 @@ function buildRadarSVG(
   JSX: any,
   values: Record<string, number>,
   size: number,
-  labelFontSize = 34
+  labelFontSize = 22
 ): RadarRenderResult {
   const VB = 460;
   const CX = VB / 2;
@@ -777,29 +777,23 @@ function buildSelfCard(
   // 屏显 11pt ≈ 14.6px screen，对应画布 PX = 14.6 / 0.32 ≈ 46
   // → 正文 ≥ 28、品牌 ≥ 22、标题 ≥ 50、雷达标签 ≥ 42
 
-  // 报头：品牌小标 + 下方短居中灰杠（轻量锚点）
+  // 报头：品牌小标（无装饰杠，纯文字）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: "10px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "10px" },
     children: [
       JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: "12px" }, children: "" }),
     ],
   });
 
-  // eyebrow
-  const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "6px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: "32px", letterSpacing: "0.26em" }, children: "灵魂香气鉴定" })],
-  });
+  // 注：删除 eyebrow「灵魂香气鉴定」——它是 hero 上方的小字提示（hint），
+  // 削弱人格名本身的字标感，且与"提示词要删掉"的诉求一致（2026-08-26 版式收敛）
 
   // 巨型人格名（字标）
   const hero = JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "6px" },
     children: [JSX("span", { style: { color: INK, fontSize: "76px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "0.06em" }, children: d.name })],
   });
-  const heroRule = JSX("div", {
-    style: { display: "flex", width: "120px", height: "3px", background: GOLD },
-  });
+  // 注：删除 heroRule 装饰金线——多色描边在微信保存后观感杂乱（2026-08-26 版式收敛）
 
   // tagline 扎心句（斜体）
   const tagline = JSX("div", {
@@ -884,12 +878,11 @@ function buildSelfCard(
   // 注：「香调偏好 top3」区块已移除——与六维雷达图信息重复，
   // 且 1620 画布下挤占底部品牌带空间（2026-08-25 版式收敛）
 
-  // 分段小标题（统一金线锚 + 文字）
+  // 分段小标题（无装饰线，纯文字）
   const secHead = (t: string) => JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "10px", marginBottom: "6px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
     ],
   });
 
@@ -897,7 +890,7 @@ function buildSelfCard(
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
 
-  const centerChildren: any[] = [masthead, eyebrow, hero, heroRule, tagline];
+  const centerChildren: any[] = [masthead, hero, tagline];
   if (memoryEl) centerChildren.push(memoryEl); // HERO 区：记忆点紧贴 tagline 后
   if (radarEl) centerChildren.push(secHead("香气图谱"), radarEl);
   centerChildren.push(secHead("为你调的三支香"), ledger);
@@ -934,28 +927,21 @@ function buildFriendCard(
   const ringSize = 240;
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVGFn(d.score, ringSize)).toString("base64")}`;
 
-  // 报头：发丝线 + 品牌小标
+  // 报头：品牌小标（无左右发丝线装饰）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "18px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "18px" },
     children: [
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
-      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", paddingLeft: "22px", paddingRight: "22px", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
     ],
   });
 
-  // eyebrow
-  const eyebrow = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "16px" },
-    children: [JSX("span", { style: { color: GOLD, fontSize: "28px", letterSpacing: "0.28em" }, children: "香气默契鉴定 · COMPATIBILITY" })],
-  });
+  // 注：删除 eyebrow「香气默契鉴定 · COMPATIBILITY」——上方 hint 提示词（2026-08-26 版式收敛）
 
-  // 区块小标题（带发丝线）
+  // 区块小标题（无装饰线，纯文字）
   const secHead = (t: string) => JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "14px", marginBottom: "12px" },
     children: [
       JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
-      JSX("span", { style: { flexGrow: 1, height: "1px", background: HAIR, marginLeft: "16px" }, children: "" }),
     ],
   });
 
@@ -1090,7 +1076,7 @@ function buildFriendCard(
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "邀 TA 测测契合度 →", linkText);
 
-  const centerChildren: any[] = [eyebrow, pair, ringContainer, tierBadge, story, advice];
+  const centerChildren: any[] = [pair, ringContainer, tierBadge, story, advice];
   if (cpLine) centerChildren.push(cpLine);
   if (dualRadarEl) centerChildren.push(dualRadarEl);
   if (sharedEl) centerChildren.push(sharedEl);
@@ -1182,7 +1168,6 @@ function buildSharedCard(
     style: {
       display: "flex", flexDirection: "column", alignItems: "center",
       background: C.WHITE, borderRadius: "24px",
-      border: `1px solid ${C.AMBER_LIGHT}50`,
       padding: "28px 36px",
       marginBottom: "32px",
       boxShadow: `0 4px 20px rgba(92,56,38,0.10)`,
@@ -1261,12 +1246,11 @@ function buildDailyCard(
 ) {
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 报头
+  // 报头：品牌小标（无装饰杠，纯文字）
   const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginBottom: "16px" },
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "16px" },
     children: [
       JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-      JSX("span", { style: { width: "120px", height: "1px", background: HAIR, marginTop: "14px" }, children: "" }),
     ],
   });
 
@@ -1302,7 +1286,7 @@ function buildDailyCard(
     JSX("div", {
       style: {
         flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
-        background: C.PAPER, border: `1px solid ${isMain ? GOLD : HAIR}`, borderRadius: "18px",
+        background: C.PAPER, borderRadius: "18px",
         padding: "22px 16px",
       },
       children: [
@@ -1357,7 +1341,7 @@ function buildDailyCard(
           display: "flex", flexDirection: "column", width: "100%",
           marginTop: "20px",
           padding: "20px 26px",
-          background: C.PAPER, border: `1px solid ${HAIR}`, borderRadius: "18px",
+          background: C.PAPER, borderRadius: "18px",
         },
         children: [
           JSX("div", {
@@ -1393,18 +1377,14 @@ function buildDailyCard(
       })
     : null;
 
-  // 结语
-  const footnote = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: "18px" },
-    children: [JSX("span", { style: { color: MUTED, fontSize: "20px", fontStyle: "italic", textAlign: "center", lineHeight: 1.7 }, children: "香签是今日的一缕灵感，不是预言。" })],
-  });
+  // 注：删除结语 footnote「香签是今日的一缕灵感，不是预言。」——免责式 hint 提示词（2026-08-26 版式收敛）
 
   // 页脚品牌带
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新 →", linkText);
 
   const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [masthead, eyebrow, dateLine, strips, almanacBlock] });
-  const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [footnote, bottomRow] });
+  const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [bottomRow] });
 
   return JSX("div", {
     style: {
