@@ -805,25 +805,20 @@ function buildSelfCard(
   // 行宽 840（padding 56×2）：≈28 字/行，真实文案 max 55 字（p95=54）→ 2 行；
   // 截断 58 字兜底：即使 3 行（49px）也有余量，不会挤爆 1620 画布
   const memoryText = !d.memoryScene ? "" : d.memoryScene.length > 58 ? `${d.memoryScene.slice(0, 56)}…` : d.memoryScene;
-  const memoryHead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginTop: "4px", marginBottom: "6px" },
-    children: [
-      JSX("span", { style: { color: GOLD, fontSize: "30px", letterSpacing: "0.24em", whiteSpace: "nowrap" }, children: "令人心动的瞬间" }),
-    ],
-  });
+  // 注：删除 memoryHead「令人心动的瞬间」金标——它是 HERO 区块的小段标，归入"提示词"
+  // 一并清理（2026-08-26 用户反馈："提示词都要删掉"）。memoryText 单独成段，更干净
   const memoryEl = d.memoryScene ? JSX("div", {
     style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", paddingLeft: "56px", paddingRight: "56px", marginBottom: "4px" },
     children: [
-      memoryHead,
       JSX("span", { style: { color: "#4A3C2E", fontSize: "30px", lineHeight: 1.65, textAlign: "center", letterSpacing: "0.02em" }, children: memoryText }),
     ],
   }) : null;
 
   // 香气图谱（六维雷达图）—— 3:4 专属深度内容
+  // 标签字号走 buildRadarSVG 默认 22（屏显 ≈ 7pt，与数字联动），不再显式传 36
   const radarEl = d.radar ? (() => {
-    // 雷达 280：为 1620 画布腾空间；标签 36px 屏显 ≈ 11.5pt 仍达标
     const radarSize = 280;
-    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize, 36);
+    const { svg: radarSVG, labels: radarLabels } = buildRadarSVG(JSX, d.radar, radarSize);
     return JSX("div", {
       style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginTop: "6px", marginBottom: "6px" },
       children: [
@@ -1110,16 +1105,15 @@ function buildSharedCard(
 
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 品牌行
+  // 注：brandLine 左右两侧 borderTop 发丝线删除——归入"框线/装饰线"清理
+  // （用户 2026-08-26 反馈："顶部底部框线都要删"）。仅保留居中的 Crush 香鉴 品牌小标
   const brandLine = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginBottom: "20px" },
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: "20px" },
     children: [
-      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
       JSX("span", {
-        style: { color: C.TEXT_MUTED, fontSize: "26px", letterSpacing: "0.2em", whiteSpace: "nowrap", marginLeft: "14px", marginRight: "14px" },
+        style: { color: C.TEXT_MUTED, fontSize: "26px", letterSpacing: "0.2em", whiteSpace: "nowrap" },
         children: "Crush 香鉴",
       }),
-      JSX("span", { style: { flexGrow: 1, borderTop: `1px solid ${C.AMBER_LIGHT}` }, children: "" }),
     ],
   });
 
@@ -1312,7 +1306,6 @@ function buildDailyCard(
           style: {
             display: "flex", flexDirection: "column", alignItems: "center",
             marginTop: "auto", paddingTop: "12px", width: "100%",
-            borderTop: `1px dashed rgba(168,136,78,0.3)`,
           },
           children: [
             JSX("span", { style: { color: GOLD, fontSize: "16px", letterSpacing: "0.3em", marginBottom: "4px" }, children: "香 调" }),
