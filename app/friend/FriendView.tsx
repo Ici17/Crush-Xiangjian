@@ -237,9 +237,11 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const shareA = inviterType ?? myType;
   const shareB = inviterType ? myType : friendType;
 
+  // 邀请链接：基于「我」的人格名，让当前用户邀请自己的朋友来测。
+  // 原逻辑误用 inviterId（邀请我的人），导致无邀请态时按钮 disabled。
   const inviteLink =
-    inviterId
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(inviterId)}`
+    myType
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(myType.name)}`
       : null;
 
   // ⑦ 合香分享链接（?cp=A|B），优先于普通邀请链接
@@ -786,7 +788,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   一个人可以测多位朋友，<br />你们的香气频率会一一浮现
                 </p>
                 <Link
-                  href={inviteLink ?? `/friend?inv=${encodeInvite(shareA.name)}`}
+                  href={inviteLink ?? '/friend'}
                   className="block w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all mb-2.5 shadow-brand"
                 >
                   邀请朋友来测 →
