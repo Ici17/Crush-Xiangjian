@@ -777,13 +777,8 @@ function buildSelfCard(
   // 屏显 11pt ≈ 14.6px screen，对应画布 PX = 14.6 / 0.32 ≈ 46
   // → 正文 ≥ 28、品牌 ≥ 22、标题 ≥ 50、雷达标签 ≥ 42
 
-  // 报头：品牌小标（无装饰杠，纯文字）
-  const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "10px" },
-    children: [
-      JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-    ],
-  });
+  // 顶部品牌标 / 所有提示词小标题删除（2026-08-26 用户反馈：顶部仍有提示词）。
+  // 让画面从人格名直接开始，更干净。
 
   // 注：删除 eyebrow「灵魂香气鉴定」——它是 hero 上方的小字提示（hint），
   // 削弱人格名本身的字标感，且与"提示词要删掉"的诉求一致（2026-08-26 版式收敛）
@@ -873,23 +868,25 @@ function buildSelfCard(
   // 注：「香调偏好 top3」区块已移除——与六维雷达图信息重复，
   // 且 1620 画布下挤占底部品牌带空间（2026-08-25 版式收敛）
 
-  // 分段小标题（无装饰线，纯文字）
-  const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "10px", marginBottom: "6px" },
-    children: [
-      JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
-    ],
-  });
-
   // 页脚品牌带（大二维码 + 长按识别引导，弥补静态图缺少交互性）
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
 
-  const centerChildren: any[] = [masthead, hero, tagline];
+  const centerChildren: any[] = [hero, tagline];
   if (memoryEl) centerChildren.push(memoryEl); // HERO 区：记忆点紧贴 tagline 后
-  if (radarEl) centerChildren.push(secHead("香气图谱"), radarEl);
-  centerChildren.push(secHead("为你调的三支香"), ledger);
-  if (philosophyEl) centerChildren.push(secHead("用香哲学"), philosophyEl);
+  if (radarEl) {
+    // 去掉「香气图谱」提示词标题，让雷达图直接出现；用 marginTop 拉开节奏
+    radarEl.props.style.marginTop = "10px";
+    centerChildren.push(radarEl);
+  }
+  // 去掉「为你调的三支香」提示词标题，香氛台账直接承接内容
+  ledger.props.style.marginTop = "16px";
+  centerChildren.push(ledger);
+  if (philosophyEl) {
+    // 去掉「用香哲学」提示词标题，金句独立成段
+    philosophyEl.props.style.marginTop = "16px";
+    centerChildren.push(philosophyEl);
+  }
 
   return JSX("div", {
     style: {
@@ -922,23 +919,10 @@ function buildFriendCard(
   const ringSize = 240;
   const ringBase64 = `data:image/svg+xml;base64,${Buffer.from(buildRingSVGFn(d.score, ringSize)).toString("base64")}`;
 
-  // 报头：品牌小标（无左右发丝线装饰）
-  const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "18px" },
-    children: [
-      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-    ],
-  });
+  // 顶部品牌标 / 小标题删除（2026-08-26 用户反馈：顶部仍有提示词）。
+  // friend 卡从双人字标直接开始。
 
   // 注：删除 eyebrow「香气默契鉴定 · COMPATIBILITY」——上方 hint 提示词（2026-08-26 版式收敛）
-
-  // 区块小标题（无装饰线，纯文字）
-  const secHead = (t: string) => JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", marginTop: "14px", marginBottom: "12px" },
-    children: [
-      JSX("span", { style: { color: INK, fontSize: "32px", letterSpacing: "0.16em", fontWeight: 500, whiteSpace: "nowrap" }, children: t }),
-    ],
-  });
 
   // 双人列（A × B 字标 + 本命香 + 品牌 + 三调）
   const pairCol = (name: string, perfumeName: string, brand: string | undefined, notes: string | undefined, align: "flex-start" | "flex-end") => JSX("div", {
@@ -964,7 +948,7 @@ function buildFriendCard(
     ],
   });
 
-  // 共鸣度核心视觉：双细线圆环 + 居中数字 + 上方小标
+  // 共鸣度核心视觉：双细线圆环 + 居中数字（去掉"共鸣度"提示词小标）
   const ringContainer = JSX("div", {
     style: { position: "relative", display: "flex", width: `${ringSize}px`, height: `${ringSize}px`, marginBottom: "16px" },
     children: [
@@ -972,7 +956,6 @@ function buildFriendCard(
       JSX("div", {
         style: { position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
         children: [
-          JSX("span", { style: { color: GOLD, fontSize: "22px", letterSpacing: "0.28em", marginBottom: "12px" }, children: "共鸣度" }),
           JSX("span", { style: { color: INK, fontSize: "90px", fontWeight: 600, lineHeight: 1, letterSpacing: "0.02em" }, children: String(d.score) }),
         ],
       }),
@@ -1013,26 +996,24 @@ function buildFriendCard(
     children: [JSX("span", { style: { color: GOLD, fontSize: "28px", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }, children: adviceText })],
   });
 
-  // 合香卡（CP 共振核心产物）——分享图统一精简行「合香 {名} · 隔 X 调」
+  // 合香卡（CP 共振核心产物）——分享图统一精简行「{名} · 隔 X 调」，去掉"合香"提示词
   const cpDiffText = d.cpDiffTones === undefined ? undefined : d.cpDiffTones === 0 ? "同调" : `隔 ${d.cpDiffTones} 调`;
   const cpLine = d.cpBlendName ? JSX("div", {
     style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "16px" },
     children: [
-      JSX("span", { style: { color: GOLD, fontSize: "26px" }, children: "合香" }),
-      JSX("span", { style: { color: INK, fontSize: "38px", fontWeight: 600, marginLeft: "20px" }, children: d.cpBlendName }),
+      JSX("span", { style: { color: INK, fontSize: "38px", fontWeight: 600 }, children: d.cpBlendName }),
       cpDiffText ? JSX("span", { style: { color: MUTED, fontSize: "24px", marginLeft: "18px" }, children: cpDiffText }) : null,
     ].filter(Boolean),
   }) : null;
 
-  // 双人香气光谱对比（仅长图，金=A / 墨=B）
+  // 双人香气光谱对比（仅长图，金=A / 墨=B）——去掉"香气光谱对比"提示词标题
   const dualRadarEl = (d.radarA && d.radarB) ? (() => {
     // 双雷达 260（原 280）：为 1620 画布腾空间
     const rSize = 260;
     const { svg: rSvg, labels: rLabels } = buildDualRadarSVG(JSX, d.radarA!, d.radarB!, rSize);
     return JSX("div", {
-      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "0px" },
+      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "14px" },
       children: [
-        secHead("香气光谱对比"),
         JSX("div", {
           style: { position: "relative", width: rSize, height: rSize, display: "flex" },
           children: [rSvg, ...rLabels],
@@ -1050,12 +1031,11 @@ function buildFriendCard(
     });
   })() : null;
 
-  // 共享香调（发丝线胶囊）
+  // 共享香调（发丝线胶囊）——去掉"共享香调"提示词标签，胶囊直接呈现
   const sharedEl = d.sharedNotes && d.sharedNotes.length > 0
     ? JSX("div", {
-        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginTop: "8px" },
+        style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", marginTop: "14px" },
         children: [
-          JSX("span", { style: { color: MUTED, fontSize: "26px", letterSpacing: "0.2em", marginRight: "18px" }, children: "共享香调" }),
           ...d.sharedNotes.slice(0, 4).map((n, i) =>
             JSX("div", {
               key: i,
@@ -1084,7 +1064,6 @@ function buildFriendCard(
       fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
     },
     children: [
-      masthead,
       JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: centerChildren }),
       bottomRow,
     ],
@@ -1105,25 +1084,8 @@ function buildSharedCard(
 
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 注：brandLine 左右两侧 borderTop 发丝线删除——归入"框线/装饰线"清理
-  // （用户 2026-08-26 反馈："顶部底部框线都要删"）。仅保留居中的 Crush 香鉴 品牌小标
-  const brandLine = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginBottom: "20px" },
-    children: [
-      JSX("span", {
-        style: { color: C.TEXT_MUTED, fontSize: "26px", letterSpacing: "0.2em", whiteSpace: "nowrap" },
-        children: "Crush 香鉴",
-      }),
-    ],
-  });
-
-  // 副标题
-  const subtitle = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "10px" },
-    children: [
-      JSX("span", { style: { color: C.TEXT_MUTED, fontSize: "28px" }, children: `这是 ${d.sharerName} 的香气` }),
-    ],
-  });
+  // 顶部品牌标 / 副标题 / CTA 提示词删除（2026-08-26 用户反馈：顶部仍有提示词）。
+  // shared 卡从人格名大字直接开始。
 
   // 人格名大字
   const nameBlock = JSX("div", {
@@ -1176,17 +1138,6 @@ function buildSharedCard(
     ],
   });
 
-  // CTA
-  const ctaEl = JSX("div", {
-    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "20px" },
-    children: [
-      JSX("span", {
-        style: { color: C.AMBER_ACCENT, fontSize: "36px", fontWeight: 700, letterSpacing: "0.04em" },
-        children: "3 分钟测你的香气 >",
-      }),
-    ],
-  });
-
   // 页脚品牌带（大二维码 + 长按识别引导）
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "3 分钟测你的香气 →", linkText);
@@ -1202,7 +1153,7 @@ function buildSharedCard(
     children: [
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
-        children: [brandLine, subtitle, nameBlock, descEl, ...(philosophyEl ? [philosophyEl] : []), perfumeBlock, ctaEl],
+        children: [nameBlock, descEl, ...(philosophyEl ? [philosophyEl] : []), perfumeBlock],
       }),
       bottomRow,
     ],
@@ -1240,13 +1191,7 @@ function buildDailyCard(
 ) {
   const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED, HAIR = C.HAIR;
 
-  // 报头：品牌小标（无装饰杠，纯文字）
-  const masthead = JSX("div", {
-    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "16px" },
-    children: [
-      JSX("span", { style: { color: MUTED, fontSize: "30px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
-    ],
-  });
+  // 顶部品牌标删除（2026-08-26 用户反馈：顶部仍有提示词）
 
   // 标题
   const eyebrow = JSX("div", {
@@ -1338,10 +1283,6 @@ function buildDailyCard(
         },
         children: [
           JSX("div", {
-            style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "14px" },
-            children: [JSX("span", { style: { color: INK, fontSize: "28px", fontWeight: 700, letterSpacing: "0.18em", fontFamily: "serif" }, children: "今日宜忌" })],
-          }),
-          JSX("div", {
             style: { display: "flex", flexDirection: "row", gap: "28px", width: "100%" },
             children: [
               JSX("div", {
@@ -1376,7 +1317,7 @@ function buildDailyCard(
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新 →", linkText);
 
-  const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [masthead, eyebrow, dateLine, strips, almanacBlock] });
+  const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [eyebrow, dateLine, strips, almanacBlock] });
   const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [bottomRow] });
 
   return JSX("div", {
