@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 interface ShareImagePreviewModalProps {
   /** 分享图 blob URL；为 null 时不渲染 */
@@ -17,11 +17,11 @@ interface ShareImagePreviewModalProps {
   onCopyLink?: () => void;
 }
 
-const COACH_KEY = 'crush_preview_coach_seen';
-
 /**
- * 分享图预览弹层（琥珀主题）—— 竖版单一长图版。
+ * 分享图预览弹层（极简版）。
  * 微信 / iOS 中 a.download 不生效，改为内联展示图片让用户长按保存。
+ * 2026-08-26 收敛：删除 coach mark 虚线框、步骤引导、「竖版长图」说明等提示词，
+ * 仅保留图片 + 底部操作按钮，避免用户截图/保存时把 UI 提示也截进去。
  */
 export default function ShareImagePreviewModal({
   previewUrl,
@@ -29,31 +29,17 @@ export default function ShareImagePreviewModal({
   isInWeChat = false,
   onCopyLink,
 }: ShareImagePreviewModalProps) {
-  const [showCoach, setShowCoach] = useState(false);
-
-  // 预览态禁止页面滚动；微信首次进入展示一次性 coach mark
+  // 预览态禁止页面滚动
   useEffect(() => {
     if (!previewUrl) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    if (isInWeChat) {
-      try {
-        if (!sessionStorage.getItem(COACH_KEY)) setShowCoach(true);
-      } catch { /* ignore */ }
-    }
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [previewUrl, isInWeChat]);
+  }, [previewUrl]);
 
   if (!previewUrl) return null;
-
-  const dismissCoach = () => {
-    setShowCoach(false);
-    try {
-      sessionStorage.setItem(COACH_KEY, '1');
-    } catch { /* ignore */ }
-  };
 
   return (
     <div
@@ -69,58 +55,23 @@ export default function ShareImagePreviewModal({
         style={{ boxShadow: '0 20px 60px rgba(44,24,16,0.3)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 顶部：操作提示徽标 */}
-        <div className="px-6 pt-5 pb-3 text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-100 rounded-full px-4 py-1.5 mb-2">
-            <span className="text-amber-400 text-xs">◆</span>
-            <span className="text-amber-700 font-sans text-xs font-medium">
-              {isInWeChat ? '长按图片保存到相册' : '长按图片保存到本地'}
-            </span>
-          </div>
-          <p className="text-amber-950/80 font-sans text-[11px]">
-            竖版长图 · 适配小红书 / 朋友圈 / 微信对话
+        {/* 顶部：极简保存提示 */}
+        <div className="px-6 pt-5 pb-2 text-center">
+          <p className="text-amber-800/70 font-sans text-xs">
+            {isInWeChat ? '长按图片保存到相册' : '长按图片保存到本地'}
           </p>
         </div>
 
-        {/* 图片 + coach mark */}
-        <div className="px-5 overflow-y-auto relative">
-          <div className="relative">
-            {showCoach && (
-              <div
-                className="absolute inset-1 rounded-xl border-2 border-dashed border-amber-400 pointer-events-none animate-pulse"
-              />
-            )}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl}
-              alt="分享图"
-              className="mx-auto rounded-xl block"
-              style={{ maxHeight: 480, maxWidth: '100%', objectFit: 'contain' }}
-            />
-            {showCoach && (
-              <button
-                onClick={dismissCoach}
-                className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap bg-amber-800 text-amber-50 text-xs font-sans rounded-full px-3 py-1.5 shadow-lg"
-              >
-                👆 长按这里保存到相册
-              </button>
-            )}
-          </div>
+        {/* 图片：干净展示，无任何装饰框/引导层 */}
+        <div className="px-5 overflow-y-auto">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="分享图"
+            className="mx-auto rounded-xl block"
+            style={{ maxHeight: 520, maxWidth: '100%', objectFit: 'contain' }}
+          />
         </div>
-
-        {/* 微信分步引导 */}
-        {isInWeChat && (
-          <div className="px-6 pt-3 pb-1">
-            <div className="flex items-center justify-center gap-2 text-amber-700 font-sans text-[11px]">
-              <span className="bg-amber-100 rounded-full w-5 h-5 inline-flex items-center justify-center">1</span>
-              <span>长按图片「保存到相册」</span>
-            </div>
-            <div className="flex items-center justify-center gap-2 text-amber-600/80 font-sans text-[11px] mt-1">
-              <span className="bg-amber-100 rounded-full w-5 h-5 inline-flex items-center justify-center">2</span>
-              <span>去微信发送给好友 / 朋友圈</span>
-            </div>
-          </div>
-        )}
 
         {/* 底部操作区 */}
         <div className="px-6 py-4 flex flex-col gap-2">
@@ -134,10 +85,10 @@ export default function ShareImagePreviewModal({
           )}
 
           <button
-            onClick={() => { dismissCoach(); onClose(); }}
+            onClick={onClose}
             className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm"
           >
-            知道了
+            关闭
           </button>
         </div>
       </div>

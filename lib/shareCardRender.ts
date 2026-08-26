@@ -777,8 +777,14 @@ function buildSelfCard(
   // 屏显 11pt ≈ 14.6px screen，对应画布 PX = 14.6 / 0.32 ≈ 46
   // → 正文 ≥ 28、品牌 ≥ 22、标题 ≥ 50、雷达标签 ≥ 42
 
-  // 顶部品牌标 / 所有提示词小标题删除（2026-08-26 用户反馈：顶部仍有提示词）。
-  // 让画面从人格名直接开始，更干净。
+  // 保留顶部品牌标 CRUSH XIANGJIAN（2026-08-26 用户反馈：品牌标不用删）。
+  // 仅删除 eyebrow/内容小标题等「提示词」。
+  const masthead = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center", width: "100%", marginBottom: "8px" },
+    children: [
+      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" }),
+    ],
+  });
 
   // 注：删除 eyebrow「灵魂香气鉴定」——它是 hero 上方的小字提示（hint），
   // 削弱人格名本身的字标感，且与"提示词要删掉"的诉求一致（2026-08-26 版式收敛）
@@ -872,7 +878,7 @@ function buildSelfCard(
   const linkText = _base.replace(/^https?:\/\//, "");
   const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
 
-  const centerChildren: any[] = [hero, tagline];
+  const centerChildren: any[] = [masthead, hero, tagline];
   if (memoryEl) centerChildren.push(memoryEl); // HERO 区：记忆点紧贴 tagline 后
   if (radarEl) {
     // 去掉「香气图谱」提示词标题，让雷达图直接出现；用 marginTop 拉开节奏
