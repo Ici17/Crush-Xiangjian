@@ -102,15 +102,8 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // 首次测用户（无 localStorage 结果）：直接跳 /question，不展示朋友结果
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const pid = localStorage.getItem('crushxiangjian_personality_id');
-    if (!pid) {
-      const inv = mappedName ? `?inv=${encodeInvite(mappedName)}` : '';
-      router.replace(`/question${inv}`);
-    }
-  }, [personalityName, router]);
+  // P0-1 修复：移除强制 router.replace('/question')。朋友（无本地测试结果）点分享链接直接看朋友报告，
+  // 不再被踢去答题——否则「朋友无需答题直接看报告」目标失效、裂变链路断裂。邀请数据来自 URL 参数。
 
   const showToast = (msg: string) => {
     setToast(msg);
