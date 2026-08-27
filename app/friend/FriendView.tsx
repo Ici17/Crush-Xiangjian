@@ -454,7 +454,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 }
                 className="w-full py-4 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-base active:scale-95 transition-transform shadow-brand"
               >
-                开始测试 →
+                开始测试
               </button>
             </div>
 
@@ -468,7 +468,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 onClick={() => setMyTypeId(getMyPersonalityId() ?? "")}
                 className="w-full py-3 text-amber-600 font-sans text-sm"
               >
-                我已经测过了，查看契合度 →
+                我已经测过了，查看契合度
               </button>
             </div>
           </div>
@@ -524,7 +524,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
               className="w-full py-3.5 bg-amber-900 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all"
               style={{ boxShadow: '0 4px 14px rgba(92,58,36,0.2)' }}
             >
-              测测你与 TA 的合香 →
+              测测你与 TA 的合香
             </button>
             <p className="text-center text-amber-500/60 font-sans text-xs leading-relaxed">
               测完即解锁你与 TA 的合香，<br />并点亮你们的合香图鉴一格
@@ -533,7 +533,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
         </div>
       )}
 
-      {/* ── 结果态：契合度揭晓（重设：香调对比→共鸣气味→场景故事→互补解读→分享图） ── */}
+      {/* ── 结果态：契合度揭晓（重设：香调对比共鸣气味场景故事互补解读分享图） ── */}
       {(isResultState || isManualState) && result && shareA && shareB && (
         <div className="pb-8">
           {/* ── 顶部：深琥珀径向背景 ── */}
@@ -793,13 +793,13 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   href={inviteLink ?? '/friend'}
                   className="block w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-all mb-2.5 shadow-brand"
                 >
-                  邀请朋友来测 →
+                  邀请朋友来测
                 </Link>
                 <Link
                   href="/codex"
                   className="block w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors"
                 >
-                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL} →
+                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL}
                 </Link>
               </div>
             </section>
@@ -922,13 +922,13 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                   disabled={!inviteLink}
                   className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand disabled:opacity-40"
                 >
-                  邀请朋友来测 →
+                  邀请朋友来测
                 </button>
                 <Link
                   href="/codex"
                   className="block w-full py-3 text-center bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors"
                 >
-                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL} →
+                  合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL}
                 </Link>
               </>
             )}
@@ -941,7 +941,7 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 href="/question"
                 className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"
               >
-                先测我的灵魂人格 →
+                先测我的灵魂人格
               </Link>
             </div>
           )}
