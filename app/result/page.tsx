@@ -136,6 +136,10 @@ function RelationAdviceSection({ personalityName }: { personalityName: string })
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function ResultInner() {
   const params = useSearchParams();
+  // P0-2：携带邀请者 inv 时，结果页的「契合度」入口一并带上，
+  // 让朋友测完先看自己结果、再一键回 /friend?inv 看与邀请者的匹配（裂变闭环）。
+  const invParam = params.get('inv');
+  const friendHref = invParam ? `/friend?inv=${invParam}` : '/friend';
   const [personalityName, setPersonalityName] = useState<string>('暗流'); // 黄金兜底人格兜底
   const [radarData, setRadarData] = useState(getRadarScores('暗流')); // 黄金兜底雷达兜底
   const [pathLabels, setPathLabels] = useState<string[]>([]);
@@ -985,7 +989,7 @@ function ResultInner() {
           {/* ━━━ 朋友匹配入口 ━━━ */}
           <section className="px-6 pb-8">
             <Link
-              href="/friend"
+              href={friendHref}
               className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
               style={{ background: 'linear-gradient(135deg, #FDF8F3, #FFF9F2)' }}
             >
@@ -1199,7 +1203,7 @@ function ResultInner() {
               分享我的灵魂香气
             </button>
             <Link
-              href="/friend"
+              href={friendHref}
               className="flex-1 flex items-center justify-center rounded-full font-medium transition-transform duration-200 active:scale-[0.98]"
               style={{
                 fontSize: '15px',
@@ -1229,7 +1233,7 @@ function ResultInner() {
               分享我的灵魂香气
             </button>
             <Link
-              href="/friend"
+              href={friendHref}
               className="flex-1 flex items-center justify-center rounded-full font-medium transition-transform duration-200 active:scale-[0.98]"
               style={{
                 fontSize: '15px',
