@@ -507,10 +507,10 @@ export default function QuestionPage() {
   const isLastBranch = branchStep === TOTAL_BRANCH && progress.phase === "branch";
   const isLastCal = isCalibration && stepNumber === TOTAL_STEPS;
 
-  let buttonText = "继续探索 →";
-  if (isLastBranch) buttonText = "进入校准 →";
-  if (isCalibration && !isLastCal) buttonText = "继续校准 →";
-  if (isLastCal) buttonText = "生成我的香气报告 →";
+  let buttonText = "继续探索";
+  if (isLastBranch) buttonText = "进入校准";
+  if (isCalibration && !isLastCal) buttonText = "继续校准";
+  if (isLastCal) buttonText = "生成我的香气报告";
 
   return (
     <main className="min-h-dvh flex flex-col bg-cream">
@@ -592,7 +592,7 @@ export default function QuestionPage() {
                     {label.emoji} {label.label}
                   </span>
                   {idx < displayPathLabels.length - 1 && (
-                    <span className="text-amber-300 text-xs">→</span>
+                    <span className="text-amber-300 text-xs"></span>
                   )}
                 </div>
               ))}
@@ -673,7 +673,7 @@ export default function QuestionPage() {
                           <span className="text-xs font-medium">
                             前往「{choice.pathLabel}」
                           </span>
-                          <span className="ml-auto text-amber-400">→</span>
+                          <span className="ml-auto text-amber-400"></span>
                         </div>
                       )}
                     </div>
