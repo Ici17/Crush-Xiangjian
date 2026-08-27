@@ -589,7 +589,7 @@ function ResultInner() {
               className="text-amber-600 font-medium hover:text-amber-700 underline decoration-amber-400"
               style={{ textUnderlineOffset: '2px' }}
             >
-              去测香 →
+              去测香
             </Link>
           </div>
         )}
@@ -685,7 +685,7 @@ function ResultInner() {
                 boxShadow: '0 4px 14px rgba(92,58,36,0.2)',
               }}
             >
-              你和 TA 的合香已生成 · 查看合香卡 →
+              你和 TA 的合香已生成 · 查看合香卡
             </Link>
           </section>
         )}
@@ -869,7 +869,7 @@ function ResultInner() {
                           className="inline-flex items-center gap-1 bg-amber-800 text-amber-50 rounded-full px-3 py-1.5 shadow-sm"
                           style={{ fontSize: '12px' }}
                         >
-                          查看完整香调档案 →
+                          查看完整香调档案
                         </span>
                       </button>
                     </div>
@@ -977,7 +977,7 @@ function ResultInner() {
                 className="inline-flex items-center gap-1 bg-amber-800 text-amber-50 rounded-full px-4 py-1.5 shadow-sm"
                 style={{ fontSize: '12px' }}
               >
-                获取专属用香指南 →
+                获取专属用香指南
               </span>
             </button>
           </div>
@@ -1000,7 +1000,7 @@ function ResultInner() {
                     测测你们的香气契合度
                   </p>
                   <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
-                    发给 TA，一起测 → 看看你们的匹配等级
+                    发给 TA，一起测 看看你们的匹配等级
                   </p>
                 </div>
                 <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
@@ -1135,9 +1135,9 @@ function ResultInner() {
               </div>
               <p className="text-amber-700 text-left mb-3" style={{ fontSize: '12px', lineHeight: 1.6 }}>
                 {inviteStatus.totalCompleted === 0 ? (
-                <>邀请 <strong className="text-amber-950">3 位</strong> 好友完成测试，立减 <strong className="text-amber-950">{`¥${savePrice}`}</strong> → 实付 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
+                <>邀请 <strong className="text-amber-950">3 位</strong> 好友完成测试，立减 <strong className="text-amber-950">{`¥${savePrice}`}</strong> 实付 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
               ) : (
-                <>已邀请 <strong className="text-amber-950">{inviteStatus.totalCompleted}</strong> 位，再邀请 <strong className="text-amber-950">{3 - inviteStatus.totalCompleted}</strong> 位 → 解锁 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
+                <>已邀请 <strong className="text-amber-950">{inviteStatus.totalCompleted}</strong> 位，再邀请 <strong className="text-amber-950">{3 - inviteStatus.totalCompleted}</strong> 位 解锁 <strong className="text-amber-950">{`¥${currentPrice}`}</strong></>
                 )}
               </p>
               <button
@@ -1214,7 +1214,7 @@ function ResultInner() {
               }}
               aria-label="查看和朋友的香气契合度"
             >
-              查看契合度 →
+              查看契合度
             </Link>
           </div>
         ) : (
@@ -1244,7 +1244,7 @@ function ResultInner() {
               }}
               aria-label="邀请朋友测契合度"
             >
-              邀请朋友测契合度 →
+              邀请朋友测契合度
             </Link>
           </div>
         )}
