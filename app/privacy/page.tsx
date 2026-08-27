@@ -101,7 +101,7 @@ export default function PrivacyPage() {
         您对自己的数据拥有以下权利：
         <ul className="list-disc pl-6 space-y-2">
           <li>
-            <strong>查阅</strong>：在浏览器 DevTools → Application → Local Storage 查看。
+            <strong>查阅</strong>：在浏览器 DevTools / Application / Local Storage 查看。
           </li>
           <li>
             <strong>更正</strong>：通过「重新测试」覆盖历史结果。
