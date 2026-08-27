@@ -204,7 +204,9 @@ export default function QuestionPage() {
         }
         if (inviterName) {
           markInviteeCompleted(inviterName);
-          router.push(`/friend?inv=${rawInv}`);
+          // P0-2：朋友测完先看自己的完整结果页（而非直接落匹配页），
+          // 再由结果页的「查看契合度」入口带 inv 回流 /friend 看与邀请者的匹配，裂变更顺。
+          router.push(`/result?inv=${rawInv}`);
         } else {
           router.push("/result");
         }
