@@ -696,7 +696,7 @@ function ResultInner() {
             {/* ━━━ 雷达图（纳入首屏可见区）━━━ */}
             <section className="px-6 pt-6 pb-8" aria-label="香气光谱雷达图">
           <h3
-            className="font-serif text-amber-950 text-center mb-1 text-2xl"
+            className="font-serif text-amber-950 text-center mb-1 text-xl"
           >
             你的香气光谱
           </h3>
@@ -704,7 +704,7 @@ function ResultInner() {
             六个维度 · 勾勒你独有的气质坐标
           </p>
           <div className="flex justify-center">
-            <RadarChart values={radarData} size={260} />
+            <RadarChart values={radarData} size={200} />
           </div>
           {/* 无障碍文字版 */}
           <ul className="sr-only">
@@ -716,7 +716,7 @@ function ResultInner() {
 
         {/* ━━━ 解析金句 ━━━ */}
         <div className="px-6 pb-2 text-center">
-          <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
+          <p className="font-serif text-amber-700/80 italic leading-6" style={{ fontSize: '13px' }}>
             {getParseQuote(personalityName)}
           </p>
         </div>
