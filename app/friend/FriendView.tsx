@@ -244,15 +244,16 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
 
   // 邀请链接：基于「我」的人格名，让当前用户邀请自己的朋友来测。
   // 原逻辑误用 inviterId（邀请我的人），导致无邀请态时按钮 disabled。
+  const LINK_VER = 'v2';
   const inviteLink =
     myType
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(myType.name)}`
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?inv=${encodeInvite(myType.name)}&_=${LINK_VER}`
       : null;
 
   // ⑦ 合香分享链接（?cp=A|B），优先于普通邀请链接
   const cpShareLink =
     cpPair && cpAType && cpBType
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?cp=${encodeCpPair(cpAType.name, cpBType.name)}`
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}/friend?cp=${encodeCpPair(cpAType.name, cpBType.name)}&_=${LINK_VER}`
       : null;
 
   const showToast = useCallback((msg: string) => {
