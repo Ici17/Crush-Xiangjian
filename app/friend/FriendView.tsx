@@ -212,9 +212,12 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
   const isCpPreview = !!(cpPair && cpAType && cpBType && !meId && !inviterId);
 
   // 已有测试结果时：直接算匹配
+  // P0-6 修复：calculateCompatibility 参数顺序必须跟随 shareA/shareB 的主宾语义（朋友=主位 A / 邀请者=宾位 B），
+  // 否则 story/advice/shareText 内会把「我」错填成 ${inviterType.name}、「朋友」错填成 ${myType.name}，
+  // 与雷达图例和互补解读的 shareA/shareB 标签完全相反。
   useEffect(() => {
     if (inviterType && myType) {
-      setResult(calculateCompatibility(inviterType, myType));
+      setResult(calculateCompatibility(myType, inviterType));
     } else if (!inviterType && myType && friendType) {
       setResult(calculateCompatibility(myType, friendType));
     } else {
