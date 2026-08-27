@@ -605,7 +605,7 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
     ],
   });
 
-  const labels = buildRadarLabels(JSX, valuesA, size, VB, R + 26, 30, false);
+  const labels = buildRadarLabels(JSX, valuesA, size, VB, R + 26, 22, false);
   return { svg, labels };
 }
 
@@ -746,11 +746,15 @@ export async function renderShareCard(
     if (hasInk) { contentBottom = y; break; }
   }
 
+  const TARGET_H = 1620; // 3:4 长图标准高度（画布 1080×1620）
   const finalH = Math.min(info.height, contentBottom + 1 + 52);
-  return await sharp(px, { raw: { width: info.width, height: info.height, channels: ch } })
-    .extract({ left: 0, top: 0, width: info.width, height: finalH })
-    .png({ compressionLevel: 8 })
-    .toBuffer();
+  const pipeline = sharp(px, { raw: { width: info.width, height: info.height, channels: ch } })
+    .extract({ left: 0, top: 0, width: info.width, height: finalH });
+  // 内容高度不足 3:4 时，底部用背景色补到 1620，统一所有分享卡为 3:4 比例
+  if (finalH < TARGET_H) {
+    pipeline.extend({ top: 0, bottom: TARGET_H - finalH, left: 0, right: 0, background: { r: 0xFA, g: 0xF3, b: 0xEA, alpha: 1 } });
+  }
+  return await pipeline.png({ compressionLevel: 8 }).toBuffer();
 }
 
 // 调试/验证用：返回 SVG 字符串（供本地布局溢出检测）
@@ -876,7 +880,7 @@ function buildSelfCard(
 
   // 页脚品牌带（大二维码 + 长按识别引导，弥补静态图缺少交互性）
   const linkText = _base.replace(/^https?:\/\//, "");
-  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气 →", linkText);
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气", linkText);
 
   const centerChildren: any[] = [masthead, hero, tagline];
   if (memoryEl) centerChildren.push(memoryEl); // HERO 区：记忆点紧贴 tagline 后
@@ -1055,7 +1059,7 @@ function buildFriendCard(
 
   // 页脚品牌带（大二维码 + 长按识别引导）
   const linkText = _base.replace(/^https?:\/\//, "");
-  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "邀 TA 测测契合度 →", linkText);
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "邀 TA 测测契合度", linkText);
 
   const centerChildren: any[] = [pair, ringContainer, tierBadge, story, advice];
   if (cpLine) centerChildren.push(cpLine);
@@ -1146,7 +1150,7 @@ function buildSharedCard(
 
   // 页脚品牌带（大二维码 + 长按识别引导）
   const linkText = _base.replace(/^https?:\/\//, "");
-  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "3 分钟测你的香气 →", linkText);
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "3 分钟测你的香气", linkText);
 
   return JSX("div", {
     style: {
@@ -1321,7 +1325,7 @@ function buildDailyCard(
 
   // 页脚品牌带
   const linkText = _base.replace(/^https?:\/\//, "");
-  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新 →", linkText);
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "今日香签每日更新", linkText);
 
   const topSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [eyebrow, dateLine, strips, almanacBlock] });
   const bottomSection = JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: [bottomRow] });
