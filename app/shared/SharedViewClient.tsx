@@ -171,7 +171,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             href="/"
             className="inline-block py-3 px-6 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm"
           >
-            去测测我的香气 →
+            去测测我的香气
           </Link>
         </div>
       </main>
@@ -217,7 +217,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
               href="/result"
               className="flex-shrink-0 px-3 py-1.5 bg-amber-800 text-amber-50 rounded-full text-xs font-sans font-medium active:scale-95 transition-transform"
             >
-              查看我的 →
+              查看我的
             </Link>
           </div>
         )}
@@ -322,17 +322,17 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             style={{ boxShadow: '0 4px 20px rgba(92,58,36,0.25)' }}
           >
             {myStatus.completed
-              ? '查看我的香气结果 →'
+              ? '查看我的香气结果'
               : myStatus.inProgress
-              ? `继续测试（已答 ${myStatus.answeredCount}/10）→`
-              : '我也来测测我的香气 →'}
+              ? `继续测试（已答 ${myStatus.answeredCount}/10）`
+              : '我也来测测我的香气'}
           </button>
 
           <Link
             href={friendLink}
             className="block w-full py-3 bg-white border border-amber-300 text-amber-800 rounded-full font-sans font-medium text-sm text-center active:scale-95 transition-all hover:border-amber-500"
           >
-            测测我们的契合度 →
+            测测我们的契合度
           </Link>
 
           {myStatus.completed && (
