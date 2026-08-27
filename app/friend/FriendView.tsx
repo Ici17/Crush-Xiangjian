@@ -234,8 +234,10 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
     }
   }, [result]);
 
-  const shareA = inviterType ?? myType;
-  const shareB = inviterType ? myType : friendType;
+  // 主宾顺序修复：点链接进来的「我」(myType) 为主位（左/A/金色），邀请者 (inviterType) 为宾位（右/B）。
+  // 原 inviterType ?? myType 把邀请者放前，导致朋友测完看到自己结果被放第二位、主宾反了。
+  const shareA = myType ?? inviterType;
+  const shareB = myType ? inviterType : friendType;
 
   // 邀请链接：基于「我」的人格名，让当前用户邀请自己的朋友来测。
   // 原逻辑误用 inviterId（邀请我的人），导致无邀请态时按钮 disabled。
