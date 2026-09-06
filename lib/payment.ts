@@ -131,7 +131,7 @@ export async function initiatePayment(_req: PaymentRequest): Promise<PaymentResu
 export const LIMITED_FREE = {
   enabled: true,
   // 活动截止时间（北京时间，ISO 8601 含时区）。超过此刻即恢复付费墙。
-  endTime: '2026-09-30T23:59:59+08:00', // 【可按需修改】限时免费截止时间
+  endTime: '2027-06-30T23:59:59+08:00', // 【可按需修改】限时免费截止时间（2026-09-06 由 2026-09-30 延长至此）
 } as const;
 
 /** 当前是否处于「限时免费」活动期（客户端安全：SSR/无 window 时返回 false，避免水合不一致） */
