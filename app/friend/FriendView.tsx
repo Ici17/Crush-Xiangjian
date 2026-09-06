@@ -805,8 +805,26 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 >
                   合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL}
                 </Link>
+                {/* 看完成契合度后，自然延伸到每日仪式 */}
+                <Link
+                  href="/?mode=daily"
+                  className="block w-full py-3 bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors mt-2.5"
+                >
+                  今日香签 · 三笺已备 →
+                </Link>
               </div>
             </section>
+
+            {/* 返回首页 */}
+            <div className="text-center py-4">
+              <Link
+                href="/"
+                className="font-sans text-amber-500/60 hover:text-amber-700 transition-colors"
+                style={{ fontSize: '13px' }}
+              >
+                ← 返回首页
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -934,8 +952,26 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
                 >
                   合香图鉴 · 已点亮 {getCpLitCount()}/{CP_TOTAL}
                 </Link>
+                {/* 看完成契合度后，自然延伸到每日仪式 */}
+                <Link
+                  href="/?mode=daily"
+                  className="block w-full py-3 text-center bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm hover:border-amber-400 transition-colors mt-2.5"
+                >
+                  今日香签 · 三笺已备 →
+                </Link>
               </>
             )}
+          </div>
+
+          {/* 返回首页（解决微信内置浏览器/外链进入时无法回首页） */}
+          <div className="text-center py-4">
+            <Link
+              href="/"
+              className="font-sans text-amber-500/60 hover:text-amber-700 transition-colors"
+              style={{ fontSize: '13px' }}
+            >
+              ← 返回首页
+            </Link>
           </div>
 
           {/* 底部引导：未测时 */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
@@ -104,6 +104,14 @@ export default function LandingPage() {
   const [selected, setSelected] = useState<Personality>(PERSONALITIES[0]);
   const [mode, setMode] = useState<'test' | 'daily'>('test');
   const myStatus = useMyTestStatus();
+
+  // 支持 ?mode=daily 直达今日香签（朋友匹配页引导跳转）
+  // 注意：刻意不用 useSearchParams —— 它是 CSR bailout hook，会让本页失去静态预渲染
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const m = new URLSearchParams(window.location.search).get('mode');
+    if (m === 'daily') setMode('daily');
+  }, []);
 
   const handleOpenSheet = (name: string): void => {
     const found = PERSONALITIES.find((p) => p.name === name);
