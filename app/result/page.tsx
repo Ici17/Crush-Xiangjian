@@ -1007,6 +1007,28 @@ function ResultInner() {
               </div>
             </Link>
           </section>
+
+          {/* ━━━ 今日香签入口：把一次性的测试结果延伸到每日仪式 ━━━ */}
+          <section className="px-6 pb-8">
+            <Link
+              href="/?mode=daily"
+              className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #FFF9F2, #FDF8F3)' }}
+            >
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: '22px' }}>🎴</span>
+                <div className="flex-1 text-left">
+                  <p className="font-serif text-amber-950" style={{ fontSize: '15px', fontWeight: 500 }}>
+                    今日香签 · 三笺已备
+                  </p>
+                  <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
+                    每天三笺，选一支贴合今天心情的气息
+                  </p>
+                </div>
+                <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
+              </div>
+            </Link>
+          </section>
           </>
         )}
 
