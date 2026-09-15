@@ -79,7 +79,10 @@ export function isWechatBrowser(): boolean {
 // ============================================================
 // 本地解锁状态(测试期无后端,客户端标记已购档位)
 // ============================================================
-export const PAID_STORAGE_KEY = "crushxiangjian_paid";
+// 本次版本升级：此前 `?paid=` URL 后门可被任意人白嫖写入解锁标记，
+// 因此 storage key 升到 v2 —— 所有历史乐观解锁标记作废，重新开始。
+// （当前尚无真实支付用户，此刻切换成本为零。）
+export const PAID_STORAGE_KEY = "crushxiangjian_paid_v2";
 
 /** 记录已购档位(取最高 level 持久化)*/
 export function markPaid(priceKey: PriceKey): void {
@@ -130,8 +133,11 @@ export async function initiatePayment(_req: PaymentRequest): Promise<PaymentResu
 // 关闭方式：把 enabled 改为 false，或把 endTime 设为过去时间 —— 均无需改动其他代码。
 export const LIMITED_FREE = {
   enabled: true,
-  // 活动截止时间（北京时间，ISO 8601 含时区）。超过此刻即恢复付费墙。
-  endTime: '2027-06-30T23:59:59+08:00', // 【可按需修改】限时免费截止时间（2026-09-06 由 2026-09-30 延长至此）
+  // 活动截止时间（北京时间，ISO 8601 含时区）。超过此刻自动恢复付费墙，无需改动其他代码。
+  // 2026-09-16 评审决议：原 2027-06-30（9.5 个月）等于公开承诺长期零收入，
+  // 且 iOS 端「限时免费结束后需付费」本身是不合规示例。改为约 45 天滚动窗口。
+  // 【到期前如需续期】改这里并重新部署即可；建议每次最多续 30-60 天。
+  endTime: '2026-10-31T23:59:59+08:00',
 } as const;
 
 /** 当前是否处于「限时免费」活动期（客户端安全：SSR/无 window 时返回 false，避免水合不一致） */

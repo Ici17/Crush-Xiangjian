@@ -234,37 +234,24 @@ function ResultInner() {
     }
   }, [params]);
 
-  // ── 支付回跳处理 ──
-  // 解锁参数：本地解锁（?paid）> 预览（?previewPaid）；真实支付回跳预留（未来接入）
+  // ── 付费状态恢复 ──
+  // 2026-09-16 修复两个缺陷（详见评审报告 地基①②）：
+  //   1) 原先 `?paid=<priceKey>` 可直接写入持久化解锁标记 —— 一条链接就能永久白嫖，已彻底删除；
+  //   2) 原先 `getPaidLevel()` 从未被用来初始化 paidLevel，且不带解锁参数访问时会无条件清零，
+  //      导致真实付费用户只要刷新 / 重新访问页面就必定退回付费墙。
+  // 现改为：始终以持久化的付费档位为准。未来接入真实支付后，此处的 getPaidLevel()
+  // 应替换为服务端权益校验。
   useEffect(() => {
-    const paid = params.get('paid');
-    const previewPaid = params.get('previewPaid') === '1';
+    if (typeof window === 'undefined') return;
 
-    const unlockAndClean = (level: number) => {
-      if (level > 0) {
-        setPaidLevel(level);
-        setJustPaid(true);
-        setTimeout(() => setJustPaid(false), 4000);
-      }
-      if (typeof window !== 'undefined') {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    };
-
-    if (paid && paid in PRICE_CONFIG) {
-      // 本地乐观解锁（测试期 / 未来支付回跳预留）
-      markPaid(paid as PriceKey);
-      unlockAndClean(getPaidLevel());
-    }
-
-    if (previewPaid) {
+    // 演示预览（/preview 等场景）：仅本次会话临时解锁，不落盘，刷新即恢复
+    if (params.get('previewPaid') === '1') {
       setPaidLevel(2);
       setIsDemo(true);
-    } else if (!paid) {
-      // 无解锁参数时清除持久化付费标记（避免测试态的 paid_level 残留）
-      if (typeof window !== 'undefined') localStorage.removeItem('crushxiangjian_paid_level');
-      setPaidLevel(0);
+      return;
     }
+
+    setPaidLevel(getPaidLevel());
   }, [params]);
 
   // ── 分享链接 + 本地 SVG 二维码 + 原始 0-100 雷达分数 ──

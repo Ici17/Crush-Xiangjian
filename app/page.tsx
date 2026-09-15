@@ -358,7 +358,11 @@ export default function LandingPage() {
         <div
           className="px-5 mt-6 flex items-center justify-center gap-2.5 animate-fadeIn"
           style={{ animationDelay: '440ms' }}
-          aria-label="已有 12047 人完成测试"
+          // 2026-09-16：原先写死「12,047 人」与「90% 的人说」，属无数据支撑的虚假陈述，
+          // 用于品牌合作 / 融资时有合规风险。改为不含具体数字的社交证明。
+          // 📌 待 /admin 埋点积累出可信样本后，可在此处展示真实完成人数；
+          //    届时需注意本页当前是静态预渲染（○ Static），取数要放在客户端。
+          aria-label="用户评价"
         >
           {/* 头像堆叠(静态占位,强调"真实用户参与") */}
           <div className="flex -space-x-2">
@@ -375,10 +379,10 @@ export default function LandingPage() {
           </div>
           <div className="text-left">
             <p className="text-amber-950 font-serif" style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
-              已有 <span style={{ color: '#B45309' }}>12,047</span> 人完成
+              <span style={{ color: '#B45309' }}>她们都找到了</span>自己的气息
             </p>
             <p className="text-amber-600" style={{ fontSize: '11px', lineHeight: 1.2 }}>
-              90% 的人说，「像被读懂了一次」
+              每一份解读都独一无二
             </p>
           </div>
         </div>

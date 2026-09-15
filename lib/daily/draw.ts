@@ -11,6 +11,7 @@
 // 时区固定 Asia/Shanghai，避免跨零点用户抽到不同签。
 
 import { PERFUMES, type Perfume } from "../data";
+import { DAILY_POOL_V1 } from "./pool";
 
 export type Rarity = "chang" | "ya" | "yin";
 
@@ -91,22 +92,65 @@ function toDrawn(p: Perfume, rng: () => number): DrawnPerfume {
   };
 }
 
+// ============================================================
+// 香水库「代」登记表 —— 保证历史日期的签永不改变
+// ============================================================
+//
+// 原先直接用 Object.keys(PERFUMES) 洗牌，有两个致命问题：
+//   1. 顺序敏感：重排香水库会洗掉所有历史日期的结果；
+//   2. 长度敏感：即便只在末尾追加一支，Fisher-Yates 的 rng 消耗次数也会变，
+//      历史结果同样会被改写。
+// 也就是说，只要动一下香水库，用户昨天分享出去的图今天就对不上了。
+//
+// 解法：把抽签池按「代（epoch）」冻结。每代的顺序与长度都不可更改，
+// 某代自 since 日期起生效，之前的历史日期继续用旧代。
+//
+// 📌 扩库操作步骤（务必按顺序）：
+//   1. 运行 npx tsx scripts/gen-pool-snapshot.ts 获取新顺序，
+//      在 lib/daily/pool.ts 中新增 DAILY_POOL_V2（旧序列保持不动）；
+//   2. 在下面数组末尾追加 { version: "v2", since: "YYYY-MM-DD", pool: DAILY_POOL_V2 }；
+//   3. since 必须晚于今天，否则已经发生的日期会被重算。
+interface PoolEpoch {
+  version: string;
+  since: string; // YYYY-MM-DD，含当日起生效
+  pool: readonly string[];
+}
+
+const POOL_EPOCHS: PoolEpoch[] = [
+  { version: "v1", since: "0000-00-00", pool: DAILY_POOL_V1 },
+];
+
+/** 按日期解析出该用的那一代抽签池 */
+function resolvePool(dateStr: string): readonly string[] {
+  let picked = POOL_EPOCHS[0].pool;
+  for (const epoch of POOL_EPOCHS) {
+    // YYYY-MM-DD 的字典序即日期序
+    if (dateStr >= epoch.since) picked = epoch.pool;
+  }
+  return picked;
+}
+
 /**
  * 以日期为种子的确定性抽签。
  * 同一 date 永远返回相同结果（服务端分享卡与客户端页面一致）。
  */
 export function drawDaily(dateStr: string = getTodayStr()): DailyDraw {
-  const names = Object.keys(PERFUMES);
   const rng = mulberry32(hashStr(`crush-daily-${dateStr}`));
 
+  const epochPool = resolvePool(dateStr);
+  // 容错快照中已被下架的条目；正常情况下 filter 不会命中。
+  let pool = epochPool.filter((id) => id in PERFUMES);
+  // 兜底：若快照因故全部失效，退回实时库（仅当日愉快有别，不影响其他日期）
+  if (pool.length < 3) pool = Object.keys(PERFUMES);
+
   // Fisher-Yates 洗牌（副本）
-  const pool = names.slice();
-  for (let i = pool.length - 1; i > 0; i--) {
+  const shuffled = pool.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  const picked = pool.slice(0, 3).map((id) => PERFUMES[id]);
+  const picked = shuffled.slice(0, 3).map((id) => PERFUMES[id]);
   const main = toDrawn(picked[0], rng);
   const inspirations: [DrawnPerfume, DrawnPerfume] = [
     toDrawn(picked[1], rng),

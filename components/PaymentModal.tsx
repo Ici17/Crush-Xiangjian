@@ -195,11 +195,14 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
           取消
         </button>
 
-        {/* 信任标识 */}
+        {/* 信任标识
+            2026-09-16：原为「🔒支付安全 / 💳合规通道 / 📧7日无忧」，但真实支付尚未接通
+            （initiatePayment() 为空实现）、也无退款流程，属误导性承诺，已改为真实表述。
+            虚拟内容需明确告知不支持退款。 */}
         <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-amber-100">
-          <span className="text-amber-400 text-[11px]">🔒 支付安全</span>
-          <span className="text-amber-400 text-[11px]">💳 合规通道</span>
-          <span className="text-amber-400 text-[11px]">📧 7日无忧</span>
+          <span className="text-amber-400 text-[11px]">一次性解锁</span>
+          <span className="text-amber-400 text-[11px]">解锁后长期可看</span>
+          <span className="text-amber-400 text-[11px]">虚拟内容 · 不支持退款</span>
         </div>
       </div>
     </div>

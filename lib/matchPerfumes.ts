@@ -460,8 +460,8 @@ function getCalKey(calChoices: string[]): string {
   return `${calChoices[0]}|${calChoices[1]}|${calChoices[2]}`;
 }
 
-let _budgetDirectionAssignment: Map<string, string> | null = null;
-function buildBudgetDirectionAssignment(): Map<string, string> {
+let _budgetDirectionAssignment: Map<string, string[]> | null = null;
+function buildBudgetDirectionAssignment(): Map<string, string[]> {
   if (_budgetDirectionAssignment) return _budgetDirectionAssignment;
   const budgetPool = (Object.values(PERFUMES) as Perfume[]).filter((p) => p.tier === 'budget');
 
@@ -480,28 +480,40 @@ function buildBudgetDirectionAssignment(): Map<string, string> {
     }
   }
 
-  // 贪心全局去重：按得分降序，每支香只分配给一个方向
+  // 2026-09-16 改进：原先每个方向只锁 1 支且运行时无条件覆盖 MMR 结果，导致
+  //   (a) budget 池 47 支里有 20 支在任何用户路径下都不可能出现（实测死数据）；
+  //   (b) 用户可能拿到相对低分的那一支，MMR / 垄断去偏那段排序沦为死代码。
+  // 现改为：每个方向保留一组互不重复的候选，运行时按该用户的真实分数择优。
+  // 去重约束依然成立（同一方向 / 跨方向都不重复），覆盖与质量同时提升。
   const used = new Set<string>();
-  const assigned = new Map<string, string>();
-  for (const c of [...cands].sort((x, y) => y.score - x.score)) {
-    if (assigned.has(c.calKey)) continue;   // 该方向已分配
-    if (used.has(c.perfume)) continue;      // 该香已被别的方向占用
-    assigned.set(c.calKey, c.perfume);
-    used.add(c.perfume);
+  const assigned = new Map<string, string[]>();
+  const sorted = [...cands].sort((x, y) => y.score - x.score);
+  for (let round = 0; round < CANDIDATES_PER_DIRECTION; round++) {
+    for (const c of sorted) {
+      const list = assigned.get(c.calKey) ?? [];
+      if (list.length >= CANDIDATES_PER_DIRECTION) continue; // 该方向已满
+      if (used.has(c.perfume)) continue;                     // 该香已被别的方向占用
+      list.push(c.perfume);
+      assigned.set(c.calKey, list);
+      used.add(c.perfume);
+    }
   }
-  // 兜底：极端情况下方向数超过池大小时，未分配方向取其自身最高分
+  // 兜底：极端情况下池耗尽时，未分配到任何候选的方向取其自身最高分
   for (const calKey of ALL_CAL_KEYS) {
     if (assigned.has(calKey)) continue;
     const top = cands.filter((c) => c.calKey === calKey).sort((x, y) => y.score - x.score)[0];
-    if (top) assigned.set(calKey, top.perfume);
+    if (top) assigned.set(calKey, [top.perfume]);
   }
   _budgetDirectionAssignment = assigned;
   return assigned;
 }
 
+/** 每个方向最多保留几支候选香（受全局去重约束，实际数量可能更少） */
+const CANDIDATES_PER_DIRECTION = 3;
+
 // 保留旧函数名以兼容外部引用（内部已重定向到方向分配）
 /** @deprecated 请使用 buildBudgetDirectionAssignment（按 calKey 分配） */
-function buildBudgetAssignment(): Map<string, string> {
+function buildBudgetAssignment(): Map<string, string[]> {
   return buildBudgetDirectionAssignment();
 }
 
@@ -513,8 +525,8 @@ function buildBudgetAssignment(): Map<string, string> {
 // 本表按 16 原型各自贪心选香（用各原型自身雷达 + 推断校准），保证 16 支互不重复。
 // 真实用户路径（useArchetypeBudget=false）不调用本表，仍走 calKey，保留校准对齐。
 // ════════════════════════════════════════════════════════════════════════════
-let _archetypeBudgetAssignment: Map<string, string> | null = null;
-function buildArchetypeBudgetAssignment(): Map<string, string> {
+let _archetypeBudgetAssignment: Map<string, string[]> | null = null;
+function buildArchetypeBudgetAssignment(): Map<string, string[]> {
   if (_archetypeBudgetAssignment) return _archetypeBudgetAssignment;
   const archs = PERSONALITY_TYPES as {
     id: string;
@@ -538,21 +550,28 @@ function buildArchetypeBudgetAssignment(): Map<string, string> {
     }
   }
 
-  // 贪心全局去重：按得分降序，每个原型拿其最佳且未被占用的香
+  // 2026-09-16 改进：与 buildBudgetDirectionAssignment 同理，
+  // 每个原型保留一组互不重复的候选（而非只锁 1 支），
+  // 运行时按该原型/用户的真实分数择优 —— 既守住「16 原型不重复」，也把覆盖面打开。
   const used = new Set<string>();
-  const assigned = new Map<string, string>();
-  for (const c of [...cands].sort((x, y) => y.score - x.score)) {
-    if (assigned.has(c.archId)) continue;
-    if (used.has(c.perfume)) continue;
-    assigned.set(c.archId, c.perfume);
-    used.add(c.perfume);
+  const assigned = new Map<string, string[]>();
+  const sorted = [...cands].sort((x, y) => y.score - x.score);
+  for (let round = 0; round < CANDIDATES_PER_DIRECTION; round++) {
+    for (const c of sorted) {
+      const list = assigned.get(c.archId) ?? [];
+      if (list.length >= CANDIDATES_PER_DIRECTION) continue; // 该原型已满
+      if (used.has(c.perfume)) continue;                     // 已被别的原型占用
+      list.push(c.perfume);
+      assigned.set(c.archId, list);
+      used.add(c.perfume);
+    }
   }
   // 兜底：极端情况下池 < 16 时，未分配原型取其自身最高分
   for (const a of archs) {
     if (assigned.has(a.id)) continue;
     const top = cands.filter((c) => c.archId === a.id).sort((x, y) => y.score - x.score)[0];
     if (top) {
-      assigned.set(a.id, top.perfume);
+      assigned.set(a.id, [top.perfume]);
       used.add(top.perfume);
     }
   }
@@ -786,44 +805,55 @@ export function getCalibratedRecommendations(
     });
   }
 
-  // 平价档全局去重（v2：按校准方向分配，2026-08-20）：
-  // 用「用户真实 calKey」查表，覆盖初始 budgetBest。
-  // 核心改进：分配用 calKey 而非 archetypeId，用户校准方向改变时仍能匹配到适合的平价香。
-  // 覆盖时按「用户本次真实校准 + 真实雷达」重算 match%，保证展示的匹配度对该用户诚实。
+  // 平价档全局去重（v3：按校准方向多候选择优，2026-09-16）：
+  // 查表拿到该方向的候选组，再用「用户本次真实校准 + 真实雷达」重算分数择优。
+  //
+  // 2026-09-16 修复：v2 是无条件取表中唯一一支并整体覆盖 budgetBest，带来两个问题：
+  //   (a) 每个方向锁死 1 支 → budget 池 47 支中 20 支在任何用户路径下都不可能出现；
+  //   (b) 覆盖是硬覆盖 → 上面那段「MMR + 垄断去偏」排序算完即被丢弃，沦为死代码，
+  //       用户还可能拿到候选里相对低分的那一支。
+  // v3 保留去重语义（同一方向的候选互不重复、跨方向也不重复），
+  // 但把「唯一答案」换成「候选组择优」，覆盖面与匹配质量同时提升。
   const calKey = getCalKey(calChoices);
-  // 原型/Codex/分享卡（canonical）视图：按 16 原型各自锁定一支不重复尝试香，
+  // 原型/Codex/分享卡（canonical）视图：按 16 原型各自的候选组，
   // 避免 16 原型因 calKey 收拢成 8 个而共用尝试香（可见重复）。
-  // 真实用户路径（useArchetypeBudget=false）仍按 calKey 分配，保留其校准对齐特性。
-  const fixedName = useArchetypeBudget && archetypeId
-    ? buildArchetypeBudgetAssignment().get(archetypeId)
-    : buildBudgetDirectionAssignment().get(calKey);
-  const fixedPerfume = fixedName ? (PERFUMES as Record<string, Perfume>)[fixedName] : undefined;
-  if (fixedPerfume && fixedPerfume.tier === 'budget') {
-      const fixedScore = totalScore(fixedPerfume, radarEn, prefs!, pathLabels);
-      // 平价档使用原始全局分数
-      const fixedRec: CalibratedRecommendation = {
-        name: fixedPerfume.name,
-        brand: fixedPerfume.brand,
-        brandCn: fixedPerfume.brandCn,
-        notes: [
-          ...fixedPerfume.notes.top,
-          ...fixedPerfume.notes.heart,
-          ...fixedPerfume.notes.base,
-        ].join(' / '),
-        notesStructured: { ...fixedPerfume.notes },
-        quote: `「${fixedPerfume.description}」`,
-        tier: fixedPerfume.tier,
-        role: 'budget',
-        match: Math.round(fixedScore),
-        priceRange: fixedPerfume.priceRange,
-        intensity: fixedPerfume.intensity,
-        longevity: fixedPerfume.longevity,
-        score: fixedScore,
-      };
-      const budgetIdx = results.findIndex((r) => r.role === 'budget');
-      if (budgetIdx >= 0) results[budgetIdx] = fixedRec;
-      else results.push(fixedRec);
-    }
+  // 真实用户路径（useArchetypeBudget=false）仍按 calKey 取候选，保留其校准对齐特性。
+  const fixedNames = useArchetypeBudget && archetypeId
+    ? buildArchetypeBudgetAssignment().get(archetypeId) ?? []
+    : buildBudgetDirectionAssignment().get(calKey) ?? [];
+
+  let fixedRec: CalibratedRecommendation | null = null;
+  for (const candName of fixedNames) {
+    const cand = (PERFUMES as Record<string, Perfume>)[candName];
+    if (!cand || cand.tier !== 'budget') continue;
+    const candScore = totalScore(cand, radarEn, prefs!, pathLabels);
+    if (fixedRec && candScore <= fixedRec.score) continue;
+    // 平价档使用原始全局分数
+    fixedRec = {
+      name: cand.name,
+      brand: cand.brand,
+      brandCn: cand.brandCn,
+      notes: [
+        ...cand.notes.top,
+        ...cand.notes.heart,
+        ...cand.notes.base,
+      ].join(' / '),
+      notesStructured: { ...cand.notes },
+      quote: `「${cand.description}」`,
+      tier: cand.tier,
+      role: 'budget',
+      match: Math.round(candScore),
+      priceRange: cand.priceRange,
+      intensity: cand.intensity,
+      longevity: cand.longevity,
+      score: candScore,
+    };
+  }
+  if (fixedRec) {
+    const budgetIdx = results.findIndex((r) => r.role === 'budget');
+    if (budgetIdx >= 0) results[budgetIdx] = fixedRec;
+    else results.push(fixedRec);
+  }
 
   return results;
 }
