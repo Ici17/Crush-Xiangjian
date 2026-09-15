@@ -31,7 +31,8 @@ type TopItem = { name: string; count: number };
 
 type Overview = {
   ok: boolean;
-  driver: 'kv' | 'file' | 'log';
+  driver: 'supabase' | 'kv' | 'file' | 'log';
+  truncated?: boolean;
   from: string;
   to: string;
   intervalUv: number;
@@ -245,9 +246,12 @@ export default function AdminDashboard() {
             数据后台
           </h1>
           <p className="text-xs mt-1" style={{ color: '#8A7355' }}>
-            {data ? `${data.from} ~ ${data.to}` : '—'} · 存储：{data?.driver === 'kv' ? 'Vercel KV' : data?.driver === 'file' ? '本地文件（dev）' : '仅日志'}
+            {data ? `${data.from} ~ ${data.to}` : '—'} · 存储：{data?.driver === 'supabase' ? 'Supabase Postgres' : data?.driver === 'kv' ? 'Vercel KV / Redis' : data?.driver === 'file' ? '本地文件（dev）' : '仅日志'}
+            {data?.truncated && (
+              <span style={{ color: '#B4433C' }}> · 区间内事件超过单次读取上限，计数可能偏低</span>
+            )}
             {data?.driver === 'file' && (
-              <span style={{ color: '#B4433C' }}> · 未接 KV，数据不持久</span>
+              <span style={{ color: '#B4433C' }}> · 未接数据库，数据不持久</span>
             )}
           </p>
         </div>

@@ -21,17 +21,24 @@
 
 ## 2. 上线三步（Vercel）
 
-### 2.1 创建 KV 存储（30 秒）
+### 2.1 创建数据库（Supabase Postgres）
 
-1. Vercel Dashboard → 项目 `crushxiangjian` → **Storage** → **Create Database** → 选 **KV（Upstash Redis）**
-2. 区域选与你函数最近的（如 `hkg1` / `sin1`）
-3. 创建后点 **Connect Project**，Vercel 会自动注入：
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
-4. **Redeploy** 一次（环境变量变更后需重新部署）
+> 2024 年起 Vercel 自家 KV 已下架，统一走 Marketplace 服务商。
+> 本项目选 Supabase Postgres：除了埋点，以后订单表 / 用户表 / 留存分析都能直接复用。
 
-代码会自动探测这两个变量（也兼容 Upstash 原生的 `UPSTASH_REDIS_REST_URL/TOKEN`），无需改任何代码。
-免费额度（每月 10 万次命令）对当前量级绰绰有余。
+1. Vercel 项目 → **Storage** → **Browse Storage** → 选 **Supabase** → Continue
+2. 登录 / 注册 Supabase（GitHub 一键登录即可），新建免费的 Postgres 库，**Region 选 Singapore**
+3. Supabase 控制台 → **SQL Editor** → New query → 整段粘贴 `scripts/supabase-schema.sql` → Run
+4. 回到 Vercel，**Connect Project** 到 `crush-xiangjian`，会自动注入：
+   - `SUPABASE_URL`（或 `NEXT_PUBLIC_SUPABASE_URL`）
+   - `SUPABASE_ANON_KEY`（或 `NEXT_PUBLIC_SUPABASE_ANON_KEY`）
+   - 有 `SUPABASE_SERVICE_ROLE_KEY` 时优先使用它（不走 anon RLS）
+5. **Redeploy** 一次（环境变量变更后需重新部署）
+
+代码自动识别上述变量，命中即切换到 `supabase` 驱动，无需改任何代码。
+
+> 只想用 Redis 也可以：设置 `KV_REST_API_URL` / `KV_REST_API_TOKEN`（或 Upstash 原生变量名），
+> 会退回到 `kv` 驱动，功能完全一致。
 
 ### 2.2 设置后台口令（必做）
 
@@ -52,11 +59,18 @@ ADMIN_PASSWORD = 你自己的强口令
 
 | 驱动 | 触发条件 | 说明 |
 |------|----------|------|
-| `kv` | 有 KV / Upstash 环境变量 | **线上真实持久化**，看板顶部显示「存储：Vercel KV」 |
-| `file` | 本地 `next dev` | 写入项目内 `.data/analytics.json`（已 gitignore），看板顶部会红色提醒「未接 KV，数据不持久」 |
-| `log` | KV 写失败时兜底 | 仅打函数日志，不报错、不影响主流程 |
+| `supabase` | 有 `SUPABASE_URL` + key | **线上真实持久化**，看板显示「存储：Supabase Postgres」，数据可直接写 SQL 查 |
+| `kv` | 有 `KV_REST_API_URL` / Upstash 变量 | Redis 方案，看板显示「存储：Vercel KV / Redis」 |
+| `file` | 本地 `next dev` | 写入项目内 `.data/analytics.json`（已 gitignore），顶部红色提醒「未接数据库，数据不持久」 |
+| `log` | 写失败时兜底 | 仅打函数日志，不报错、不影响主流程 |
 
-Redis 键结构（前缀 `cx:`）：
+### Supabase 表结构（`scripts/supabase-schema.sql`）
+
+- `cx_events(id, ts, day, event, path, sid, props jsonb)` — 一行一条匿名事件，带 `(day)` / `(ts)` / `(sid)` 索引
+- `cx_session_first_day(sid, first_day)` — 视图，取每个匿名会话的最早出现日 → 新访客数
+- 已开启 RLS；脚本末尾附了 anon 的 insert/select 策略，**若你只用 service_role key 可删掉那两段**
+
+SQL 直查示例（Supabase SQL Editor 直接可用）已在脚本注释里：核心漏斗 / 人格分布 / 按天 PV·UV。
 
 - `cx:ev` — 原始事件列表（`LPUSH` + `LTRIM 0 4999`，只留最近 5000 条）
 - `cx:d:{YYYY-MM-DD}` — 当日事件计数 Hash
