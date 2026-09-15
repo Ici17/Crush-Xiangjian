@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { isWechatBrowser, PRICE_CONFIG, initiatePayment, type PriceKey } from "@/lib/payment";
+import { track } from "@/lib/analytics";
 
 // 支付产品 ID 映射已移除;未来接入微信/支付宝/Stripe 时在此登记。
 
@@ -46,10 +47,16 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 解锁弹窗曝光（付费漏斗第 1 步）
+  useEffect(() => {
+    track('pay_modal_open', { context, price: priceKey });
+  }, [context, priceKey]);
+
   // 点击「去支付」→ 调用预留支付通道(当前未接入,显示敬请期待)
   const handleCheckout = async () => {
     setLoading(true);
     setError(null);
+    track('pay_claim', { price: priceKey, context });
     try {
       const res = await initiatePayment({ priceKey });
       if (res.ok) {

@@ -205,7 +205,7 @@ function ResultInner() {
       setPathLabels(getPathLabelsFromStorage());
       setIsDemo(false);
       setShowUntestedHint(false);
-      track('result_view', { source: 'sample' });
+      track('result_view', { source: 'sample', personality: mappedName });
     } else if (demoName) {
       // 演示模式：预览任意人格，不污染真实邀请链
       const name = demoName === '1' || demoName === '' ? '暗流' : decodeURIComponent(demoName);
@@ -224,7 +224,7 @@ function ResultInner() {
         // 注册自己为邀请者（让朋友 B 能标记我）
         setAsInviter(name);
         setShowUntestedHint(false);
-        track('test_complete');
+        track('test_complete', { personality: name });
       } else {
         // 无 URL 参数、也无本地测试记录 → 裸开 / 未测试，用黄金兜底「暗流」并提示示例
         setShowUntestedHint(true);
@@ -341,7 +341,7 @@ function ResultInner() {
   type SaveResult = { ok: boolean; method: 'download' | 'preview'; url?: string; error?: string };
   const handleSaveShareImage = useCallback(async (format: '3to4' = '3to4'): Promise<SaveResult> => {
     if (!personalityName) return { ok: false, method: 'download', error: 'no personality' };
-    track('share_card_generate', { format });
+    track('share_card_generate', { format, scene: isDemo ? 'sample' : 'self', personality: personalityName });
     // 运行时从 DOM 读当前 state，避免声明顺序问题
     const recs = recommendations; // 运行时读取，当前值
     const dims = shareRadarRaw

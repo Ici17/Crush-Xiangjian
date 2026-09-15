@@ -41,6 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # local scratch / build artifacts (not part of source)
+/.data/
 *.log
 *.result.json
 _*.cjs

@@ -16,6 +16,7 @@ import PerfumeBottleShowcase from '@/components/PerfumeBottleShowcase';
 import IncenseRitual from '@/components/IncenseRitual';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
+import { track } from '@/lib/analytics';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -50,6 +51,24 @@ export default function DailyPanel() {
   const [showShareGuide, setShowShareGuide] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 埋点：揭笺（每日每会话只记一次）+ 图鉴浏览
+  useEffect(() => {
+    if (!revealed) return;
+    try {
+      const k = `cx_daily_tracked_${today}`;
+      if (!sessionStorage.getItem(k)) {
+        sessionStorage.setItem(k, '1');
+        track('daily_draw', { sign: draw.main?.rarity ?? '' });
+      }
+    } catch {
+      /* 埋点失败不影响体验 */
+    }
+  }, [revealed, today, draw.main?.rarity]);
+
+  useEffect(() => {
+    if (view === 'codex') track('codex_view');
+  }, [view]);
 
   useEffect(() => {
     try {

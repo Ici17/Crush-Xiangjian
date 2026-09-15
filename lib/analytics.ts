@@ -1,30 +1,24 @@
 'use client';
 
 /**
- * 轻量、无 PII 的事件埋点。
+ * 轻量、无 PII 的事件埋点（客户端）。
  *
  * 合规原则（与项目「合规红线」一致）：
  * - 绝不采集个人身份信息（PII）：无姓名 / 手机号 / 微信 openid / 邮箱 / 精确 IP。
  * - 仅用本地随机生成的「匿名 sessionId」（存于 localStorage）做漏斗 / 留存去重，
  *   该 id 与任何真实身份无关，用户清缓存即重置。
- * - 服务端 /api/event 亦不会读取可识别字段（不读请求 IP）。
+ * - 来源（referrer）只在本地归一化为渠道名后上报，不上传完整 URL。
  *
- * 设计取舍：当前零配置即可运行（事件打到 Vercel 函数日志）；
- * 配置 Upstash Redis 环境变量后自动升级为可聚合的真实埋点库。
+ * 上报到 /api/event，由 lib/analytics/store 决定落地方式（Vercel KV / 本地文件 / 日志）。
  */
 
-export type TrackEvent =
-  | 'page_view' // 任意路由访问（由 PageTracker 自动上报）
-  | 'test_start' // 落地页点击「开始寻找我的本命香」
-  | 'test_complete' // 用户本人完成测试（结果页读 localStorage 分支）
-  | 'result_view' // 通过 ?p= 查看示例/他人结果（病毒触达，非转化）
-  | 'share_card_generate' // 生成分享图（六维卡）
-  | 'friend_match_start' // 进入好友匹配页
-  | 'friend_match_complete'; // 匹配结果算出
+import { normalizeRef, type PropValue, type TrackEvent } from './analytics/events';
+
+export type { TrackEvent };
 
 const SESSION_KEY = 'cx_anon_session';
+const REF_KEY = 'cx_anon_ref';
 const ENDPOINT = '/api/event';
-const MAX_STR_PROP = 64;
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return '';
@@ -32,9 +26,9 @@ function getSessionId(): string {
     let id = window.localStorage.getItem(SESSION_KEY);
     if (!id) {
       id =
-        (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
-          : `s_${Math.random().toString(36).slice(2)}_${Date.now()}`);
+          : `s_${Math.random().toString(36).slice(2)}_${Date.now()}`;
       window.localStorage.setItem(SESSION_KEY, id);
     }
     return id;
@@ -43,7 +37,23 @@ function getSessionId(): string {
   }
 }
 
-type PropValue = string | number | boolean;
+/**
+ * 首次来源渠道：第一次进站时把 referrer 归一化后存进 sessionStorage，
+ * 后续页面沿用首次来源，避免「直接访问」被重复计算、归因失真。
+ */
+function getRef(): string {
+  if (typeof window === 'undefined') return '直接访问';
+  try {
+    let ref = window.sessionStorage.getItem(REF_KEY);
+    if (!ref) {
+      ref = normalizeRef(document.referrer, window.location.pathname);
+      window.sessionStorage.setItem(REF_KEY, ref);
+    }
+    return ref;
+  } catch {
+    return '直接访问';
+  }
+}
 
 /** 上报一个匿名事件。失败静默，绝不影响主流程。 */
 export function track(event: TrackEvent, props: Record<string, PropValue> = {}): void {
@@ -53,6 +63,7 @@ export function track(event: TrackEvent, props: Record<string, PropValue> = {}):
     props,
     sessionId: getSessionId(),
     path: window.location.pathname,
+    ref: getRef(),
     ts: Date.now(),
   };
   try {
@@ -78,8 +89,15 @@ export const ANALYTICS_EVENTS: TrackEvent[] = [
   'test_complete',
   'result_view',
   'share_card_generate',
+  'share_guide_open',
+  'share_click',
+  'download_card',
   'friend_match_start',
   'friend_match_complete',
+  'daily_draw',
+  'codex_view',
+  'pay_modal_open',
+  'pay_method_select',
+  'pay_claim',
+  'unlock_success',
 ];
-
-export { MAX_STR_PROP };
