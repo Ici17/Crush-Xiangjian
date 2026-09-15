@@ -40,6 +40,22 @@
 > 只想用 Redis 也可以：设置 `KV_REST_API_URL` / `KV_REST_API_TOKEN`（或 Upstash 原生变量名），
 > 会退回到 `kv` 驱动，功能完全一致。
 
+**当前线上配置**（2026-09-15 已完成）：
+
+| 项 | 值 |
+|---|---|
+| Supabase 项目 | `crushxiangjian-analytics`（ref `tukhyxmfnrshkuhtctab`） |
+| 区域 | `ap-southeast-1`（新加坡） |
+| Vercel 环境变量 | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` |
+| 看板显示 | 「存储：Supabase Postgres」 |
+
+> 也可以用 Management API 全自动完成：① `GET /v1/organizations` 取组织 id →
+> ② `POST /v1/projects {organization_id, name, region, db_pass}` 建库 →
+> ③ `POST /v1/projects/{ref}/database/query {query: sql}` 建表 →
+> ④ `GET /v1/projects/{ref}/api-keys` 取 service_role key。
+> Vercel 未开放「创建存储」的公开 API，所以数据库那一步要绕 Subase 侧完成，
+> 但**写环境变量和触发部署**可全程走 Vercel API。
+
 ### 2.2 设置后台口令（必做）
 
 Vercel → Settings → **Environment Variables** 增加：
@@ -72,11 +88,13 @@ ADMIN_PASSWORD = 你自己的强口令
 
 SQL 直查示例（Supabase SQL Editor 直接可用）已在脚本注释里：核心漏斗 / 人格分布 / 按天 PV·UV。
 
-- `cx:ev` — 原始事件列表（`LPUSH` + `LTRIM 0 4999`，只留最近 5000 条）
-- `cx:d:{YYYY-MM-DD}` — 当日事件计数 Hash
-- `cx:d:{date}:uv` — 当日访客 HyperLogLog（只存匿名 sessionId 的基数，**不存明文**）
-- `cx:uv:all` — 全局访客 HyperLogLog，用于判断「新老访客」
-- `cx:d:{date}:dim:{key}` — 维度计数 Hash（`path` / `personality` / `ref` / `price` / `tier` / `scene` / `sign` …）
+**免控制台建表**：拿到 Supabase Personal Access Token 后，可跳过 SQL Editor，直接用 Management API 执行脚本：
+
+```bash
+SBT=sbp_xxx REF=项目ref node scripts/run-sql.mjs scripts/supabase-schema.sql
+```
+
+（`scripts/run-sql.mjs` 会自动尝试 `/database/query` 与 `/sql` 两个端点。）
 
 ## 4. 埋点事件清单
 
