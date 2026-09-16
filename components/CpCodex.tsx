@@ -7,6 +7,7 @@ import { isCpLit, getCpLitCount, getCpLitKeys, CP_TOTAL } from '@/lib/cpCodex';
 import { getMyPersonalityId, encodeInvite } from '@/lib/inviteState';
 import CpBlendCard from '@/components/CpBlendCard';
 import SaveCardButton from '@/components/SaveCardButton';
+import { track } from '@/lib/analytics';
 
 const SEAL_COLOR: Record<string, string> = {
   隐: '#2C1810',
@@ -27,6 +28,12 @@ export default function CpCodex() {
   const [detail, setDetail] = useState<Detail>(null);
 
   useEffect(() => setMounted(true), []);
+
+  // 图鉴页曝光（2026-09-16 接通）：首页的图鉴视图由 DailyPanel 上报，
+  // 独立路由 /codex 这条入口一直是黑的，两处口径现在都用 codex_view。
+  useEffect(() => {
+    track('codex_view', { context: 'codex_page' });
+  }, []);
 
   const meId = mounted ? getMyPersonalityId() : null;
   const litCount = mounted ? getCpLitCount() : 0;

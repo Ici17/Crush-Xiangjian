@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { EVENT_LABEL } from '@/lib/analytics/events';
 
 type FunnelStep = {
   key: string;
@@ -40,7 +41,13 @@ type Overview = {
   nvTotal: number;
   totals: Record<string, number>;
   trend: TrendPoint[];
-  funnel: { main: FunnelStep[]; social: FunnelStep[]; pay: FunnelStep[] };
+  funnel: {
+    main: FunnelStep[];
+    quiz: FunnelStep[];
+    social: FunnelStep[];
+    growth: FunnelStep[];
+    pay: FunnelStep[];
+  };
   top: {
     personality: TopItem[];
     ref: TopItem[];
@@ -50,6 +57,9 @@ type Overview = {
     tier: TopItem[];
     scene: TopItem[];
     sign: TopItem[];
+    step: TopItem[];
+    choice: TopItem[];
+    cta: TopItem[];
   };
   recent: Array<{
     event: string;
@@ -71,25 +81,6 @@ const RANGES = [
   { days: 30, label: '近 30 天' },
   { days: 90, label: '近 90 天' },
 ];
-
-const EVENT_LABEL: Record<string, string> = {
-  page_view: '页面访问',
-  test_start: '开始测试',
-  test_complete: '完成测试',
-  result_view: '查看他人结果',
-  share_card_generate: '生成分享图',
-  share_guide_open: '打开分享引导',
-  share_click: '点击分享',
-  download_card: '下载分享图',
-  friend_match_start: '好友匹配开始',
-  friend_match_complete: '好友匹配完成',
-  daily_draw: '香签揭笺',
-  codex_view: '香气图鉴',
-  pay_modal_open: '解锁弹窗曝光',
-  pay_method_select: '选择支付方式',
-  pay_claim: '点击去支付',
-  unlock_success: '解锁成功',
-};
 
 function pct(a: number, b: number): string {
   if (!b) return '—';
@@ -326,6 +317,35 @@ export default function AdminDashboard() {
         </div>
       </section>
 
+      {/* 答题漏斗 + 裂变链路（2026-09-16 新增） */}
+      <section className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-1" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>答题漏斗</h2>
+          <p className="text-[11px] mb-4" style={{ color: '#A08D72' }}>
+            题目曝光 → 作答 → 完成测试。掉人最多的那一步，就是要动手改的题
+          </p>
+          <Funnel steps={data?.funnel.quiz ?? []} />
+          <div className="mt-5">
+            <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>各步曝光量（第 N 题）</p>
+            <Bars
+              items={(data?.top.step ?? []).map((s) => ({ ...s, name: `第 ${s.name} 步` }))}
+              color="#7C6A52"
+            />
+          </div>
+        </div>
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-1" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>裂变链路</h2>
+          <p className="text-[11px] mb-4" style={{ color: '#A08D72' }}>
+            分享页访问 → 站内点击 → 开始测试。这条链的转化率就是 K 因子的分子
+          </p>
+          <Funnel steps={data?.funnel.growth ?? []} />
+          <div className="mt-5">
+            <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>落地页按钮点击分布</p>
+            <Bars items={data?.top.cta ?? []} color={GOLD} />
+          </div>
+        </div>
+      </section>
+
       {/* 社交 + 付费 */}
       <section className="grid lg:grid-cols-2 gap-4 mb-4">
         <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
@@ -351,10 +371,16 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 页面分布 */}
-      <section className="rounded-2xl border p-5 mb-4" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
-        <h2 className="text-sm mb-4" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>页面访问 TOP</h2>
-        <Bars items={data?.top.path ?? []} color="#8A7355" />
+      {/* 页面分布 + 选项分布 */}
+      <section className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-4" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>页面访问 TOP</h2>
+          <Bars items={data?.top.path ?? []} color="#8A7355" />
+        </div>
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-4" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>选项分布 TOP</h2>
+          <Bars items={data?.top.choice ?? []} color={GOLD} />
+        </div>
       </section>
 
       {/* 最近事件 */}

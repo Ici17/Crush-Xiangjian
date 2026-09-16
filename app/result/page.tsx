@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
+import { Suspense, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import QRCode from 'qrcode';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -42,6 +42,9 @@ import GuardianScentCard from '@/components/GuardianScentCard';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import { clearMyTestProgress } from '@/lib/useMyTestStatus';
+
+/** 本会话是否已上报过 unlock_success（跨页面刷新去重，避免把一次解锁记成多次） */
+const UNLOCK_REPORTED_KEY = 'cx_unlock_reported';
 
 // 微信环境检测
 function isInWeChat(): boolean {
@@ -392,6 +395,9 @@ function ResultInner() {
     }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
+    // 口径统一（2026-09-16）：generate=发起生成、download_card=用户真正拿到图。
+    // 本页此前只发 generate 不发 download_card，导致分享图的完成转化被系统性低估。
+    track('download_card', { scene: isDemo ? 'sample' : 'self', format, personality: personalityName });
 
     // 微信 / iOS：浏览器不触发 a.download，改为内联预览让用户长按保存
     const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
@@ -440,8 +446,10 @@ function ResultInner() {
     try {
       await navigator.clipboard.writeText(shareLink);
     } catch {}
+    // 分享引导弹层曝光（2026-09-16 接通死埋点：此前只会定义、从不触发）
+    track('share_guide_open', { context: unlocked ? 'result_unlock' : 'result_lock' });
     setShowShareGuide(true);
-  }, [shareLink, personalityName, triggerSave]);
+  }, [shareLink, personalityName, triggerSave, unlocked]);
 
   // 动态推荐：同步读缓存 → useEffect 异步补算
   // 优先使用校准匹配，降级为固定映射
@@ -490,6 +498,31 @@ function ResultInner() {
   const currentPrice = (cfg.amount / 100).toFixed(1);
   const originalPrice = (cfg.originalAmount / 100).toFixed(1);
   const savePrice = ((cfg.originalAmount - cfg.amount) / 100).toFixed(1);
+
+  // ── 付费漏斗两端埋点（P0-3，2026-09-16 新增）─────────────
+  // ① 付费墙曝光 = 漏斗真正的起点。此前漏斗从 pay_modal_open 起算，
+  //    跳过了流失最大的那一段：看到付费墙之后，到底有多少人打开了弹窗。
+  const paywallSeenRef = useRef(false);
+  useEffect(() => {
+    if (unlocked || paywallSeenRef.current) return;
+    paywallSeenRef.current = true;
+    track('paywall_view', { context: 'full', price: currentKey });
+  }, [unlocked, currentKey]);
+
+  // ② 解锁成功 = 漏斗终点。此前该事件从未触发，看板付费漏斗末段恒为 0%
+  //    —— 看起来像「没人付费」，其实是「没人上报」。
+  //    用 sessionStorage 去重，避免同一用户刷新页面反复计成功。
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (paidLevel < 2) return;
+    try {
+      if (sessionStorage.getItem(UNLOCK_REPORTED_KEY) === '1') return;
+      sessionStorage.setItem(UNLOCK_REPORTED_KEY, '1');
+    } catch {
+      /* 隐私模式下 sessionStorage 不可用 → 退化为本次上报，不阻塞 */
+    }
+    track('unlock_success', { level: paidLevel });
+  }, [paidLevel]);
 
   return (
     <main className="app-shell">

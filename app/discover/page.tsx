@@ -23,6 +23,7 @@ import {
 } from "@/lib/discover";
 import SiteFooter from "@/components/SiteFooter";
 import { saveShareCard } from "@/lib/saveShareImage";
+import { track } from "@/lib/analytics";
 
 type Tab = "scene" | "reverse" | "kinship";
 
@@ -114,9 +115,16 @@ export default function DiscoverPage() {
         notesC: notesOf(c),
       });
 
+      // 口径统一（2026-09-16）：探索页此前零埋点。context 用来把「档案卡导出」
+      // 与结果页的 self 分享区分开（两者复用同一个 self 模板）。
+      track("share_card_generate", { scene: "self", format: "3to4", context: "discover_profile" });
       const r = await saveShareCard(q, `Crush香鉴-${personality}-档案卡.png`);
-      if (r.ok && r.method === "preview" && r.url) setPreviewUrl(r.url);
-      else if (!r.ok) setPreviewUrl(null);
+      if (!r.ok) {
+        setPreviewUrl(null);
+        return;
+      }
+      track("download_card", { scene: "self", format: "3to4", context: "discover_profile" });
+      if (r.method === "preview" && r.url) setPreviewUrl(r.url);
     } finally {
       setSaving(false);
     }

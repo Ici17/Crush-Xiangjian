@@ -12,7 +12,7 @@
  * 上报到 /api/event，由 lib/analytics/store 决定落地方式（Vercel KV / 本地文件 / 日志）。
  */
 
-import { normalizeRef, type PropValue, type TrackEvent } from './analytics/events';
+import { normalizeRef, TRACK_EVENTS, type PropValue, type TrackEvent } from './analytics/events';
 
 export type { TrackEvent };
 
@@ -83,21 +83,10 @@ export function track(event: TrackEvent, props: Record<string, PropValue> = {}):
   }
 }
 
-export const ANALYTICS_EVENTS: TrackEvent[] = [
-  'page_view',
-  'test_start',
-  'test_complete',
-  'result_view',
-  'share_card_generate',
-  'share_guide_open',
-  'share_click',
-  'download_card',
-  'friend_match_start',
-  'friend_match_complete',
-  'daily_draw',
-  'codex_view',
-  'pay_modal_open',
-  'pay_method_select',
-  'pay_claim',
-  'unlock_success',
-];
+/**
+ * 全量事件名（供后台 / 脚本做覆盖度校验）。
+ *
+ * 2026-09-16：此处原是一份手工复制的常量数组，与 TRACK_EVENTS 完全重复 ——
+ * 加事件时极易只改一处，现已改为直接复用定义。
+ */
+export const ANALYTICS_EVENTS: readonly TrackEvent[] = TRACK_EVENTS;

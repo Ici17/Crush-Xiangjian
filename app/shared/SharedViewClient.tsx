@@ -17,6 +17,7 @@ import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 import { TOTAL_PERFUMES } from '@/lib/data';
+import { track } from '@/lib/analytics';
 
 function Toast({ message }: { message: string }) {
   return (
@@ -44,7 +45,15 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
   const router = useRouter();
   const myStatus = useMyTestStatus();
 
+  // ── 裂变闭环埋点（P0-2，2026-09-16 新增）────────────────
+  // 此前 /shared 的 5 个 CTA 全零埋点：只能看到「分享出去多少」，
+  // 看不到「落地之后有多少人真的点了」，因此算不出 K 因子。
+  // 说明：本页的分享类动作只报 shared_cta_click（靠 cta 维度区分），
+  // 不再另报 share_click，避免同一个动作被计两次。
+  const handleCta = (cta: string) => track('shared_cta_click', { cta });
+
   const handleStartTest = () => {
+    handleCta('start_test');
     if (!myStatus.completed && !myStatus.inProgress) {
       router.push('/question');
       return;
@@ -65,6 +74,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
   };
 
   const handleRetest = () => {
+    handleCta('retest');
     const msg = `你之前测过的人格是「${myStatus.personalityName}」。\n\n重新测试将清除你当前的所有答案与结果。确定继续？`;
     const ok = typeof window !== 'undefined' ? window.confirm(msg) : true;
     if (ok) {
@@ -75,6 +85,12 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
 
   // 支持拼音 ID（如 chonglang）或中文名（如 冲浪）
   const mappedName = personalityName ? (PERSONALITY_NAME_MAP[personalityName] || personalityName) : '';
+
+  // 落地页曝光 —— 裂变链路的分母（带人格，可看「谁的人格传播力更强」）
+  useEffect(() => {
+    if (!mappedName) return;
+    track('shared_landing_view', { personality: mappedName });
+  }, [mappedName]);
 
   const friendLink = mappedName
     ? `/friend?inv=${encodeInvite(mappedName)}`
@@ -120,6 +136,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
 
   async function handleCopyLink() {
     if (!shareLink) return;
+    handleCta('copy_link');
     try {
       await navigator.clipboard.writeText(shareLink);
       showToast('链接已复制');
@@ -128,6 +145,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
 
   async function handleSaveImage(format: '3to4' = '3to4') {
     if (!mappedName || !personality || !firstRec) return;
+    handleCta('save_image');
     try {
       const params = new URLSearchParams({
         scene: 'shared',
@@ -139,11 +157,15 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
         format,
       });
       const filename = `${mappedName}的香气人格.png`;
+      // 口径统一（2026-09-16）：generate = 发起生成；download_card = 用户真正拿到图。
+      // 本页此前一条都不发，导致分享图转化被系统性低估。
+      track('share_card_generate', { scene: 'shared', format });
       const r = await saveShareCard(params, filename);
       if (!r.ok) {
         showToast('分享图生成失败，请重试');
         return;
       }
+      track('download_card', { scene: 'shared', format });
       if (r.method === 'preview' && r.url) {
         // 微信 / iOS：内联预览，用户长按保存（重新生成时释放旧图）
         const url = r.url;
@@ -215,6 +237,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             </div>
             <Link
               href="/result"
+              onClick={() => handleCta('my_result')}
               className="flex-shrink-0 px-3 py-1.5 bg-amber-800 text-amber-50 rounded-full text-xs font-sans font-medium active:scale-95 transition-transform"
             >
               查看我的
@@ -330,6 +353,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
 
           <Link
             href={friendLink}
+            onClick={() => handleCta('match')}
             className="block w-full py-3 bg-white border border-amber-300 text-amber-800 rounded-full font-sans font-medium text-sm text-center active:scale-95 transition-all hover:border-amber-500"
           >
             测测我们的契合度
@@ -359,7 +383,10 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
               下载分享图
             </button>
             <button
-              onClick={() => setShowQR(true)}
+              onClick={() => {
+                handleCta('qr');
+                setShowQR(true);
+              }}
               className="flex-1 py-3 bg-white border border-amber-200 text-amber-700 rounded-full font-sans font-medium text-sm active:scale-95 transition-all hover:border-amber-400"
             >
               扫码分享
@@ -428,6 +455,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             <div className="px-5 pb-5 flex flex-col gap-2">
               <button
                 onClick={() => {
+                  handleCta('copy_link_qr');
                   navigator.clipboard.writeText(shareLink).catch(() => {});
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import ShareImagePreviewModal from '@/components/ShareImagePreviewModal';
+import { track } from '@/lib/analytics';
 
 interface ShareGuideModalProps {
   isOpen: boolean;
@@ -71,7 +72,11 @@ export default function ShareGuideModal({
         <div className="px-5 pb-5 flex flex-col gap-2">
           {onSaveImage && (
             <button
-              onClick={() => onSaveImage('3to4')}
+              onClick={() => {
+                // 接通死埋点（2026-09-16）：share_click 此前只有定义、没有调用点
+                track('share_click', { channel: '保存长图' });
+                onSaveImage('3to4');
+              }}
               className="w-full py-3 bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm"
             >
               保存分享图（竖版长图）
@@ -80,6 +85,7 @@ export default function ShareGuideModal({
           {onCopyLink && (
             <button
               onClick={() => {
+                track('share_click', { channel: '复制链接' });
                 onCopyLink();
                 onClose();
               }}

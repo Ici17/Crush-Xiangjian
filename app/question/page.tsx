@@ -11,6 +11,7 @@ import {
   type QuestionChoice,
 } from "@/lib/branchingQuestions";
 import { markInviteeCompleted } from "@/lib/inviteState";
+import { track } from "@/lib/analytics";
 
 const STORAGE_KEY = "crushxiangjian_branch_progress";
 const PATH_KEY = "crushxiangjian_path_choices";
@@ -150,6 +151,44 @@ export default function QuestionPage() {
     (Math.min(stepNumber, TOTAL_STEPS) / TOTAL_STEPS) * 100
   );
 
+  // ── 答题漏斗埋点（2026-09-16 新增）──────────────────────
+  // 此前整个答题页（709 行）零埋点：看板只看得到「开始 100 / 完成 62」，
+  // 看不到「第 4 题掉了一半人」——而后者才是唯一能靠改题直接优化的指标。
+  // 三个事件：question_view（分步留存分母）、question_answer（选项分布）、test_abandon（流失位置）。
+  const finishedRef = useRef(false);
+  const stepRef = useRef(stepNumber);
+  stepRef.current = stepNumber;
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+  // 同一题只报一次曝光：避免「初始 q1 → localStorage 恢复 q1」这类重复上报把曲线抬高
+  const lastViewRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!currentQ) return;
+    const qid = progress.currentQuestionId;
+    if (lastViewRef.current === qid) return;
+    lastViewRef.current = qid;
+    track("question_view", {
+      step: stepNumber,
+      phase: progress.phase,
+      qid,
+    });
+  }, [currentQ, progress.currentQuestionId, progress.phase, stepNumber]);
+
+  // 未完成即离开（关页面 / 切到别的 App）。
+  // 用 pagehide 而不是 visibilitychange：后者会把「切出去回个微信」误判成放弃。
+  useEffect(() => {
+    const onHide = () => {
+      if (finishedRef.current) return;
+      const p = progressRef.current;
+      // 一题都没答就离开 → 不算中途放弃（那只是打开又关掉）
+      if (p.choices.length === 0 && p.calibrationChoices.length === 0) return;
+      track("test_abandon", { step: stepRef.current, phase: p.phase });
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, []);
+
   // 情境中文短标签（PRD 格式）：顶层 q1–q7 映射，不看子分支 scenario
   const Q_TOP_LABEL: Record<string, string> = {
     q1: "关于温度",
@@ -172,6 +211,7 @@ export default function QuestionPage() {
     "";
 
   function goFinish(allChoices: string[]) {
+    finishedRef.current = true; // 已进入出结果流程，后续离开不再计「中途放弃」
     setIsSubmitting(true);
 
     const result = calculatePersonalityFromPath(allChoices);
@@ -271,6 +311,14 @@ export default function QuestionPage() {
     if (!selectedId || !currentQ) return;
     const choice = currentQ.choices.find((c) => c.id === selectedId);
     if (!choice) return;
+
+    // 作答上报：step/phase 定位「从第几题开始犹豫」，choice 定位哪类选项被偏爱
+    track("question_answer", {
+      step: stepNumber,
+      phase: progress.phase,
+      qid: progress.currentQuestionId,
+      choice: selectedId,
+    });
 
     setAnimating(true);
 

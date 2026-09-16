@@ -47,10 +47,17 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 解锁弹窗曝光（付费漏斗第 1 步）
+  // 解锁弹窗曝光（付费漏斗第 2 步）
   useEffect(() => {
     track('pay_modal_open', { context, price: priceKey });
   }, [context, priceKey]);
+
+  // 主动关闭弹窗 —— 付费漏斗内的流失点（2026-09-16 新增）。
+  // 支付成功会走 onSuccess 直接卸载组件，不经过这里，所以不会把「成功」记成「关闭」。
+  const handleClose = () => {
+    track('pay_modal_close', { context, price: priceKey });
+    onClose();
+  };
 
   // 点击「去支付」→ 调用预留支付通道(当前未接入,显示敬请期待)
   const handleCheckout = async () => {
@@ -76,7 +83,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
     return (
       <div
         className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
         role="dialog"
         aria-modal="true"
         aria-label={`支付 ${config.label}`}
@@ -88,7 +95,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-serif font-bold text-amber-950 text-lg">{ctx.title}</h3>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-amber-500 text-2xl leading-none w-8 h-8 flex items-center justify-center"
               aria-label="关闭"
             >
@@ -105,7 +112,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
               支付通道即将开放
             </p>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="mt-6 px-5 py-2.5 rounded-full bg-amber-100 text-amber-800 text-sm"
             >
               我知道了
@@ -119,7 +126,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-label={`支付 ${config.label}`}
@@ -132,7 +139,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-serif font-bold text-amber-950 text-lg">{ctx.title}</h3>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-amber-500 text-2xl leading-none w-8 h-8 flex items-center justify-center"
             aria-label="关闭"
           >
@@ -189,7 +196,7 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="w-full text-amber-500 text-sm py-2 mt-2"
         >
           取消

@@ -140,6 +140,8 @@ export default function DailyPanel() {
 
   const handleSaveShareImage = async (format: '3to4' = '3to4') => {
     const params = new URLSearchParams({ scene: 'daily', date: today, format });
+    // 口径统一（2026-09-16）：香签分享图此前零埋点
+    track('share_card_generate', { scene: 'daily', format });
     const res = await saveShareCard(params, `crush香签-${today}-3to4.png`);
     if (!res.ok) {
       // 兜底：直接打开图片
@@ -147,6 +149,7 @@ export default function DailyPanel() {
       setShowShareGuide(false);
       return;
     }
+    track('download_card', { scene: 'daily', format });
     if (res.method === 'preview' && res.url) {
       // 重新生成时释放旧图，避免 blob URL 泄漏
       const url = res.url;
@@ -372,7 +375,11 @@ export default function DailyPanel() {
         </button>
       ) : (
         <button
-          onClick={() => setShowShareGuide(true)}
+          onClick={() => {
+            // 分享引导弹层曝光（2026-09-16 接通死埋点）
+            track('share_guide_open', { context: 'daily' });
+            setShowShareGuide(true);
+          }}
           className="block w-full mt-3 rounded-full py-3.5 text-[15px] font-medium text-center"
           style={{ fontFamily: 'Noto Sans SC, sans-serif', background: '#2C1810', color: '#FAF3EA' }}
         >

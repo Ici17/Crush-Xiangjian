@@ -51,10 +51,12 @@ export default function SaveCardButton({
         return;
       }
       track('share_card_generate', { scene, format: '3to4' });
+      // 口径统一（2026-09-16）：只要用户成功拿到图就算「获取」——
+      // 下载完成 或 已展示出可长按保存的预览（微信 / iOS 路径）。
+      // 此前 preview 分支不报，导致移动端（主要流量）的下载转化被整体漏掉。
+      track('download_card', { scene, format: '3to4' });
       if (r.method === 'preview' && r.url) {
         setPreviewUrl(r.url);
-      } else {
-        track('download_card', { scene, format: '3to4' });
       }
     } finally {
       setSaving(false);

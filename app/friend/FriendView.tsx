@@ -322,11 +322,15 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
       // 加 cache-buster 避免旧图缓存
       params.append('_t', String(Date.now()));
       const filename = `crush香鉴-${shareA.name}x${shareB.name}-${format}.png`;
+      // 口径统一（2026-09-16）：本页此前一条分享图埋点都没有 ——
+      // friend 页是下载量最集中的入口之一，缺失会让整体分享转化被系统性低估。
+      track('share_card_generate', { scene: 'friend', format });
       const r = await saveShareCard(params, filename);
       if (!r.ok) {
         showToast('分享图生成失败，请重试');
         return;
       }
+      track('download_card', { scene: 'friend', format });
       if (r.method === 'preview' && r.url) {
         // 微信 / iOS：内联预览，用户长按保存（重新生成时释放旧图）
         const url = r.url;

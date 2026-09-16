@@ -202,8 +202,14 @@ function emptyBucket(): DayBucket & { uvSet: Record<string, 1> } {
 
 function dimValues(ev: StoredEvent): Array<[DimKey, string]> {
   const out: Array<[DimKey, string]> = [];
-  if (ev.path) out.push(['path', ev.path]);
+  // 去重：`path` 既是顶层字段又是 DIM_KEYS 成员，不去重会被计两次，把该维度凭空翻倍
+  const seen = new Set<DimKey>();
+  if (ev.path) {
+    out.push(['path', ev.path]);
+    seen.add('path');
+  }
   for (const key of DIM_KEYS) {
+    if (seen.has(key)) continue;
     const v = ev.props?.[key];
     if (v === undefined || v === null) continue;
     if (typeof v === 'string' && v.trim()) out.push([key, v]);
@@ -300,7 +306,13 @@ export async function recordEvent(ev: StoredEvent): Promise<void> {
 // 读取
 // ============================================================
 
-const READ_DIMS: DimKey[] = ['path', 'personality', 'ref', 'method', 'price', 'tier', 'scene', 'source', 'channel', 'context', 'sign', 'level'];
+/** 读取时展开的维度 —— 直接复用 DIM_KEYS，杜绝第二份副本漏同步
+ *
+ * 2026-09-16 修复：此前这里是一份手工维护的常量，比 DIM_KEYS 少了 `format`，
+ * 导致 KV 驱动的看板读不到 format 维度、Supabase 驱动却读得到 ——
+ * 两种驱动的同一份数据口径不一致，且不会有任何报错。
+ */
+const READ_DIMS: readonly DimKey[] = DIM_KEYS;
 
 function dateKeys(days: number): string[] {
   const out: string[] = [];

@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ADMIN_COOKIE, adminEnabled, isProduction, isValidAdminCookie } from '@/lib/admin/auth';
 import { readRange, type DayResult, type StoredEvent } from '@/lib/analytics/store';
+import { EVENT_LABEL } from '@/lib/analytics/events';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 type Counts = Record<string, number>;
-
-const EVENT_LABEL: Record<string, string> = {
-  page_view: '页面访问',
-  test_start: '开始测试',
-  test_complete: '完成测试',
-  result_view: '查看他人结果',
-  share_card_generate: '生成分享图',
-  share_guide_open: '打开分享引导',
-  share_click: '点击分享',
-  download_card: '下载分享图',
-  friend_match_start: '好友匹配开始',
-  friend_match_complete: '好友匹配完成',
-  daily_draw: '香签揭笺',
-  codex_view: '香气图鉴',
-  pay_modal_open: '解锁弹窗曝光',
-  pay_method_select: '选择支付方式',
-  pay_claim: '点击去支付',
-  unlock_success: '解锁成功',
-};
 
 function sumCounts(days: DayResult[]): Counts {
   const out: Counts = {};
@@ -76,9 +58,28 @@ async function build(days: number) {
   const uvTotal = range.days.reduce((s, d) => s + (d.uv || 0), 0);
   const nvTotal = range.days.reduce((s, d) => s + (d.nv || 0), 0);
 
+  // 主漏斗：访问 → 开始测试 → 完成测试 → 生成分享图
   const mainFunnel = buildFunnel(totals, ['page_view', 'test_start', 'test_complete', 'share_card_generate'], 'page_view');
+  // 答题漏斗：分步留存。要定位「掉在第几题」必须看 question_view 的逐步衰减
+  const quizFunnel = buildFunnel(
+    totals,
+    ['question_view', 'question_answer', 'test_complete'],
+    'question_view',
+  );
   const socialFunnel = buildFunnel(totals, ['friend_match_start', 'friend_match_complete'], 'friend_match_start');
-  const payFunnel = buildFunnel(totals, ['pay_modal_open', 'pay_claim', 'unlock_success'], 'pay_modal_open');
+  // 裂变漏斗（2026-09-16 新增）：分享页访问 → 站内点击 → 开始测试，用于估算传播效率
+  const growthFunnel = buildFunnel(
+    totals,
+    ['shared_landing_view', 'shared_cta_click', 'test_start'],
+    'shared_landing_view',
+  );
+  // 付费漏斗（2026-09-16 修复）：起点从「弹窗打开」上移到「付费墙曝光」，
+  // 否则看不到流失最大的那一段（看到付费墙 → 打开弹窗）。
+  const payFunnel = buildFunnel(
+    totals,
+    ['paywall_view', 'pay_modal_open', 'pay_claim', 'unlock_success'],
+    'paywall_view',
+  );
 
   const trend = range.days.map((d) => ({
     date: d.date,
@@ -99,7 +100,7 @@ async function build(days: number) {
     nvTotal,
     totals,
     trend,
-    funnel: { main: mainFunnel, social: socialFunnel, pay: payFunnel },
+    funnel: { main: mainFunnel, quiz: quizFunnel, social: socialFunnel, growth: growthFunnel, pay: payFunnel },
     top: {
       personality: topN(sumDim(range.days, 'personality'), 16),
       ref: topN(sumDim(range.days, 'ref'), 10),
@@ -109,6 +110,11 @@ async function build(days: number) {
       tier: topN(sumDim(range.days, 'tier'), 6),
       scene: topN(sumDim(range.days, 'scene'), 6),
       sign: topN(sumDim(range.days, 'sign'), 6),
+      // 答题漏斗：哪一步掉人最多 / 哪个选项被选得最多（改题的直接依据）
+      step: topN(sumDim(range.days, 'step'), 12),
+      choice: topN(sumDim(range.days, 'choice'), 20),
+      // 裂变：落地页哪个 CTA 真的被点
+      cta: topN(sumDim(range.days, 'cta'), 8),
     },
     recent: range.recent.slice(0, 100),
   };
