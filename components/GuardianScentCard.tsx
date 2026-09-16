@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { getGuardianPerfume } from '@/lib/personalities';
 import PerfumeBottle from '@/components/PerfumeBottle';
+import SaveCardButton from '@/components/SaveCardButton';
 
 // 守护印配色（与香气图鉴 / 每日香签金印共用同一视觉语言）
 // 隐=深邃内敛 | 雅=有故事感 | 常=明亮外放
@@ -21,6 +22,11 @@ const SEAL_COLOR: Record<string, string> = {
  */
 export default function GuardianScentCard({ personalityName }: { personalityName: string }) {
   const guardian = useMemo(() => getGuardianPerfume(personalityName), [personalityName]);
+  // A 组卖点：守护香卡导出（内容全部由服务端按人格名派生）
+  const guardianParams = useMemo(
+    () => new URLSearchParams({ scene: 'guardian', name: personalityName }),
+    [personalityName]
+  );
 
   if (!guardian) return null;
 
@@ -108,6 +114,16 @@ export default function GuardianScentCard({ personalityName }: { personalityName
               <span style={{ fontSize: '10px', color: '#A8884E' }}>{guardian.match}%</span>
             </div>
           </div>
+        </div>
+
+        {/* A 组卖点：守护香卡导出（身份锚点向，含守护印 / 签文 / 契合度） */}
+        <div className="mt-3">
+          <SaveCardButton
+            params={guardianParams}
+            filename={`Crush香鉴-${personalityName}-守护香卡.png`}
+            label="保存守护香卡 →"
+            variant="outline"
+          />
         </div>
       </div>
     </section>

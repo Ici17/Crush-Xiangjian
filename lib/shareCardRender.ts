@@ -1,10 +1,14 @@
 /**
- * Crush香鉴 — 服务端分享图渲染 v2
+ * Crush香鉴 — 服务端分享图渲染 v3
  *
- * 三个场景：
- *   self    结果页本人（人格名 + 三香横排 + tagline）
- *   friend  朋友匹配页（A主B辅 + 圆环契合度）
- *   shared  /shared 分享卡（拉新为主 + 强CTA）
+ * 七个场景：
+ *   self     结果页本人（人格名 + 三香横排 + tagline）
+ *   friend   朋友匹配页（A主B辅 + 圆环契合度）
+ *   shared   /shared 分享卡（拉新为主 + 强CTA）
+ *   daily    今日香签（三笺 + 宜忌）
+ *   guardian 本命守护香卡（守护印 + 签文 + 契合度）—— A 组卖点
+ *   contrast 反差香卡（墨底「你的反面」）—— A 组卖点，属解锁内容
+ *   codex    气味 CP 图鉴卡（16×16 点亮矩阵）—— A 组卖点
  *
  * 技术栈：satori（JSX→SVG）+ sharp（SVG→PNG）+ qrcode
  * 字体：Noto Serif SC（public/fonts，运行时读磁盘 / 失败则同源HTTP拉取）
@@ -36,7 +40,9 @@ try { require("@img/sharp-libvips-linuxmusl-x64"); } catch { /* 非 linux-musl �
 
 // ── 类型定义 ───────────────────────────────────────────────────────────────
 
-export type ShareScene = "self" | "friend" | "shared" | "daily";
+export type ShareScene =
+  | "self" | "friend" | "shared" | "daily"
+  | "guardian" | "contrast" | "codex";
 
 export interface PerfumeCard {
   name: string;
@@ -123,7 +129,45 @@ export interface DailyShareData {
   format?: "3to4";
 }
 
-export type ShareCardData = SelfShareData | FriendShareData | SharedShareData | DailyShareData;
+/** 守护香卡（A 组）：身份锚点向，守护印 + 签文 + 气息契合度 */
+export interface GuardianShareData {
+  scene: "guardian";
+  personality: string; // 人格名
+  perfumeName: string;
+  brandCn: string;
+  notes?: string; // 三调关键词（点分隔）
+  seal: "隐" | "雅" | "常";
+  line: string; // 守护签文（启示体）
+  match: number; // 气息契合度 0-100
+  format?: "3to4";
+}
+
+/** 反差香卡（A 组）：解锁内容向（付费后可见），墨底「你的反面」 */
+export interface ContrastShareData {
+  scene: "contrast";
+  personality: string;
+  perfumeName: string;
+  brand: string;
+  notes: string;
+  why: string; // 反差解读（启示体）
+  radarA?: Record<string, number>; // 你的六维雷达 0~1（中文键）
+  radarB?: Record<string, number>; // 反差香的气味光谱 0~1（中文键）
+  format?: "3to4";
+}
+
+/** 气味 CP 图鉴卡（A 组）：收集向，16×16 点亮矩阵 */
+export interface CodexShareData {
+  scene: "codex";
+  personality?: string; // 本人格（用于署名，可空）
+  lit: string[]; // 已点亮的有序对 key："暗流|残温"
+  total: number; // 总格数（16×16 = 256）
+  names: string[]; // 人格名（canonical 顺序，决定矩阵行列）
+  format?: "3to4";
+}
+
+export type ShareCardData =
+  | SelfShareData | FriendShareData | SharedShareData | DailyShareData
+  | GuardianShareData | ContrastShareData | CodexShareData;
 
 // ── 颜色常量 ───────────────────────────────────────────────────────────────
 
@@ -421,7 +465,13 @@ function buildRadarSVG(
   };
   const angleOf = (i: number) => -90 + i * (360 / N);
   const VISUAL_FLOOR = 0.22;
-  const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
+  // 钳制到 0~1：雷达入参必须是归一化值。历史教训（2026-09-16）：
+  // getPerfumeProfile 返回的是**原始计数**（0~N），直接喂进来会让多边形飞出 viewBox，
+  // 整张图出现裁切错位的怪形。这里兜一层，防止再被超范围值画坏。
+  const visualValue = (v: number) => {
+    const x = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+    return VISUAL_FLOOR + x * (1 - VISUAL_FLOOR);
+  };
   const ringPoints = (radius: number): string =>
     RADAR_DIM_LIST.map((_, i) => {
       const p = toXY(radius, angleOf(i));
@@ -511,7 +561,11 @@ function buildDualRadarSVG(JSX: any, valuesA: Record<string, number>, valuesB: R
   };
   const angleOf = (i: number) => -90 + i * (360 / N);
   const VISUAL_FLOOR = 0.22;
-  const visualValue = (v: number) => VISUAL_FLOOR + v * (1 - VISUAL_FLOOR);
+  // 同 buildRadarSVG：钳制 0~1，避免原始计数把多边形画出画布
+  const visualValue = (v: number) => {
+    const x = Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0;
+    return VISUAL_FLOOR + x * (1 - VISUAL_FLOOR);
+  };
   const ringPoints = (radius: number): string =>
     RADAR_DIM_LIST.map((_, i) => {
       const p = toXY(radius, angleOf(i));
@@ -625,13 +679,20 @@ function brandRow(qrBase64: string, qrSize: number, showBrand = true) {
 // 让保存后的静态图自带行动召唤，弥补"缺少交互性"。
 function buildFooterBand(
   JSX: any, qrBase64: string, qrSize: number,
-  ctaMain: string, ctaSub: string, linkText: string
+  ctaMain: string, ctaSub: string, linkText: string,
+  variant: "dark" | "light" = "dark"
 ) {
+  // light 变体：给「本身就是墨底面板」的卡用（反差香卡），否则两块深色相邻会糊成一片
+  const bg = variant === "dark" ? C.INK : C.PAPER;
+  const ctaColor = variant === "dark" ? C.PAPER : C.INK;
+  const subColor = variant === "dark" ? C.GOLD_SOFT : C.GOLD;
+  const linkColor = variant === "dark" ? C.MUTED : "#9A8E7C";
   return JSX("div", {
     style: {
       display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-between",
       width: "100%", marginTop: "36px",
-      background: C.INK, borderRadius: "20px", padding: "22px 30px", boxSizing: "border-box",
+      background: bg, borderRadius: "20px", padding: "22px 30px", boxSizing: "border-box",
+      border: variant === "light" ? "1px solid rgba(168,136,78,0.35)" : "none",
     },
     children: [
       JSX("img", {
@@ -641,9 +702,9 @@ function buildFooterBand(
       JSX("div", {
         style: { display: "flex", flexDirection: "column", alignItems: "flex-end", flexGrow: 1, marginLeft: "26px" },
         children: [
-          JSX("span", { style: { color: C.PAPER, fontSize: "32px", fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1.2, textAlign: "right" }, children: ctaMain }),
-          JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "24px", marginTop: "6px", lineHeight: 1.35, textAlign: "right" }, children: ctaSub }),
-          JSX("span", { style: { color: C.MUTED, fontSize: "28px", marginTop: "10px", letterSpacing: "0.04em", textAlign: "right" }, children: linkText }),
+          JSX("span", { style: { color: ctaColor, fontSize: "32px", fontWeight: 700, letterSpacing: "0.04em", lineHeight: 1.2, textAlign: "right" }, children: ctaMain }),
+          JSX("span", { style: { color: subColor, fontSize: "24px", marginTop: "6px", lineHeight: 1.35, textAlign: "right" }, children: ctaSub }),
+          JSX("span", { style: { color: linkColor, fontSize: "28px", marginTop: "10px", letterSpacing: "0.04em", textAlign: "right" }, children: linkText }),
         ],
       }),
     ],
@@ -696,6 +757,12 @@ async function buildSvg(
     root = buildFriendCard(JSX, data as FriendShareData, W, H, pad, qrBase64, qrSize, base, satori, buildRingSVG, fontData);
   } else if (data.scene === "shared") {
     root = buildSharedCard(JSX, data as SharedShareData, W, H, pad, qrBase64, qrSize, base, buildBottleSVG, fontData);
+  } else if (data.scene === "guardian") {
+    root = buildGuardianCard(JSX, data as GuardianShareData, W, H, pad, qrBase64, qrSize, base, fontData);
+  } else if (data.scene === "contrast") {
+    root = buildContrastCard(JSX, data as ContrastShareData, W, H, pad, qrBase64, qrSize, base, fontData);
+  } else if (data.scene === "codex") {
+    root = buildCodexCard(JSX, data as CodexShareData, W, H, pad, qrBase64, qrSize, base, fontData);
   } else {
     root = buildDailyCard(JSX, data as DailyShareData, W, H, pad, qrBase64, qrSize, base, fontData);
   }
@@ -1170,6 +1237,314 @@ function buildSharedCard(
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景五：本命守护香卡（guardian）—— A 组卖点
+// 布局：品牌标 → 守护印 → 人格名 → 签文 → 守护香面板（瓶/名/品牌/三调/契合度）→ 页脚
+// 定位：身份锚点（你是谁的气息底色），与「本命香水」的购物向推荐区分
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GUARDIAN_SEAL_COLOR: Record<string, string> = {
+  隐: "#2C1810",
+  雅: "#A8884E",
+  常: "#8B7C68",
+};
+
+function buildGuardianCard(
+  JSX: any, d: GuardianShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, fontData: Buffer
+) {
+  const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED;
+  const sealColor = GUARDIAN_SEAL_COLOR[d.seal] ?? GOLD;
+
+  const masthead = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "34px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" })],
+  });
+
+  // 守护印（隐 = 深邃内敛 / 雅 = 有故事感 / 常 = 明亮外放）
+  const sealBadge = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "30px" },
+    children: [
+      JSX("span", {
+        style: {
+          color: sealColor, fontSize: "26px", letterSpacing: "0.18em",
+          border: `2px solid ${sealColor}`, borderRadius: "6px", padding: "4px 18px",
+        },
+        children: `守护印 · ${d.seal}`,
+      }),
+    ],
+  });
+
+  const hero = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "18px" },
+    children: [JSX("span", { style: { color: INK, fontSize: "100px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "0.06em" }, children: d.personality })],
+  });
+
+  const lineEl = d.line ? JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", paddingLeft: "40px", paddingRight: "40px", boxSizing: "border-box", marginBottom: "46px" },
+    children: [JSX("span", { style: { color: GOLD, fontSize: "34px", fontStyle: "italic", textAlign: "center", lineHeight: 1.6 }, children: `「${d.line}」` })],
+  }) : null;
+
+  // 守护香面板：瓶身按三调染色，回落本命香金色
+  const family = inferFamily(d.notes);
+  const bottleSize = 260;
+  const bottleSVG = `data:image/svg+xml;base64,${Buffer.from(buildBottleSVG(family ?? "本命香", bottleSize)).toString("base64")}`;
+
+  const matchBar = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%", marginTop: "52px" },
+    children: [
+      JSX("span", { style: { color: MUTED, fontSize: "24px", letterSpacing: "0.16em", marginRight: "18px" }, children: "气息契合" }),
+      JSX("div", {
+        style: { display: "flex", flexDirection: "row", width: "380px", height: "12px", borderRadius: "999px", background: "rgba(168,136,78,0.18)", marginRight: "18px" },
+        children: [
+          JSX("span", { style: { display: "block", width: `${Math.max(0, Math.min(100, d.match))}%`, height: "12px", borderRadius: "999px", background: GOLD }, children: "" }),
+        ],
+      }),
+      JSX("span", { style: { color: GOLD, fontSize: "36px", fontWeight: 600 }, children: `${d.match}%` }),
+    ],
+  });
+
+  const panel = JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center", width: "100%",
+      background: C.PAPER, borderRadius: "24px", padding: "60px 56px", boxSizing: "border-box",
+    },
+    children: [
+      JSX("img", { src: bottleSVG, width: bottleSize, height: bottleSize, style: { display: "block", marginBottom: "18px" } }),
+      JSX("span", { style: { color: GOLD, fontSize: "26px", letterSpacing: "0.28em", marginBottom: "14px" }, children: "本命守护香" }),
+      JSX("span", { style: { color: INK, fontSize: "56px", fontWeight: 700, textAlign: "center", lineHeight: 1.2, marginBottom: "12px" }, children: d.perfumeName }),
+      JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.12em" }, children: d.brandCn }),
+      d.notes ? JSX("span", { style: { color: "#7A6A56", fontSize: "24px", marginTop: "22px", textAlign: "center", lineHeight: 1.5 }, children: d.notes }) : null,
+      matchBar,
+    ].filter(Boolean),
+  });
+
+  // 语义说明：守护香是身份锚点，不是购物推荐（与本命香水三支区分）
+  const caption = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginTop: "26px" },
+    children: [JSX("span", { style: { color: "#7A6A56", fontSize: "24px", letterSpacing: "0.02em" }, children: "守护香 = 你的气息底色，不随场合与心情改变" })],
+  });
+
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "测你的灵魂香气", linkText);
+
+  const centerChildren: any[] = [masthead, sealBadge, hero];
+  if (lineEl) centerChildren.push(lineEl);
+  centerChildren.push(panel, caption);
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
+      background: C.BG, padding: pad, position: "relative",
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: centerChildren }),
+      bottomRow,
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景六：反差香卡（contrast）—— A 组卖点（属解锁内容，付费后可见）
+// 布局：品牌标 → 人格名 → 「如果反过来」 → 墨底面板（反差香）→ 解读 → 页脚
+// 视觉语言：与守护香卡的浅纸底形成对照 —— 反差用墨底金字
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildContrastCard(
+  JSX: any, d: ContrastShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, fontData: Buffer
+) {
+  const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED;
+
+  const masthead = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "30px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" })],
+  });
+
+  const hero = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "18px" },
+    children: [JSX("span", { style: { color: INK, fontSize: "96px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "0.06em" }, children: d.personality })],
+  });
+
+  const bridge = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "40px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.1em" }, children: "如果反过来，你会是这一支" })],
+  });
+
+  // 墨底面板（与守护香卡的浅底对照）
+  const panel = JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center", width: "100%",
+      background: INK, borderRadius: "24px", padding: "58px 56px", boxSizing: "border-box",
+    },
+    children: [
+      JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "26px", letterSpacing: "0.3em", marginBottom: "18px" }, children: "反 差 香" }),
+      JSX("span", { style: { color: C.PAPER, fontSize: "62px", fontWeight: 700, textAlign: "center", lineHeight: 1.2, marginBottom: "14px" }, children: d.perfumeName }),
+      JSX("span", { style: { color: C.GOLD_SOFT, fontSize: "28px", letterSpacing: "0.12em" }, children: d.brand }),
+      d.notes ? JSX("span", { style: { color: "rgba(248,242,232,0.72)", fontSize: "24px", marginTop: "22px", textAlign: "center", lineHeight: 1.5 }, children: d.notes }) : null,
+    ].filter(Boolean),
+  });
+
+  const whyEl = d.why ? JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", paddingLeft: "40px", paddingRight: "40px", boxSizing: "border-box", marginTop: "44px" },
+    children: [JSX("span", { style: { color: "#4A3C2E", fontSize: "34px", fontStyle: "italic", textAlign: "center", lineHeight: 1.65 }, children: `「${d.why}」` })],
+  }) : null;
+
+  // 双雷达：你的光谱 vs 反差香的光谱（「反差」的可见证据 —— 两张形状差得越开越成立）
+  // 注：曾用「各自主导调族」文字对照，实测会出现两边都算成「花香」的自相矛盾（残温 × 冬日之草），
+  // 因为反差是按雷达距离而非调族选的，故改为直接画雷达。
+  const dualRadarEl = (d.radarA && d.radarB) ? (() => {
+    const rSize = 300;
+    const { svg: rSvg, labels: rLabels } = buildDualRadarSVG(JSX, d.radarA!, d.radarB!, rSize);
+    return JSX("div", {
+      style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", marginTop: "44px" },
+      children: [
+        JSX("div", {
+          style: { position: "relative", width: rSize, height: rSize, display: "flex" },
+          children: [rSvg, ...rLabels],
+        }),
+        JSX("div", {
+          style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: "18px" },
+          children: [
+            JSX("span", { style: { display: "flex", width: "18px", height: "18px", borderRadius: "4px", background: "#A8884E", marginRight: "12px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "26px", marginRight: "36px" }, children: d.personality }),
+            JSX("span", { style: { display: "flex", width: "18px", height: "18px", borderRadius: "4px", background: "#2A211B", marginRight: "12px" }, children: "" }),
+            JSX("span", { style: { color: INK, fontSize: "26px" }, children: "反差香" }),
+          ],
+        }),
+      ],
+    });
+  })() : null;
+
+  const linkText = _base.replace(/^https?:\/\//, "");
+  // 本卡主体是墨底面板 → 页脚改用浅色变体，避免两块深色相邻糊成一片
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "你测出来会是哪一支", linkText, "light");
+
+  const centerChildren: any[] = [masthead, hero, bridge, panel];
+  if (whyEl) centerChildren.push(whyEl);
+  if (dualRadarEl) centerChildren.push(dualRadarEl);
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
+      background: C.BG, padding: pad, position: "relative",
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }, children: centerChildren }),
+      bottomRow,
+    ],
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 场景七：气味 CP 图鉴卡（codex）—— A 组卖点
+// 布局：品牌标 → 标题 → 已点亮大数字 → 16×16 点亮矩阵 → 图例 → 页脚
+// 定位：收集向社交货币（「让朋友帮你点亮下一格」），不卖概率、不强制分享
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CODEX_CELL = 40;
+const CODEX_GAP = 6;
+
+function buildCodexCard(
+  JSX: any, d: CodexShareData, W: number, H: number, pad: string,
+  qrBase64: string, qrSize: number, _base: string, fontData: Buffer
+) {
+  const INK = C.INK, GOLD = C.GOLD, MUTED = C.MUTED;
+  const names = d.names;
+  const litSet = new Set(d.lit);
+  const litCount = d.lit.length;
+  const total = d.total || names.length * names.length;
+
+  const masthead = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", width: "100%", marginBottom: "20px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "28px", letterSpacing: "0.4em", whiteSpace: "nowrap" }, children: "CRUSH XIANGJIAN" })],
+  });
+
+  const title = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "18px" },
+    children: [JSX("span", { style: { color: INK, fontSize: "46px", fontWeight: 700, letterSpacing: "0.16em" }, children: "气味 CP 图鉴" })],
+  });
+
+  // 已点亮大数字
+  const countRow = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "flex-end", justifyContent: "center", marginBottom: "6px" },
+    children: [
+      JSX("span", { style: { color: GOLD, fontSize: "104px", fontWeight: 700, lineHeight: 1 }, children: String(litCount) }),
+      JSX("span", { style: { color: MUTED, fontSize: "38px", marginLeft: "12px", marginBottom: "10px" }, children: `/ ${total}` }),
+    ],
+  });
+  const countCaption = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "30px" },
+    children: [JSX("span", { style: { color: MUTED, fontSize: "24px", letterSpacing: "0.18em" }, children: "已 相 遇 的 格 子" })],
+  });
+
+  // 16 × 16 矩阵：点亮 = 金块，未相遇 = 极淡底
+  const rows = names.map((rowName, ri) =>
+    JSX("div", {
+      key: `r-${ri}`,
+      style: { display: "flex", flexDirection: "row", marginBottom: ri === names.length - 1 ? "0px" : `${CODEX_GAP}px` },
+      children: names.map((colName, ci) => {
+        const lit = litSet.has(`${rowName}|${colName}`);
+        return JSX("div", {
+          key: `c-${ri}-${ci}`,
+          style: {
+            display: "flex",
+            width: `${CODEX_CELL}px`, height: `${CODEX_CELL}px`,
+            marginRight: ci === names.length - 1 ? "0px" : `${CODEX_GAP}px`,
+            borderRadius: "8px", boxSizing: "border-box",
+            background: lit ? GOLD : "rgba(42,33,27,0.05)",
+            border: lit ? `1px solid ${GOLD}` : "1px solid rgba(42,33,27,0.10)",
+          },
+          children: "",
+        });
+      }),
+    })
+  );
+
+  const matrix = JSX("div", {
+    style: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "20px" },
+    children: rows,
+  });
+
+  const legend = JSX("div", {
+    style: { display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: "8px" },
+    children: [
+      JSX("span", { style: { display: "flex", width: "22px", height: "22px", borderRadius: "6px", background: GOLD, marginRight: "10px" }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: "22px", marginRight: "30px" }, children: `已相遇 ${litCount}` }),
+      JSX("span", { style: { display: "flex", width: "22px", height: "22px", borderRadius: "6px", background: "rgba(42,33,27,0.05)", border: "1px solid rgba(42,33,27,0.10)", boxSizing: "border-box", marginRight: "10px" }, children: "" }),
+      JSX("span", { style: { color: MUTED, fontSize: "22px" }, children: `待相遇 ${Math.max(0, total - litCount)}` }),
+    ],
+  });
+
+  const note = JSX("div", {
+    style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "4px" },
+    children: [JSX("span", { style: { color: "#7A6A56", fontSize: "22px" }, children: d.personality ? `${d.personality} · 每一格 = 你 × 一位朋友` : "每一格 = 你 × 一位朋友" })],
+  });
+
+  const linkText = _base.replace(/^https?:\/\//, "");
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "让朋友帮你点亮下一格", linkText);
+
+  return JSX("div", {
+    style: {
+      display: "flex", flexDirection: "column", alignItems: "center",
+      width: `${W}px`, height: `${H}px`, boxSizing: "border-box",
+      background: C.BG, padding: pad, position: "relative",
+      fontFamily: fontData.byteLength > 0 ? '"Noto Serif SC"' : "serif",
+    },
+    children: [
+      JSX("div", {
+        style: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%" },
+        children: [masthead, title, countRow, countCaption, matrix, legend, note],
+      }),
+      bottomRow,
+    ],
+  });
+}
+
 // ── 内存缓存（LRU，50 条 / 5 分钟 TTL）────────────────────────────────────
 
 const _cache = new Map<string, { buffer: Buffer; ts: number }>();
@@ -1184,9 +1559,23 @@ function _cacheKey(data: ShareCardData, format: string) {
   } else if (data.scene === "friend") {
     const d = data as FriendShareData;
     return `${base}|${d.nameA}|${d.nameB}|${d.score}|${d.cpBlendName ?? ''}|${d.cpDiffTones ?? ''}`;
-  } else {
+  } else if (data.scene === "shared") {
     const d = data as SharedShareData;
     return `${base}|${d.sharerName}|${d.name}`;
+  } else if (data.scene === "daily") {
+    // 修复（2026-09-16）：daily 此前落进上面的 else 里被当作 SharedShareData 取字段，
+    // 得到恒定的 "daily|3to4|undefined|undefined" → 5 分钟 TTL 内不同日期的香签会互相串图。
+    const d = data as DailyShareData;
+    return `${base}|${d.date}`;
+  } else if (data.scene === "guardian") {
+    const d = data as GuardianShareData;
+    return `${base}|${d.personality}`;
+  } else if (data.scene === "contrast") {
+    const d = data as ContrastShareData;
+    return `${base}|${d.personality}`;
+  } else {
+    const d = data as CodexShareData;
+    return `${base}|${d.personality ?? ""}|${d.lit.length}|${d.lit.slice(0, 24).join(",")}`;
   }
 }
 

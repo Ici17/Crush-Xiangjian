@@ -45,12 +45,25 @@
  *   perfumeName   本命香名（必填）
  *   inv           邀请码（嵌入二维码）
  *
+ * scene=guardian（本命守护香卡）:
+ *   name          人格名（必填）—— 守护香 / 品牌 / 三调 / 印 / 签文 / 契合度全部由服务端派生
+ *
+ * scene=contrast（反差香卡，属解锁内容）:
+ *   name          人格名（必填）—— 反差香 / 品牌 / 三调 / 解读全部由服务端派生
+ *
+ * scene=codex（气味 CP 图鉴卡）:
+ *   lit           已点亮的有序对，逗号分隔，形如 `暗流|残温,残温|暗流`（可空 = 0 格）
+ *   name          本人格名（可选，仅作署名）
+ *
  * Returns: image/png
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData } from "@/lib/shareCardRender";
-import { PERSONALITY_NAME_MAP, getScentPhilosophy, getRadarScores, RADAR_DIMS, RADAR_DIM_LABELS } from "@/lib/personalities";
+import { renderShareCardCached, type ShareCardData, type SelfShareData, type FriendShareData, type SharedShareData, type DailyShareData, type GuardianShareData, type ContrastShareData, type CodexShareData } from "@/lib/shareCardRender";
+import { PERSONALITY_NAME_MAP, PERSONALITIES, getScentPhilosophy, getRadarScores, RADAR_DIMS, RADAR_DIM_LABELS, getGuardianPerfume, getContrastScent } from "@/lib/personalities";
+import { CP_TOTAL } from "@/lib/cpCodex";
+import { findPerfume } from "@/lib/discover";
+import { getPerfumeProfileNorm } from "@/lib/matchPerfumes";
 import { getCpResonance } from "@/lib/cpResonance";
 import { drawDaily, getTodayStr, RARITY_LABEL, type DrawnPerfume } from "@/lib/daily/draw";
 import { drawAlmanac } from "@/lib/daily/almanac";
@@ -59,6 +72,11 @@ export const runtime = "nodejs";
 
 function normalizeName(raw: string): string {
   return PERSONALITY_NAME_MAP[raw] ?? raw;
+}
+
+/** 16 人格白名单校验：避免把任意字符串喂给派生函数（getContrastScent 对未知名会静默回落第一支香） */
+function isKnownPersonality(name: string): boolean {
+  return PERSONALITIES.some((p) => p.name === name);
 }
 
 // 解析雷达 JSON（0~1，六维中文键），失败返回 undefined
@@ -78,8 +96,8 @@ export async function GET(req: NextRequest) {
   // 入参容错：早期请求可能带 format=1to1，自动归一为 3to4（1:1 已下线）
   const rawFormat = (sp.get("format") ?? "3to4") as string;
   const format: "3to4" = rawFormat === "1to1" ? "3to4" : "3to4";
-  if (!["self", "friend", "shared", "daily"].includes(scene)) {
-    return NextResponse.json({ error: "scene must be self|friend|shared|daily" }, { status: 400 });
+  if (!["self", "friend", "shared", "daily", "guardian", "contrast", "codex"].includes(scene)) {
+    return NextResponse.json({ error: "scene must be self|friend|shared|daily|guardian|contrast|codex" }, { status: 400 });
   }
 
   let data: ShareCardData;
@@ -218,6 +236,77 @@ export async function GET(req: NextRequest) {
       almanac: { yi: alm.yi, ji: alm.ji, note: alm.note },
     };
     data = dd;
+
+  } else if (scene === "guardian") {
+    // 本命守护香卡：全部内容由服务端派生，客户端只传人格名（避免两端数据不一致）
+    const name = normalizeName(sp.get("name") ?? "");
+    if (!name || !isKnownPersonality(name)) {
+      return NextResponse.json({ error: "guardian: name must be one of the 16 personalities" }, { status: 400 });
+    }
+    const g = getGuardianPerfume(name);
+    if (!g) {
+      return NextResponse.json({ error: `guardian: no guardian perfume mapped for "${name}"` }, { status: 404 });
+    }
+    const gd: GuardianShareData = {
+      scene: "guardian",
+      personality: name,
+      perfumeName: g.name,
+      brandCn: g.brandCn,
+      notes: [...g.notes.top, ...g.notes.heart, ...g.notes.base].slice(0, 6).join("·"),
+      seal: g.seal,
+      line: g.line,
+      match: g.match,
+    };
+    data = gd;
+
+  } else if (scene === "contrast") {
+    // 反差香卡：属解锁内容，同样由服务端派生
+    const name = normalizeName(sp.get("name") ?? "");
+    if (!name || !isKnownPersonality(name)) {
+      return NextResponse.json({ error: "contrast: name must be one of the 16 personalities" }, { status: 400 });
+    }
+    const c = getContrastScent(name);
+    // 双侧雷达：你的六维（getRadarScores 返回中文键 0~1）+ 反差香的气味光谱
+    // 反差是按雷达距离选的（不是按调族），所以用雷达而不是「主导调族」来呈现
+    const radarA = getRadarScores(name) as Record<string, number>;
+    let radarB: Record<string, number> | undefined;
+    const cP = findPerfume(c.name);
+    if (cP) {
+      const prof = getPerfumeProfileNorm(cP); // 已归一化 0~1（原始计数会让雷达爆出画布）
+      radarB = {
+        木质: prof.woody, 清新: prof.fresh, 东方: prof.oriental,
+        美食: prof.gourmand, 柑橘: prof.citrus, 花香: prof.floral,
+      };
+    }
+    const cd: ContrastShareData = {
+      scene: "contrast",
+      personality: name,
+      perfumeName: c.name,
+      brand: c.brand,
+      notes: c.notes,
+      why: c.why,
+      radarA,
+      radarB,
+    };
+    data = cd;
+
+  } else if (scene === "codex") {
+    // 气味 CP 图鉴卡：点亮状态在客户端本地，只能由客户端传入
+    const litRaw = sp.get("lit") ?? "";
+    const lit = litRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, CP_TOTAL);
+    const name = normalizeName(sp.get("name") ?? "");
+    const kd: CodexShareData = {
+      scene: "codex",
+      personality: name && isKnownPersonality(name) ? name : undefined,
+      lit,
+      total: CP_TOTAL,
+      names: PERSONALITIES.map((p) => p.name),
+    };
+    data = kd;
 
   } else {
     // scene === "shared"

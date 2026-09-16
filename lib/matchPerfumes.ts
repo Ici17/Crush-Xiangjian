@@ -169,6 +169,26 @@ export function getPerfumeProfile(perfume: Perfume): ScentVector {
   return v;
 }
 
+/**
+ * 归一化到 0~1 的 6 维气味光谱（雷达图 / 可视化专用）
+ *
+ * ⚠️ 注意区分：getPerfumeProfile 返回的是**原始计数**（每命中一个香材关键词 +1，
+ * 量级 0~N），直接喂给雷达图会让多边形飞出 viewBox、整张分享图错位。
+ * 可视化一律用本函数（按该支香自身的最大值归一，保留形状）。
+ */
+export function getPerfumeProfileNorm(perfume: Perfume): ScentVector {
+  const v = getPerfumeProfile(perfume);
+  const max = Math.max(1, v.floral, v.woody, v.fresh, v.oriental, v.citrus, v.gourmand);
+  return {
+    floral: v.floral / max,
+    woody: v.woody / max,
+    fresh: v.fresh / max,
+    oriental: v.oriental / max,
+    citrus: v.citrus / max,
+    gourmand: v.gourmand / max,
+  };
+}
+
 // 由香水 notes 推导 18 维向量（前/中/后调各 6 维）
 export function getPerfumeProfile18D(perfume: Perfume): ScentProfile18D {
   const cached = profile18DCache.get(perfume.id);

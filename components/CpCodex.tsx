@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { PERSONALITIES } from '@/lib/personalities';
+import { PERSONALITIES, getPersonalityNameFromStorage } from '@/lib/personalities';
 import { getCpResonance } from '@/lib/cpResonance';
-import { isCpLit, getCpLitCount, CP_TOTAL } from '@/lib/cpCodex';
+import { isCpLit, getCpLitCount, getCpLitKeys, CP_TOTAL } from '@/lib/cpCodex';
 import { getMyPersonalityId, encodeInvite } from '@/lib/inviteState';
 import CpBlendCard from '@/components/CpBlendCard';
+import SaveCardButton from '@/components/SaveCardButton';
 
 const SEAL_COLOR: Record<string, string> = {
   隐: '#2C1810',
@@ -30,6 +31,13 @@ export default function CpCodex() {
   const meId = mounted ? getMyPersonalityId() : null;
   const litCount = mounted ? getCpLitCount() : 0;
   const pct = Math.round((litCount / CP_TOTAL) * 100);
+
+  // A 组卖点：图鉴卡导出。点亮状态只存在本地，必须由客户端传上去；
+  // 人格名走 getPersonalityNameFromStorage（本地存的是 ID，需转成名称）
+  const litKeys = mounted ? getCpLitKeys() : [];
+  const meName = mounted ? getPersonalityNameFromStorage() : null;
+  const codexParams = new URLSearchParams({ scene: 'codex', lit: litKeys.join(',') });
+  if (meName) codexParams.set('name', meName);
 
   return (
     <div className="min-h-dvh bg-cream pb-12">
@@ -120,6 +128,17 @@ export default function CpCodex() {
             行 · 我的 16 人格　|　列 · 朋友的 16 人格
           </p>
         </div>
+      </div>
+
+      {/* A 组卖点：图鉴卡导出（收集向社交货币，鼓励「让朋友帮你点亮下一格」） */}
+      <div className="px-5 mt-5">
+        <SaveCardButton
+          params={codexParams}
+          filename={`Crush香鉴-气味CP图鉴-${litCount}格.png`}
+          label="保存我的图鉴卡 →"
+          variant="outline"
+          hint="生成一张 16×16 点亮长图，可存相册或发给朋友。"
+        />
       </div>
 
       {/* 详情弹层 */}

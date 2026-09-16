@@ -24,6 +24,7 @@ import {
 import PerfumeBottle from '@/components/PerfumeBottle';
 import RadarChart from '@/components/RadarChart';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
+import SaveCardButton from '@/components/SaveCardButton';
 
 export const FAMILY_COLORS: Record<string, string> = {
   木质: '#5C3A24',
@@ -79,6 +80,11 @@ export default function UnlockedContent({
   const hidden = useMemo(() => getHiddenFace(personalityName), [personalityName]);
   const blueprint = useMemo(() => getScentBlueprint(personalityName), [personalityName]);
   const contrast = useMemo(() => getContrastScent(personalityName), [personalityName]);
+  // A 组卖点：反差香卡导出（属解锁内容 —— 付费后才有东西可晒，不作免费物料发放）
+  const contrastParams = useMemo(
+    () => new URLSearchParams({ scene: 'contrast', name: personalityName }),
+    [personalityName]
+  );
   const guide = useMemo(() => getUsageGuide(personalityName), [personalityName]);
   const advice = useMemo(() => getScentAdvice(personalityName), [personalityName]);
 
@@ -361,6 +367,15 @@ export default function UnlockedContent({
         </p>
         <div className="flex justify-center">
           <ContrastCard contrast={contrast} match={contrastMatch} direction={personality.direction} />
+        </div>
+        {/* A 组卖点：反差香卡导出（墨底「你的反面」，解锁后才可见） */}
+        <div className="mt-4">
+          <SaveCardButton
+            params={contrastParams}
+            filename={`Crush香鉴-${personalityName}-反差香卡.png`}
+            label="保存反差香卡 →"
+            variant="outline"
+          />
         </div>
       </section>
 
