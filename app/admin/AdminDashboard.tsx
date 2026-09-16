@@ -4,7 +4,7 @@
  * Crush香鉴 · 匿名数据看板（/admin）
  *
  * 数据来自 /api/admin/overview，底层为 Vercel KV（线上）/ 本地文件（dev）。
- * 全站埋点无 PII：不采集 IP、openid、手机号，仅匿名 sessionId 做去重。
+ * 全站埋点无 PII：不采集 IP、openid、手机号，仅匿名访客 / 会话 ID 做去重。
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -37,8 +37,10 @@ type Overview = {
   from: string;
   to: string;
   intervalUv: number;
+  intervalSessions?: number;
   uvTotal: number;
   nvTotal: number;
+  sessionsTotal?: number;
   totals: Record<string, number>;
   trend: TrendPoint[];
   funnel: {
@@ -47,6 +49,7 @@ type Overview = {
     social: FunnelStep[];
     growth: FunnelStep[];
     pay: FunnelStep[];
+    retention?: FunnelStep[];
   };
   top: {
     personality: TopItem[];
@@ -60,6 +63,12 @@ type Overview = {
     step: TopItem[];
     choice: TopItem[];
     cta: TopItem[];
+    tab?: TopItem[];
+    action?: TopItem[];
+    perfume?: TopItem[];
+    days?: TopItem[];
+    litCount?: TopItem[];
+    hasDrawn?: TopItem[];
   };
   recent: Array<{
     event: string;
@@ -95,6 +104,38 @@ function formatTs(ts: number): string {
   const d = new Date(ts);
   const p = (n: number) => String(n).padStart(2, '0');
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// —— 分桶展示（第 2 批）——
+// days / litCount 是裸值维度，基数线性增长，直接列会碎成几百行；看板端做分桶。
+// 裸值仍完整保留在事件流 / 维度表里，分桶只是展示层加工，可逆。
+type Bucket = { label: string; min: number; max: number };
+
+const DAYS_BUCKETS: Bucket[] = [
+  { label: '1 天', min: 1, max: 1 },
+  { label: '2–3 天', min: 2, max: 3 },
+  { label: '4–7 天', min: 4, max: 7 },
+  { label: '8–14 天', min: 8, max: 14 },
+  { label: '15+ 天', min: 15, max: Infinity },
+];
+
+const LIT_BUCKETS: Bucket[] = [
+  { label: '0 格', min: 0, max: 0 },
+  { label: '1–4 格', min: 1, max: 4 },
+  { label: '5–16 格', min: 5, max: 16 },
+  { label: '17–64 格', min: 17, max: 64 },
+  { label: '65+ 格', min: 65, max: Infinity },
+];
+
+function bucketize(items: TopItem[], buckets: Bucket[]): TopItem[] {
+  const out = buckets.map((b) => ({ name: b.label, count: 0 }));
+  for (const it of items) {
+    const n = Number(it.name);
+    if (!Number.isFinite(n)) continue;
+    const idx = buckets.findIndex((b) => n >= b.min && n <= b.max);
+    if (idx >= 0) out[idx].count += it.count;
+  }
+  return out.filter((b) => b.count > 0);
 }
 
 export default function AdminDashboard() {
@@ -283,10 +324,11 @@ export default function AdminDashboard() {
       </header>
 
       {/* 概览卡片 */}
-      <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 mb-6">
         <Card label="去重访客" value={num(data?.intervalUv ?? 0)} hint="区间内合并基数" />
         <Card label="累计访客" value={num(data?.uvTotal ?? 0)} hint="按天累加，含回访" />
         <Card label="新访客" value={num(data?.nvTotal ?? 0)} hint="首次出现" />
+        <Card label="会话数" value={num(data?.sessionsTotal ?? 0)} hint={`区间去重 ${num(data?.intervalSessions ?? 0)}`} />
         <Card label="页面访问 PV" value={num(totals.page_view ?? 0)} />
         <Card label="完成测试" value={num(done)} hint={`开始 ${num(started)}`} />
         <Card label="完成率" value={pct(done, started)} hint={`分享率 ${pct(share, done)}`} />
@@ -380,6 +422,54 @@ export default function AdminDashboard() {
         <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
           <h2 className="text-sm mb-4" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>选项分布 TOP</h2>
           <Bars items={data?.top.choice ?? []} color={GOLD} />
+        </div>
+      </section>
+
+      {/* 香气探索 + 留存回访（2026-09-16 第 2 批新增） */}
+      <section className="grid lg:grid-cols-2 gap-4 mb-4">
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-1" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>香气探索</h2>
+          <p className="text-[11px] mb-4" style={{ color: '#A08D72' }}>
+            探索页三个能力（场景选香 / 以香搜人 / 同源图谱）的使用与动作分布
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>Tab 分布</p>
+              <Bars items={data?.top.tab ?? []} color={GOLD} />
+            </div>
+            <div>
+              <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>动作分布</p>
+              <Bars items={data?.top.action ?? []} color={INK} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>香水 TOP（探索动作带出的展示名）</p>
+            <Bars items={data?.top.perfume ?? []} color="#7C6A52" />
+          </div>
+        </div>
+        <div className="rounded-2xl border p-5" style={{ borderColor: GOLD_SOFT, background: '#fff' }}>
+          <h2 className="text-sm mb-1" style={{ fontFamily: 'Noto Serif SC, serif', color: INK }}>留存回访</h2>
+          <p className="text-[11px] mb-4" style={{ color: '#A08D72' }}>
+            香签曝光 → 揭笺 → 连续静候。曝光含未揭笺（hasDrawn=false），可看到「打开了没抽」的流失
+          </p>
+          <Funnel steps={data?.funnel.retention ?? []} />
+          <div className="mt-5 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>连续静候天数（分桶）</p>
+              <Bars items={bucketize(data?.top.days ?? [], DAYS_BUCKETS)} color={GOLD} />
+            </div>
+            <div>
+              <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>图鉴点亮格数（分桶）</p>
+              <Bars items={bucketize(data?.top.litCount ?? [], LIT_BUCKETS)} color={INK} />
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-[11px] mb-2" style={{ color: '#A08D72' }}>进入时是否已揭笺（hasDrawn）</p>
+            <Bars
+              items={(data?.top.hasDrawn ?? []).map((d) => ({ ...d, name: d.name === 'true' ? '已揭笺' : '未揭笺' }))}
+              color="#8A7355"
+            />
+          </div>
         </div>
       </section>
 

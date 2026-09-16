@@ -1,7 +1,7 @@
 /**
  * 埋点事件定义（客户端 / 服务端共用，无 'use client'，可安全被 API Route 引用）。
  *
- * 合规：全站无 PII。仅使用本地随机匿名 sessionId，不采集 IP / openid / 手机号 / 姓名。
+ * 合规：全站无 PII。仅使用本地随机匿名访客 / 会话 ID，不采集 IP / openid / 手机号 / 姓名。
  */
 
 export const TRACK_EVENTS = [
@@ -33,6 +33,16 @@ export const TRACK_EVENTS = [
   'pay_claim', // 点击「去支付」（带 price, context）
   'pay_modal_close', // 主动关闭解锁弹窗（带 context, price）—— 弹窗内流失
   'unlock_success', // 解锁成功（带 level）
+  // —— 香气探索（第 2 批 P1-4）——
+  'discover_tab_view', // 探索页 tab 曝光（含首次挂载，带 tab）
+  'discover_action', // 探索页动作（带 tab, action, perfume?）
+  'codex_page_view', // /codex 路由页图鉴曝光（带 litCount）—— 与首页 codex_view 区分
+  // —— 会话与留存（第 2 批 P1-5）——
+  'session_start', // 新会话首触（track() 自动补发，调用点无需手动埋）
+  'daily_view', // 香签面板曝光（含未揭笺 hasDrawn=false）
+  'daily_streak', // 揭笺后连续静候天数（带 days）
+  // —— 兜底可观测（第 2 批 · 最小 error）——
+  'error', // 埋点自身异常（仅 scope=analytics，绝不含错误文本 / 堆栈 / URL）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -70,6 +80,13 @@ export const EVENT_LABEL: Record<string, string> = {
   pay_claim: '点击去支付',
   pay_modal_close: '关闭付费弹窗',
   unlock_success: '解锁成功',
+  discover_tab_view: '探索页切换',
+  discover_action: '探索页动作',
+  codex_page_view: '图鉴页访问',
+  session_start: '会话开始',
+  daily_view: '香签曝光',
+  daily_streak: '连续静候',
+  error: '埋点异常',
 };
 
 /** 参与分维度聚合的 props key（其余 props 只留在原始事件流里）
@@ -99,9 +116,32 @@ export const DIM_KEYS = [
   'choice', // 选中项 id（q1a / cal1b …）
   // —— 裂变落地页 ——
   'cta', // 落地页按钮标识（start_test / match / copy_link / save_image / qr / my_result）
+  // —— 香气探索 / 留存 / 兜底（2026-09-16 第 2 批）——
+  'tab', // 探索页 tab：scene | reverse | kinship
+  'action', // 探索页动作：scene_pick | reverse_pick | kinship_pick
+  'perfume', // 香水展示名（统一用 name，规避香水库 key≠name 陷阱）
+  'litCount', // 图鉴已点亮格数（裸值，看板端分桶展示）
+  'hasDrawn', // 今日是否已揭笺（true | false）
+  'days', // 连续抽签天数（裸值，看板端分桶展示）
+  'scope', // error 事件范围：analytics（第 3 批补 share | payment）
+  'status', // error 状态：queue_drop | flush_fail
 ] as const;
 
 export type DimKey = (typeof DIM_KEYS)[number];
+
+/**
+ * 由埋点运行时「自动触发」、无需业务调用点的事件。
+ *
+ * - `session_start`：由 `lib/analytics.ts` 的 `track()` 在判定新会话时自动补发；
+ * - `error`：由上报兜底逻辑（队列溢出丢弃 / drain 连续失败）自动上报。
+ *
+ * 二者都只定义在「定义文件」内，而 `scripts/audit-analytics.ts` 的调用点扫描会
+ * 跳过定义文件，故在此显式登记 —— 让 B 项（死埋点）门禁能区分「自动事件」
+ * 与「真的没人调用的事件」，避免把运行时的自动上报误判为死埋点。
+ */
+export const AUTO_EVENTS = ['session_start', 'error'] as const;
+
+export const AUTO_EVENT_SET: ReadonlySet<string> = new Set(AUTO_EVENTS as readonly string[]);
 
 export type PropValue = string | number | boolean;
 
@@ -126,7 +166,9 @@ export function sanitizeProps(input: unknown): Record<string, PropValue> {
 export function normalizeEvent(body: unknown): {
   event: TrackEvent;
   props: Record<string, PropValue>;
-  sessionId: string;
+  vid: string;
+  sid: string;
+  eid: string;
   path: string;
   ts: number;
 } | null {
@@ -139,10 +181,20 @@ export function normalizeEvent(body: unknown): {
   if (typeof b.ref === 'string' && b.ref && props.ref === undefined) {
     props.ref = b.ref.slice(0, MAX_STR);
   }
+  // vid（长期访客）：优先新字段；缺失时兼容旧客户端顶层 sessionId（其历史语义即访客）。
+  // 新旧客户端会短暂共存（用户停留在旧版页面），兜底可保证 UV 口径在切换期不断裂。
+  const vidRaw =
+    typeof b.vid === 'string' && b.vid
+      ? b.vid
+      : typeof b.sessionId === 'string'
+        ? b.sessionId
+        : '';
   return {
     event: event as TrackEvent,
     props,
-    sessionId: typeof b.sessionId === 'string' ? b.sessionId.slice(0, 64) : '',
+    vid: vidRaw.slice(0, 64),
+    sid: typeof b.sid === 'string' ? b.sid.slice(0, 64) : '',
+    eid: typeof b.eid === 'string' ? b.eid.slice(0, 64) : '',
     path: typeof b.path === 'string' ? b.path.slice(0, 200) : '',
     ts: typeof b.ts === 'number' && Number.isFinite(b.ts) ? b.ts : Date.now(),
   };

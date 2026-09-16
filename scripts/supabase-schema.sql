@@ -49,3 +49,30 @@ create policy cx_events_select_anon on public.cx_events
 -- 按天 PV / UV：
 --   select day, count(*) as pv, count(distinct sid) as uv
 --   from public.cx_events group by 1 order by 1 desc limit 30;
+--
+-- 会话数（第 2 批，sess 为 30 分钟滚动会话 ID，历史行 sess 为 NULL）：
+--   select day, count(distinct sess) as sessions
+--   from public.cx_events where sess is not null group by 1 order by 1 desc limit 30;
+--
+-- 新访客（仍按访客列 sid，口径不变）：
+--   select min(day) as first_day, count(distinct sid) from public.cx_events group by 1;
+
+-- ============================================================
+-- 第 2 批增量（2026-09-16）：会话拆分 + 幂等（additive，纯追加，幂等可重复执行）
+-- ============================================================
+--
+-- ⚠️ 语义说明：既有的 sid 列**不改名、不迁移**，继续承载「长期访客 ID」。
+--    会话 ID 写入新列 sess；事件幂等 ID 写入新列 eid。
+--    因此已有数据的 UV / 新访客 / 漏斗口径**完全连续**，本批所有历史行不受影响。
+--    会话分析仅对「含 sess 的新行」生效（历史行 sess 为 NULL，会话数从上线日起算）。
+--    cx_session_first_day 视图按 sid 分组（＝按访客），无需改动，NV 口径连续。
+--
+-- 代码已做「列缺失降级」：若本 DDL 尚未执行，写入会自动去掉 sess/eid 重试一次，
+-- 保证 code-first 部署不丢数（届时仅失去会话 / 幂等能力，基本计数不受影响）。
+
+alter table public.cx_events add column if not exists sess text; -- 会话 ID（30 分钟滚动窗口）
+alter table public.cx_events add column if not exists eid  text; -- 事件幂等 ID
+
+create index        if not exists cx_events_sess_idx on public.cx_events (sess);
+create unique index if not exists cx_events_eid_uniq on public.cx_events (eid) where eid is not null;
+

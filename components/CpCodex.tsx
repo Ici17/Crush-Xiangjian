@@ -29,11 +29,14 @@ export default function CpCodex() {
 
   useEffect(() => setMounted(true), []);
 
-  // 图鉴页曝光（2026-09-16 接通）：首页的图鉴视图由 DailyPanel 上报，
-  // 独立路由 /codex 这条入口一直是黑的，两处口径现在都用 codex_view。
+  // 图鉴页曝光（2026-09-16 接通，2026-09-16 第 2 批拆分口径）：
+  // 首页内嵌图鉴（DailyPanel 内的 ScentCodex）沿用 codex_view；独立路由 /codex
+  // 这条入口改用 codex_page_view，避免两个渲染面共用同一事件名导致口径混淆。
+  // litCount 需在 mounted 后才能从本地点亮记录读出，故依赖 mounted，带真实点亮格数。
   useEffect(() => {
-    track('codex_view', { context: 'codex_page' });
-  }, []);
+    if (!mounted) return;
+    track('codex_page_view', { litCount: getCpLitCount() });
+  }, [mounted]);
 
   const meId = mounted ? getMyPersonalityId() : null;
   const litCount = mounted ? getCpLitCount() : 0;

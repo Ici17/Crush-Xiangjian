@@ -52,7 +52,7 @@ export default function DailyPanel() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 埋点：揭笺（每日每会话只记一次）+ 图鉴浏览
+  // 埋点：揭笺（每日每会话只记一次）+ 首页图鉴浏览（codex_view 保留给首页内嵌图鉴）
   useEffect(() => {
     if (!revealed) return;
     try {
@@ -71,11 +71,13 @@ export default function DailyPanel() {
   }, [view]);
 
   useEffect(() => {
+    let hasDrawn = false;
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         const obj = JSON.parse(raw) as { date: string; revealed: boolean };
         if (obj.date === today && obj.revealed) {
+          hasDrawn = true;
           setRevealed(true);
           const r = markVisited(today);
           setStreak(r.view);
@@ -89,6 +91,9 @@ export default function DailyPanel() {
     } catch {
       /* ignore */
     }
+    // 香签面板曝光：未揭笺时也上报 hasDrawn=false —— 才能看到「打开了但没抽」的流失，
+    // 这正是本事件存在的理由（daily_draw 只在抽了才记，看不到未揭流失）。
+    track('daily_view', { hasDrawn });
   }, [today]);
 
   const saveNote = (v: string) => {
@@ -112,6 +117,8 @@ export default function DailyPanel() {
     setStreak(r.view);
     setFrozeGap(r.frozeGap);
     setGrantedFreeze(r.grantedFreeze);
+    // 连续静候天数：用 markVisited 的真实连续天数（含续签补齐）
+    track('daily_streak', { days: r.view.current });
   };
 
   const startHold = () => {

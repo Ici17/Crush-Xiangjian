@@ -80,6 +80,8 @@ async function build(days: number) {
     ['paywall_view', 'pay_modal_open', 'pay_claim', 'unlock_success'],
     'paywall_view',
   );
+  // 留存回访（2026-09-16 第 2 批）：香签曝光 → 揭笺 → 连续静候
+  const retentionFunnel = buildFunnel(totals, ['daily_view', 'daily_draw', 'daily_streak'], 'daily_view');
 
   const trend = range.days.map((d) => ({
     date: d.date,
@@ -91,16 +93,29 @@ async function build(days: number) {
     share: Number(d.counts?.share_card_generate ?? 0),
   }));
 
+  // 会话口径（第 2 批）：会话数独立于访客，按 sid 去重
+  const sessionsTotal = range.days.reduce((s, d) => s + (d.sessions || 0), 0);
+  const intervalSessions = range.intervalSessions ?? 0;
+
   return {
     driver: range.driver,
     from: range.from,
     to: range.to,
     intervalUv: range.intervalUv,
+    intervalSessions,
     uvTotal,
     nvTotal,
+    sessionsTotal,
     totals,
     trend,
-    funnel: { main: mainFunnel, quiz: quizFunnel, social: socialFunnel, growth: growthFunnel, pay: payFunnel },
+    funnel: {
+      main: mainFunnel,
+      quiz: quizFunnel,
+      social: socialFunnel,
+      growth: growthFunnel,
+      pay: payFunnel,
+      retention: retentionFunnel,
+    },
     top: {
       personality: topN(sumDim(range.days, 'personality'), 16),
       ref: topN(sumDim(range.days, 'ref'), 10),
@@ -115,6 +130,14 @@ async function build(days: number) {
       choice: topN(sumDim(range.days, 'choice'), 20),
       // 裂变：落地页哪个 CTA 真的被点
       cta: topN(sumDim(range.days, 'cta'), 8),
+      // 香气探索（第 2 批）：tab / action / perfume 分布
+      tab: topN(sumDim(range.days, 'tab'), 6),
+      action: topN(sumDim(range.days, 'action'), 8),
+      perfume: topN(sumDim(range.days, 'perfume'), 12),
+      // 留存回访（第 2 批）：裸值返回，分桶交给看板端（裸值不可逆，分桶可逆）
+      days: topN(sumDim(range.days, 'days'), 40),
+      litCount: topN(sumDim(range.days, 'litCount'), 40),
+      hasDrawn: topN(sumDim(range.days, 'hasDrawn'), 4),
     },
     recent: range.recent.slice(0, 100),
   };

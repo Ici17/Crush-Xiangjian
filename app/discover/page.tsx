@@ -71,6 +71,11 @@ export default function DiscoverPage() {
     }
   }, []);
 
+  // 探索页 tab 曝光（含首次挂载）：scene / reverse / kinship 三个能力的入口分布
+  useEffect(() => {
+    track("discover_tab_view", { tab });
+  }, [tab]);
+
   const current = PERSONALITIES.find((p) => p.name === personality) ?? PERSONALITIES[0];
 
   // 该人格的三档推荐（场景选香的候选池）
@@ -237,7 +242,15 @@ export default function DiscoverPage() {
                 return (
                   <button
                     key={s.key}
-                    onClick={() => setScene(s.key)}
+                    onClick={() => {
+                      setScene(s.key);
+                      // 场景选香动作：perfume 用该场景推荐的展示名（统一 name，规避 key≠name 陷阱）
+                      track("discover_action", {
+                        tab: "scene",
+                        action: "scene_pick",
+                        perfume: pickPerfumeForScene(recs, s.key)?.name ?? "",
+                      });
+                    }}
                     className="rounded-xl py-3 px-1 text-center transition-colors"
                     style={{
                       background: on ? "#FFFFFF" : "rgba(255,255,255,.5)",
@@ -354,7 +367,15 @@ export default function DiscoverPage() {
                 {searchResults.map((p) => (
                   <button
                     key={p.name}
-                    onClick={() => setPicked(p.name)}
+                    onClick={() => {
+                      setPicked(p.name);
+                      // 以香搜人动作：perfume 用被选中的香名（展示名 name）
+                      track("discover_action", {
+                        tab: "reverse",
+                        action: "reverse_pick",
+                        perfume: p.name,
+                      });
+                    }}
                     className="w-full text-left rounded-xl bg-white/70 px-4 py-2.5 hover:bg-white transition-colors"
                   >
                     <div className="text-[13px] text-[#2C1810]">{p.name}</div>
@@ -391,7 +412,11 @@ export default function DiscoverPage() {
                 return (
                   <button
                     key={name}
-                    onClick={() => setPersonality(name)}
+                    onClick={() => {
+                      setPersonality(name);
+                      // 同源图谱动作：对象是「人格」不是香水，故不传 perfume（靠 action 区分）
+                      track("discover_action", { tab: "kinship", action: "kinship_pick" });
+                    }}
                     className="w-full text-left rounded-xl bg-white/70 p-4 hover:bg-white transition-colors"
                   >
                     <div className="flex items-baseline gap-2">
