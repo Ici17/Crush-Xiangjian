@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PERSONALITIES, getSimilarPersonalities, getUsageGuide, getPersonalityNameFromStorage, getShareQuote } from "@/lib/personalities";
 import { getCalibratedRecommendations } from "@/lib/matchPerfumes";
-import { PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
+import { PERSONALITY_TYPES } from "@/lib/data";
 import {
   SCENE_OPTIONS,
   pickPerfumeForScene,
@@ -250,9 +250,7 @@ export default function DiscoverPage() {
                   {scenePick.name}
                 </div>
                 <div className="mt-1 text-[12px] text-amber-700/75">
-                  {(PERFUMES as Record<string, { brandCn?: string; brand?: string }>)[scenePick.name]?.brandCn ||
-                    (PERFUMES as Record<string, { brand?: string }>)[scenePick.name]?.brand ||
-                    ""}
+                  {scenePick.brandCn || scenePick.brand || ""}
                 </div>
                 <div className="mt-3 inline-flex rounded-full bg-[#F5EDE1] px-3 py-1 text-[11px] text-[#8A6332]">
                   {scenePick.reason}

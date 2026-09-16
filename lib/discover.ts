@@ -18,6 +18,24 @@ type PersonalityTypeLite = {
   radarScores: Record<string, number>;
 };
 
+// 香水库存在 2 支「键」与「展示名」不一致（例：键 `白茶-祖玛珑` / 名 `白茶（祖玛珑）`）。
+// 结果页与推荐结果对外给的是 **name**，而日签等内部逻辑用的是 **key**。
+// 若只按 name 直接索引 PERFUMES，这 2 支会在「以香搜人 / 场景选香」里静默失效
+// （查不到 → 被跳过 → 用户看到空白或兜底文案）。故统一走这个兼容查找。
+let _nameIndex: Map<string, Perfume> | null = null;
+function nameIndex(): Map<string, Perfume> {
+  if (_nameIndex) return _nameIndex;
+  const m = new Map<string, Perfume>();
+  for (const p of Object.values(PERFUMES) as Perfume[]) m.set(p.name, p);
+  _nameIndex = m;
+  return m;
+}
+
+/** 按「香水库键」或「展示名」反查香水；查不到返回 undefined */
+export function findPerfume(nameOrKey: string): Perfume | undefined {
+  return (PERFUMES as Record<string, Perfume>)[nameOrKey] ?? nameIndex().get(nameOrKey);
+}
+
 /** 把 0-100 的原始雷达转成 0-1 的英文键向量 */
 function radarToVector(raw: Record<string, number>): ScentVector {
   return {
@@ -49,7 +67,7 @@ export interface PerfumeToPersonality {
  * 这个功能让用户可以从「我手上有这支香」反向进入人格体系，把死库存盘活。
  */
 export function findPersonalitiesByPerfume(perfumeName: string, topN = 3): PerfumeToPersonality[] {
-  const perfume = (PERFUMES as Record<string, Perfume>)[perfumeName];
+  const perfume = findPerfume(perfumeName);
   if (!perfume) return [];
 
   const perfumeVec = getPerfumeProfile(perfume);
@@ -127,17 +145,28 @@ const SCENE_PREFERENCE: Record<SceneKey, Partial<Record<keyof ScentVector, numbe
  * 在具体候选中挑一支最适合该场景的香。
  * candidates 传入用户在结果页拿到的三档推荐即可。
  */
+export interface ScenePick {
+  name: string;
+  brand?: string;
+  brandCn?: string;
+  reason: string;
+}
+
+/**
+ * 品牌信息直接由调用方的候选带回，不在这里反查香水库 ——
+ * 反查会撞上「部分香水 key≠name」的历史数据问题（见 findPerfume 注释）。
+ */
 export function pickPerfumeForScene(
   candidates: { name: string; brand?: string; brandCn?: string }[],
   scene: SceneKey
-): { name: string; reason: string } | null {
+): ScenePick | null {
   if (candidates.length === 0) return null;
 
   const pref = SCENE_PREFERENCE[scene];
-  let best: { name: string; score: number; reasons: string[] } | null = null;
+  let best: { name: string; brand?: string; brandCn?: string; score: number; reasons: string[] } | null = null;
 
   for (const cand of candidates) {
-    const perfume = (PERFUMES as Record<string, Perfume>)[cand.name];
+    const perfume = findPerfume(cand.name);
     if (!perfume) continue;
 
     const vec = getPerfumeProfile(perfume);
@@ -168,17 +197,28 @@ export function pickPerfumeForScene(
     }
 
     if (!best || score > best.score) {
-      best = { name: cand.name, score, reasons: reasons.slice(0, 2) };
+      // 品牌取「候选来源」优先，香水库作兜底
+      best = {
+        name: cand.name,
+        brand: cand.brand || perfume.brand,
+        brandCn: cand.brandCn || perfume.brandCn,
+        score,
+        reasons: reasons.slice(0, 2),
+      };
     }
   }
 
   if (!best) return {
     name: candidates[0].name,
+    brand: candidates[0].brand,
+    brandCn: candidates[0].brandCn,
     reason: "与你的人格底色最贴合",
   };
 
   return {
     name: best.name,
+    brand: best.brand,
+    brandCn: best.brandCn,
     reason: best.reasons.length > 0 ? best.reasons.join(" · ") : "与你的人格底色最贴合",
   };
 }
