@@ -20,6 +20,7 @@
  */
 
 import {
+  APP_VERSION,
   normalizeRef,
   shanghaiDateKey,
   TRACK_EVENTS,
@@ -168,6 +169,37 @@ function getRef(): string {
 }
 
 // ============================================================
+// 全局自动维度（第 3 批）：每条事件都带，调用点无需感知
+// ============================================================
+
+/**
+ * 设备形态三档。**刻意不读 navigator.userAgent** —— UA 属于可用于指纹识别的高熵信息，
+ * 与本项目「无 UA 指纹」的合规红线冲突。这里只用两个低熵信号：
+ *   - `(pointer: coarse)`：主指针是否粗指针（触屏 ≈ true，鼠标 ≈ false）
+ *   - `innerWidth`：仅用于区分手机与平板，且读数不落盘（立刻降为三档之一）
+ * 结果只有 mobile / tablet / desktop 三个取值，无法反推具体机型，不构成身份识别。
+ */
+function deviceClass(): 'mobile' | 'tablet' | 'desktop' {
+  if (typeof window === 'undefined') return 'desktop';
+  try {
+    const coarse =
+      typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    if (!coarse) return 'desktop';
+    return window.innerWidth >= 768 ? 'tablet' : 'mobile';
+  } catch {
+    return 'desktop';
+  }
+}
+
+/**
+ * 自动附加的基础 props。放在展开式的**右侧**（优先级最高）：
+ * 全局维度必须是统一口径，不允许某个调用点传奇怪的值把 `device_class` 覆盖掉。
+ */
+function autoProps(): Record<string, PropValue> {
+  return { app_version: APP_VERSION, device_class: deviceClass() };
+}
+
+// ============================================================
 // 兜底队列（localStorage cx_ev_queue）
 // ============================================================
 
@@ -217,11 +249,36 @@ function utf8Len(s: string): number {
 }
 
 /**
- * 入队。递归防护：`error` 事件自身绝不入队 —— 否则「队列溢出 → 报 error →
- * error 又入队 → 再次溢出」会形成死循环。
+ * 允许进兜底队列重试的 error scope（业务失败）。
+ *
+ * 第 3 批（2026-09-17）：判据由「事件名 === 'error'」细化为「scope 不在重试白名单内」。
+ *
+ * 为什么必须细化：原先一刀切禁止 error 入队，**业务失败**事件（scope=share / payment）
+ * 就永远拿不到兜底重发 —— 而失败恰恰高发于弱网 / 离线场景，最该留下来的事件反而最先丢，
+ * 失败率指标会被系统性低估。
+ *
+ * 自激链条仍然有唯一终点，不会被打开：
+ *   业务 error 入队 → 队列被撑满 → 溢出 → 上报 queue_drop（scope=analytics）→ 不入队。
+ * 业务 error 只能由「用户真的触发了某次业务操作」产生，不会因为「上报失败」这件事
+ * 凭空生成，所以不存在自我繁殖；analytics scope 则始终是不入队的硬底。
+ *
+ * 用白名单而非黑名单：将来新增 scope 若忘了来登记，默认按「不入队」处理，失败安全。
+ */
+const RETRYABLE_ERROR_SCOPES: ReadonlySet<string> = new Set(['share', 'payment']);
+
+/** 判断是否为「不可重试」的错误事件（埋点自身异常，或没有显式业务 scope 的 error）。 */
+function isUnretryableError(payload: Payload): boolean {
+  if (!payload || payload.event !== 'error') return false;
+  const scope = payload.props?.scope;
+  return typeof scope === 'string' && RETRYABLE_ERROR_SCOPES.has(scope) ? false : true;
+}
+
+/**
+ * 入队。递归防护：`analytics` 自身的 error 绝不入队 —— 否则「队列溢出 → 报 error →
+ * error 又入队 → 再次溢出」会形成死循环。业务失败（share / payment）允许入队，详见上方注释。
  */
 function enqueue(payload: Payload): void {
-  if (!payload || payload.event === 'error') return;
+  if (!payload || isUnretryableError(payload)) return;
   const q = readQueue();
   q.push(payload);
   let dropped = false;
@@ -271,8 +328,12 @@ function beaconOnce(payload: Payload): boolean {
   return false;
 }
 
+/**
+ * 投递失败后按需入队。
+ * 「是否可重试」的判断刻意**只写在 enqueue() 内一处** —— 历史上
+ * READ_DIMS / ANALYTICS_EVENTS 都栽在两份手工副本漂移上，此处不再重蹈覆辙。
+ */
 function queueIfAllowed(payload: Payload): void {
-  if (payload.event === 'error') return; // 递归防护
   enqueue(payload);
 }
 
@@ -388,7 +449,7 @@ function reportError(status: 'queue_drop' | 'flush_fail'): void {
     const { sid, vid } = ensureSession();
     deliver({
       event: 'error',
-      props: { scope: 'analytics', status },
+      props: { scope: 'analytics', status, ...autoProps() },
       vid,
       sid,
       path: window.location.pathname,
@@ -418,9 +479,17 @@ export function track(event: TrackEvent, props: Record<string, PropValue> = {}):
     // 故仅在 ts-1 仍属同一天时才减 1，否则退回 now（放弃 1ms 排序收益，视觉影响可忽略）。
     if (isNewSession) {
       const tsStart = shanghaiDateKey(now - 1) === shanghaiDateKey(now) ? now - 1 : now;
-      deliver({ event: 'session_start', props: {}, ...base, eid: genEid(), ts: tsStart });
+      deliver({
+        event: 'session_start',
+        props: autoProps(),
+        ...base,
+        eid: genEid(),
+        ts: tsStart,
+      });
     }
-    deliver({ event, props, ...base, eid: genEid(), ts: now });
+    // 全局自动维度附加在最右侧：session_start 与所有业务事件、含 error 都用同一口径，
+    // 便于按版本对比崩溃/失败率，也便于判断某类失败是否集中在移动端。
+    deliver({ event, props: { ...props, ...autoProps() }, ...base, eid: genEid(), ts: now });
   } catch {
     /* 埋点异常不应中断用户体验 */
   }

@@ -41,8 +41,15 @@ export const TRACK_EVENTS = [
   'session_start', // 新会话首触（track() 自动补发，调用点无需手动埋）
   'daily_view', // 香签面板曝光（含未揭笺 hasDrawn=false）
   'daily_streak', // 揭笺后连续静候天数（带 days）
-  // —— 兜底可观测（第 2 批 · 最小 error）——
-  'error', // 埋点自身异常（仅 scope=analytics，绝不含错误文本 / 堆栈 / URL）
+  // —— 兜底可观测 ——
+  // 2026-09-17 第 3 批：从「埋点自身」扩到「业务失败」两类。
+  // analytics —— 埋点管线自身（队列溢出 / drain 连续失败），由 lib/analytics.ts 自动上报；
+  // share     —— 分享图生成或保存失败（SaveCardButton）；
+  // payment   —— 支付发起失败 / 抛错（PaymentModal）。
+  // 三者共用一条事件 + scope 区分：失败都是低频、都只需计数与归因，
+  // 拆成三个事件反而会让看板漏斗上多出三坨几乎为空的柱子。
+  // ⚠️ 仍绝不含错误文本 / 堆栈 / URL —— 只传稳定的枚举值。
+  'error', // 失败（带 scope, status）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -123,11 +130,49 @@ export const DIM_KEYS = [
   'litCount', // 图鉴已点亮格数（裸值，看板端分桶展示）
   'hasDrawn', // 今日是否已揭笺（true | false）
   'days', // 连续抽签天数（裸值，看板端分桶展示）
-  'scope', // error 事件范围：analytics（第 3 批补 share | payment）
-  'status', // error 状态：queue_drop | flush_fail
+  'scope', // 失败范围：analytics | share | payment
+  'status', // 失败原因枚举：queue_drop | flush_fail | render_fail | save_fail | pay_fail
+  // —— 全局自动维度（第 3 批）——
+  // 由 lib/analytics.ts 的 track() 统一附加到**每一条**事件，调用点无需书写。
+  'app_version', // 前端版本号（与 package.json 对齐，见 APP_VERSION）
+  'device_class', // 设备形态：mobile | tablet | desktop（由 pointer 精度 + 视口宽度推导，不读 UA）
 ] as const;
 
 export type DimKey = (typeof DIM_KEYS)[number];
+
+/**
+ * 由运行时自动携带、不会出现调用点 props 里的维度。
+ *
+ * 用途：埋点自检脚本统计「哪些维度没人用」时要把它们排除 —— 否则每次新增一个
+ * 自动维度都会被误报成「预留未使用」，噪音会淹没真正的提示。
+ *
+ * ⚠️ scripts/audit-analytics.ts 会额外断言：每个登记在这里的维度都必须真实出现在
+ * lib/analytics.ts 的源码里。防止有人把「想加但没接上」的维度塞进豁免名单赖掉门禁。
+ */
+export const AUTO_DIMS: readonly DimKey[] = [
+  'path', // 顶层字段，服务端 normalizeEvent 再并入 props
+  'ref', // 顶层字段（渠道名，非原始 URL）
+  'scope', // 失败范围，由 error 事件携带
+  'status', // 失败原因，由 error 事件携带
+  'app_version', // 构建期常量
+  'device_class', // 运行时推导
+];
+
+/**
+ * 前端版本号 —— 随包发布的应用版本，每条事件都会带上。
+ *
+ * 为何不用 `process.env.NEXT_PUBLIC_APP_VERSION`：环境变量忘了在 Vercel 配会静默变成
+ * `undefined`，上线后才发现「有版本维度但全是空」。这里用常量的代价是要手工同步，
+ * 所以由 scripts/audit-analytics.ts 断言它 === package.json 的 version，漂移即报错。
+ *
+ * ⚠️ 发版流程：改 package.json 的 version 后，必须同步改这里（跑 npm run audit:analytics 会被拦住）。
+ */
+export const APP_VERSION = '0.1.0';
+
+/** error 事件的 scope 取值（caller 侧只允许从这三个里选） */
+export const ERROR_SCOPES = ['analytics', 'share', 'payment'] as const;
+
+export type ErrorScope = (typeof ERROR_SCOPES)[number];
 
 /**
  * 由埋点运行时「自动触发」、无需业务调用点的事件。

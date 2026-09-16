@@ -69,10 +69,14 @@ export default function PaymentModal({ priceKey, context = 'full', onSuccess, on
       if (res.ok) {
         onSuccess(priceKey); // 未来真实支付成功后由后端回调解锁
       } else {
+        // 失败分支上报（第 3 批）：付费漏斗此前只有「成功侧」有数据 ——
+        // pay_claim 之后的失败完全不可见，漏斗末端的真实流失率被低估。
         setError("支付通道升级中,敬请期待开放 🚧");
+        track("error", { scope: "payment", status: "pay_fail" });
       }
     } catch {
       setError("支付通道升级中,敬请期待开放 🚧");
+      track("error", { scope: "payment", status: "pay_fail" });
     } finally {
       setLoading(false);
     }

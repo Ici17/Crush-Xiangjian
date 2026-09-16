@@ -47,7 +47,10 @@ export default function SaveCardButton({
     try {
       const r = await saveShareCard(params, filename);
       if (!r.ok) {
+        // 失败分支上报（第 3 批）：此前失败完全静默 —— 只有 `setFailed` 改 UI，
+        // 埋点侧一个字都没有，看板上「生成失败率」恒为 0，线上真出问题根本发现不了。
         setFailed(true);
+        track('error', { scope: 'share', status: 'render_fail' });
         return;
       }
       track('share_card_generate', { scene, format: '3to4' });
@@ -58,6 +61,12 @@ export default function SaveCardButton({
       if (r.method === 'preview' && r.url) {
         setPreviewUrl(r.url);
       }
+    } catch {
+      // 客户端保存阶段抛错（blob 转换 / 写入失败等）。
+      // 原先这里连 catch 都没有：异常会以 unhandled rejection 静默消失，UI 也不提示。
+      // 与服务端渲染失败（render_fail）区分，便于判断责任在哪一侧。
+      setFailed(true);
+      track('error', { scope: 'share', status: 'save_fail' });
     } finally {
       setSaving(false);
     }

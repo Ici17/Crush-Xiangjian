@@ -76,3 +76,29 @@ alter table public.cx_events add column if not exists eid  text; -- 事件幂等
 create index        if not exists cx_events_sess_idx on public.cx_events (sess);
 create unique index if not exists cx_events_eid_uniq on public.cx_events (eid) where eid is not null;
 
+-- ============================================================
+-- 第 3 批（2026-09-17）：全局维度 app_version / device_class
+-- ⚠️ 本批**刻意不加任何列**，请勿为它们补 DDL。
+-- ============================================================
+--
+-- 决策依据：这两个维度由 lib/analytics.ts 注入到事件的 props 里，而 props 整体写入
+-- 已有的 `props jsonb` 列。写入（recordEvent）与读取（三个驱动）都经由同一个
+-- dimValues() 遍历 DIM_KEYS 从 props 取值，因此：
+--
+--   code-first 部署即可生效，无需迁移；历史行只是没有这两个 key，聚合时自动跳过。
+--
+-- 对比第 2 批的 sess / eid 为什么必须加列：它们是**顶层字段**（与 vid / eid 同级），
+-- 不在 props 内；而第 3 批的两个维度本就是 props 成员，走同一条 jsonb 通道。
+--
+-- 校验新维度是否生效：
+--   select props->>'device_class' as device, count(*)
+--   from public.cx_events group by 1 order by 2 desc;
+--
+--   select props->>'app_version' as ver, count(*)
+--   from public.cx_events group by 1 order by 2 desc;
+--
+-- 失败率按版本 / 设备归因（第 3 批新增的 error scope）：
+--   select props->>'scope' as scope, props->>'status' as status,
+--          props->>'device_class' as device, count(*)
+--   from public.cx_events where event = 'error' group by 1,2,3 order by 4 desc;
+

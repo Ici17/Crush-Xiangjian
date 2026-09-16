@@ -13,6 +13,9 @@
  *   D. store.ts 的 READ_DIMS 直接引用 DIM_KEYS（抓第二份维度副本）
  *   E. ANALYTICS_EVENTS 派生自 TRACK_EVENTS（抓第二份事件副本）
  *   H. 事件总数 === 29 且 KV 每日布局 = DIM_KEYS.length + 4（抓 layout 被改回硬编码）
+ *   I. APP_VERSION === package.json version（抓发版只改一处导致版本维度错位）
+ *   J. 豁免名单反向校验：AUTO_DIMS 与 error 的 scope 都必须真实接上
+ *      （防止往豁免名单里塞「没埋」的东西来绕过 B / G 项门禁）
  * 提示（不计失败）：
  *   F. 某事件的 props key 不在 DIM_KEYS 内 → 该字段不会被分维度聚合，只会留在原始事件流
  *   G. 哪些 DIM_KEY 目前没有任何事件在用（属预留，不是错误）
@@ -22,7 +25,16 @@
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
-import { TRACK_EVENTS, EVENT_SET, EVENT_LABEL, DIM_KEYS, AUTO_EVENT_SET } from "../lib/analytics/events";
+import {
+  TRACK_EVENTS,
+  EVENT_SET,
+  EVENT_LABEL,
+  DIM_KEYS,
+  AUTO_EVENT_SET,
+  AUTO_DIMS,
+  APP_VERSION,
+  ERROR_SCOPES,
+} from "../lib/analytics/events";
 import { KV_DAY_COMMANDS } from "../lib/analytics/store";
 
 let pass = 0;
@@ -138,12 +150,15 @@ const calls = new Map<string, string[]>();
 /** 事件名 → 该事件传过的 props key */
 const propsByEvent = new Map<string, Set<string>>();
 const allPropKeys = new Set<string>();
+/** 各调用点文件剥离注释后的源码 —— J 项校验 scope 取值时复用，避免二次读盘 */
+const strippedSrc: string[] = [];
 
 for (const abs of files) {
   const rel = relative(ROOT, abs);
   if (isDefinitionFile(rel)) continue;
   // 剥离注释后再扫描：注释掉的 track('x') 不得算作调用点（否则 B 项漏报死埋点）
   const text = stripComments(readFileSync(abs, "utf8"));
+  strippedSrc.push(text);
 
   for (const m of text.matchAll(CALL_RE)) {
     const ev = m[1];
@@ -232,9 +247,11 @@ if (unknownProps.length) {
 
 // ── G. 未使用的维度（提示）───────────────────────
 console.log("G. 未被使用的维度（提示）");
-// path / ref 由 track 统一携带为**顶层字段**（服务端再并入 props），不写在调用点的 props 里，故排除
-const TOP_LEVEL_DIMS: readonly string[] = ["path", "ref"];
-const unusedDims = DIM_KEYS.filter((k) => !TOP_LEVEL_DIMS.includes(k) && !allPropKeys.has(k));
+// AUTO_DIMS（path / ref / scope / status / app_version / device_class）不写在调用点的 props 里：
+// 前两个由 track 作为顶层字段携带，其余由运行时自动注入。清单来自 events.ts 单一真源，
+// 脚本里不再维护第二份。下面 J 项会反向校验这些豁免维度确实接上了 —— 防止拿豁免名单赖掉门禁。
+const autoDims = new Set<string>(AUTO_DIMS as readonly string[]);
+const unusedDims = DIM_KEYS.filter((k) => !autoDims.has(k) && !allPropKeys.has(k));
 if (unusedDims.length) {
   wk(
     `以下维度暂无事件在用（属预留，非错误）：${unusedDims.join(", ")}` +
@@ -275,6 +292,48 @@ ck(
   autoMissingImpl.length === 0,
   "AUTO_EVENTS 均在 lib/analytics.ts 源码中真实出现（锁死 B 项后门）",
   `疑似把死埋点塞进 AUTO_EVENTS 以绕过 B 项：${autoMissingImpl.join(", ")}`,
+);
+
+// ── I. 版本号一致性（第 3 批）─────────────────────
+console.log("I. 版本号一致性");
+const pkgVersion = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {
+      version?: unknown;
+    };
+    return typeof pkg.version === "string" ? pkg.version : "";
+  } catch {
+    return "";
+  }
+})();
+ck(
+  !!pkgVersion && APP_VERSION === pkgVersion,
+  `APP_VERSION === package.json version（${APP_VERSION || "(空)"}）`,
+  `events.ts=${APP_VERSION || "(空)"} vs package.json=${pkgVersion || "(读取失败)"} —— 发版改了一处忘了另一处，线上每条事件带的版本号会与实际发布版本错位，且不会报任何错`,
+);
+
+// ── J. 豁免名单反向校验（第 3 批）─────────────────
+console.log("J. 豁免名单反向校验（防止拿豁免赖掉门禁）");
+// J1：G 项豁免的 AUTO_DIMS，每一项都必须真的在运行时出现过。
+// 只登记不实现 = 假维度：会在看板上开出一个永远为空的筛选项，比不加更糟。
+const autoDimMissing = [...AUTO_DIMS].filter(
+  (k) => !new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(analyticsSrc),
+);
+ck(
+  autoDimMissing.length === 0,
+  `AUTO_DIMS 每个维度都在 lib/analytics.ts 中真实出现（共 ${AUTO_DIMS.length} 个）`,
+  `登记了但没接上：${autoDimMissing.join(", ")} —— 请到 lib/analytics.ts 的 autoProps() / track() 里真正注入，或把它从 AUTO_DIMS 移除`,
+);
+// J2：error 的 scope 三个取值必须都真实被使用。
+// 分享 / 支付的失败分支是「不报错就永远发现不了」的典型 —— 定义了没人埋，看板上就是 0。
+const scopeSrc = [analyticsSrc, ...strippedSrc].join("\n");
+const scopeMissing = [...ERROR_SCOPES].filter(
+  (s) => !new RegExp(`scope\\s*:\\s*['"\`]${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"\`]`).test(scopeSrc),
+);
+ck(
+  scopeMissing.length === 0,
+  `error 的 scope 取值全部在源码中真实埋点（${ERROR_SCOPES.join(" / ")}）`,
+  `定义了但没有任何调用点：${scopeMissing.join(", ")} —— 对应的失败路径将完全静默`,
 );
 
 console.log(`\n结果：${pass} 通过 / ${fail} 失败${warn ? ` / ${warn} 提示` : ""}`);
