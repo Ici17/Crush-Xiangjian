@@ -33,7 +33,7 @@ export default function GuardianScentCard({ personalityName }: { personalityName
   const sealColor = SEAL_COLOR[guardian.seal] ?? '#8B7C68';
 
   return (
-    <section className="px-6 pt-4 animate-fadeIn" aria-label="本命守护香">
+    <section className="px-6 mb-10 animate-fadeIn" aria-label="本命守护香">
       <div
         className="rounded-2xl border p-4"
         style={{

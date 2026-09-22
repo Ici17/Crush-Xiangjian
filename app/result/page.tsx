@@ -74,7 +74,7 @@ function ResultSkeleton() {
       <div className="h-14" />
 
       {/* 揭晓区占位 */}
-      <div className="max-w-[390px] mx-auto px-6 pt-6 pb-8">
+      <div className="max-w-[390px] mx-auto px-6 pt-8 mb-10">
         <div className="text-center">
           <div className="h-4 w-24 bg-amber-200/40 rounded mx-auto mb-4 animate-pulse" />
           <div className="h-10 w-32 bg-amber-300/40 rounded mx-auto mb-2 animate-pulse" />
@@ -106,13 +106,13 @@ function ResultSkeleton() {
 function RelationAdviceSection({ personalityName }: { personalityName: string }) {
   const advice = getScentAdvice(personalityName);
   return (
-    <section className="px-6 pb-10" aria-label="关系解读">
-      <div className="flex items-center justify-center gap-3 mb-7">
+    <section className="px-6 mb-10" aria-label="关系解读">
+      <div className="flex items-center justify-center gap-3 mb-6">
         <span className="h-px w-6 bg-amber-400" />
         <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
         <span className="h-px w-6 bg-amber-400" />
       </div>
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white border border-amber-100 rounded-xl p-4 text-left">
           <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初见印象</h4>
           <p className="text-sm text-amber-800 leading-relaxed">
@@ -142,6 +142,10 @@ function ResultInner() {
   // P0-2：携带邀请者 inv 时，结果页的「契合度」入口一并带上，
   // 让朋友测完先看自己结果、再一键回 /friend?inv 看与邀请者的匹配（裂变闭环）。
   const invParam = params.get('inv');
+  // 合香回流参数（仅用于展示层控制）：
+  // 存在 cp 时页面会展示「你和 TA 的合香已生成」，与「你还没测香」提示文案自相矛盾，
+  // 故抑制未测试提示条。只做展示控制，不改动任何判定逻辑。
+  const cpParam = params.get('cp');
   const friendHref = invParam ? `/friend?inv=${invParam}` : '/friend';
   const [personalityName, setPersonalityName] = useState<string>('暗流'); // 黄金兜底人格兜底
   const [radarData, setRadarData] = useState(getRadarScores('暗流')); // 黄金兜底雷达兜底
@@ -549,74 +553,78 @@ function ResultInner() {
           </button>
         </div>
 
-        {/* 支付成功提示横幅 */}
-        {isDemo && (
-          <div
-            className="sticky top-[var(--nav-h)] z-40 text-center py-1 px-4"
-            style={{
-              background: 'rgba(250,238,218,0.65)',
-              color: '#BA7517',
-              fontSize: '11px',
-              backdropFilter: 'blur(4px)',
-            }}
-            role="status"
-          >
-            演示模式 · 预览数据（非真实结果）
-          </div>
-        )}
-        {justPaid && (
-          <div
-            className="sticky top-[var(--nav-h)] z-40 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-amber-50 text-center text-sm py-2 px-4 shadow-md shimmer"
-            role="status"
-            aria-live="polite"
-          >
-            ✦ 支付成功，已解锁完整版内容！
-          </div>
-        )}
+        {/* ━━━ 顶部横幅容器 ━━━
+            收敛为「一个」sticky 容器：原来 3 条横幅各自 sticky top-[var(--nav-h)]，
+            同时为真时会互相覆盖。现在内部竖排，最多 2 条：
+            · 第 1 条互斥，优先级 支付成功 > 限时免费 > 演示模式
+            · 第 2 条为未测试提示，可与第 1 条共存 */}
+        {(justPaid || promoFree || isDemo || (showUntestedHint && !cpParam)) && (
+          <div className="sticky top-[var(--nav-h)] z-40 flex flex-col">
+            {/* 第 1 条（互斥，高优先级在前） */}
+            {justPaid ? (
+              <div
+                className="bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-amber-50 text-center text-[13px] py-2 px-4 shadow-md shimmer"
+                role="status"
+                aria-live="polite"
+              >
+                ✦ 支付成功，已解锁完整版内容！
+              </div>
+            ) : promoFree ? (
+              /* 限时免费活动横幅（活动期内常驻，告知用户当前为临时免费） */
+              <div
+                className="text-center text-[13px] py-2 px-4 shadow-sm"
+                style={{
+                  background: 'linear-gradient(135deg,#3D2817,#5C3826)',
+                  color: '#F8EAD9',
+                  backdropFilter: 'blur(4px)',
+                }}
+                role="status"
+                aria-live="polite"
+              >
+                🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}（结果为娱乐性参考）
+              </div>
+            ) : isDemo ? (
+              <div
+                className="text-center text-[13px] py-2 px-4"
+                style={{
+                  background: 'rgba(250,238,218,0.65)',
+                  color: '#BA7517',
+                  backdropFilter: 'blur(4px)',
+                }}
+                role="status"
+              >
+                演示模式 · 预览数据（非真实结果）
+              </div>
+            ) : null}
 
-        {/* 限时免费活动横幅（活动期内常驻，告知用户当前为临时免费） */}
-        {promoFree && (
-          <div
-            className="sticky top-[var(--nav-h)] z-40 text-center text-sm py-2 px-4 shadow-sm"
-            style={{
-              background: 'linear-gradient(135deg,#3D2817,#5C3826)',
-              color: '#F8EAD9',
-              backdropFilter: 'blur(4px)',
-            }}
-            role="status"
-            aria-live="polite"
-          >
-            🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}（结果为娱乐性参考）
-          </div>
-        )}
-
-        {/* 未测试示例提示横幅（裸开 / 无测试记录时出现，不破坏既有渲染） */}
-        {showUntestedHint && (
-          <div
-            className="flex items-center justify-center gap-1.5 px-4 py-2 text-center"
-            style={{
-              background: 'rgba(250,238,218,0.7)',
-              borderBottom: '1px solid rgba(168,136,78,0.25)',
-              color: '#8B5E3C',
-              fontSize: '12px',
-              backdropFilter: 'blur(4px)',
-            }}
-            role="status"
-          >
-            <span>你还没测香，这是示例人格「暗流」</span>
-            <Link
-              href="/question"
-              className="text-amber-600 font-medium hover:text-amber-700 underline decoration-amber-400"
-              style={{ textUnderlineOffset: '2px' }}
-            >
-              去测香
-            </Link>
+            {/* 第 2 条（可与第 1 条共存）：未测试示例提示（裸开 / 无测试记录时出现，不破坏既有渲染） */}
+            {showUntestedHint && !cpParam && (
+              <div
+                className="flex items-center justify-center gap-1.5 px-4 py-2 text-center text-[12px]"
+                style={{
+                  background: 'rgba(250,238,218,0.7)',
+                  borderBottom: '1px solid rgba(168,136,78,0.25)',
+                  color: '#8B5E3C',
+                  backdropFilter: 'blur(4px)',
+                }}
+                role="status"
+              >
+                <span>你还没测香，这是示例人格「暗流」</span>
+                <Link
+                  href="/question"
+                  className="text-amber-600 font-medium hover:text-amber-700 underline decoration-amber-400"
+                  style={{ textUnderlineOffset: '2px' }}
+                >
+                  去测香
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
         {/* ━━━ 人格揭晓区 ━━━ */}
         <section
-          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 pb-8 min-h-[200px]"
+          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 mb-10 min-h-[200px]"
           aria-label="人格揭晓"
         >
           {unlocked && (
@@ -634,7 +642,7 @@ function ResultInner() {
           />
           <div className="relative z-10 flex flex-col items-center">
           {!revealed && (
-            <p className="text-amber-700 mb-2.5" style={{ fontSize: '15px' }}>
+            <p className="text-amber-700 mb-2" style={{ fontSize: '15px' }}>
               你的灵魂香气，正在浮现…
             </p>
           )}
@@ -661,7 +669,7 @@ function ResultInner() {
 
           {revealed && (
             <motion.p
-              className="text-amber-700 mt-2.5"
+              className="text-amber-700 mt-2"
               style={{ fontSize: '16px' }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -695,7 +703,7 @@ function ResultInner() {
 
         {/* ━━━ ⑦ 合香回流 banner：来自朋友的合香邀请 ━━━ */}
         {revealed && params.get('cp') && (
-          <section className="px-6 pt-2 pb-1">
+          <section className="px-6 mb-10">
             <Link
               href={`/friend?cp=${encodeURIComponent(params.get('cp')!)}&me=${encodeInvite(personalityName)}`}
               className="block w-full py-3.5 rounded-2xl text-center font-sans font-semibold text-sm active:scale-95 transition-transform"
@@ -714,9 +722,9 @@ function ResultInner() {
         {!unlocked && (
           <>
             {/* ━━━ 雷达图（纳入首屏可见区）━━━ */}
-            <section className="px-6 pt-6 pb-8" aria-label="香气光谱雷达图">
+            <section className="px-6 mb-6" aria-label="香气光谱雷达图">
           <h3
-            className="font-serif text-amber-950 text-center mb-1 text-xl"
+            className="font-serif text-amber-950 text-center mb-2 text-xl"
           >
             你的香气光谱
           </h3>
@@ -732,38 +740,39 @@ function ResultInner() {
               <li key={dim}>{RADAR_DIM_LABELS[dim] ?? dim}：{Math.round(val * 100)}%</li>
             ))}
           </ul>
-        </section>
 
-        {/* ━━━ 解析金句 ━━━ */}
-        <div className="px-6 pb-2 text-center">
-          <p className="font-serif text-amber-700/80 italic leading-6" style={{ fontSize: '13px' }}>
-            {getParseQuote(personalityName)}
-          </p>
-        </div>
+          {/* ━━━ 解析金句（雷达图语义簇内的附属块）━━━ */}
+          <div className="mt-6 mb-6 text-center">
+            <p className="font-serif text-amber-700/80 italic leading-6" style={{ fontSize: '13px' }}>
+              {getParseQuote(personalityName)}
+            </p>
+          </div>
 
-        {/* ━━━ 香气探索路径（下移至雷达图之后，保证雷达图纳入首屏）━━━ */}
-        {pathLabels.length > 0 && (
-          <div
-            className="flex gap-2 overflow-x-auto no-scrollbar px-6 pb-4"
-            aria-label="香气探索路径"
-          >
-            <span
-              className="flex-none text-amber-600 self-center mr-1"
-              style={{ fontSize: '12px' }}
+          {/* ━━━ 香气探索路径（下移至雷达图之后，保证雷达图纳入首屏）━━━
+              -mx-6 + px-6：出血到屏幕边缘（可滚到边），同时首项与其余区块左对齐 */}
+          {pathLabels.length > 0 && (
+            <div
+              className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 mb-6"
+              aria-label="香气探索路径"
             >
-              你的香气探索路径
-            </span>
-            {pathLabels.map((label, index) => (
               <span
-                key={index}
-                className="flex-none bg-amber-100 text-amber-700 rounded-full px-3 py-1.5 whitespace-nowrap"
+                className="flex-none text-amber-600 self-center mr-1"
                 style={{ fontSize: '12px' }}
               >
-                {label}
+                你的香气探索路径
               </span>
-            ))}
-          </div>
-        )}
+              {pathLabels.map((label, index) => (
+                <span
+                  key={index}
+                  className="flex-none bg-amber-100 text-amber-700 rounded-full px-3 py-1.5 whitespace-nowrap"
+                  style={{ fontSize: '12px' }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* ━━━ 令人心动的瞬间 ━━━ */}
         <MemorySceneSection
@@ -772,8 +781,8 @@ function ResultInner() {
         />
 
         {/* ━━━ 本命香水 ━━━ */}
-        <section className="px-6 pt-4 pb-10" aria-label="本命香水推荐">
-          <div className="flex items-center justify-center gap-3 mb-7">
+        <section className="px-6 mb-10" aria-label="本命香水推荐">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <span className="h-px w-6 bg-amber-400" />
             <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
             <span className="h-px w-6 bg-amber-400" />
@@ -920,8 +929,8 @@ function ResultInner() {
         </section>
 
         {/* ━━━ 免费内容：性格解读 ━━━ */}
-        <section className="px-6 pb-10" aria-label="性格解读">
-          <div className="flex items-center justify-center gap-3 mb-7">
+        <section className="px-6 mb-10" aria-label="性格解读">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <span className="h-px w-6 bg-amber-400" />
             <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
             <span className="h-px w-6 bg-amber-400" />
@@ -929,7 +938,7 @@ function ResultInner() {
           <p className="text-amber-800" style={{ fontSize: '16px', lineHeight: 1.75 }}>
             {personality.description}
           </p>
-          <div className="flex flex-wrap gap-2 mt-5">
+          <div className="flex flex-wrap gap-2 mt-6">
             {personality.mbti && (
               <span className="bg-amber-100 text-amber-700 text-xs px-3 py-1.5 rounded-full">
                 {personality.mbti}
@@ -942,8 +951,8 @@ function ResultInner() {
         </section>
 
         {/* ━━━ 免费内容：用香哲学 ━━━ */}
-        <section className="px-6 pb-10" aria-label="用香哲学">
-          <div className="flex items-center justify-center gap-3 mb-7">
+        <section className="px-6 mb-10" aria-label="用香哲学">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <span className="h-px w-6 bg-amber-400" />
             <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
             <span className="h-px w-6 bg-amber-400" />
@@ -954,8 +963,8 @@ function ResultInner() {
         </section>
 
         {/* ━━━ 免费内容：香调偏好 ━━━ */}
-        <section className="px-6 pb-10" aria-label="香调偏好">
-          <div className="flex items-center justify-center gap-3 mb-7">
+        <section className="px-6 mb-10" aria-label="香调偏好">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <span className="h-px w-6 bg-amber-400" />
             <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
             <span className="h-px w-6 bg-amber-400" />
@@ -1006,8 +1015,8 @@ function ResultInner() {
         {/* ━━━ 免费内容：关系解读 ━━━ */}
         <RelationAdviceSection personalityName={personalityName} />
 
-          {/* ━━━ 朋友匹配入口 ━━━ */}
-          <section className="px-6 pb-8">
+          {/* ━━━ 朋友匹配入口 + 今日香签入口（同一语义簇，合并为一个容器）━━━ */}
+          <div className="px-6 mb-14 space-y-3">
             <Link
               href={friendHref}
               className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
@@ -1026,10 +1035,8 @@ function ResultInner() {
                 <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
               </div>
             </Link>
-          </section>
 
-          {/* ━━━ 今日香签入口：把一次性的测试结果延伸到每日仪式 ━━━ */}
-          <section className="px-6 pb-8">
+            {/* 今日香签：把一次性的测试结果延伸到每日仪式 */}
             <Link
               href="/?mode=daily"
               className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
@@ -1048,7 +1055,7 @@ function ResultInner() {
                 <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
               </div>
             </Link>
-          </section>
+          </div>
           </>
         )}
 
@@ -1057,14 +1064,14 @@ function ResultInner() {
           <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} perfumes={displayPerfumes} />
         ) : (
         /* ━━━ 内联付费墙 ━━━ */
-        <section className="mx-6 my-6" aria-label="解锁完整报告">
+        <section className="px-6" aria-label="解锁完整报告">
           <h4
             className="font-serif font-medium text-amber-950 mb-2 text-center"
             style={{ fontSize: '20px', letterSpacing: '0.05em' }}
           >
             完整报告
           </h4>
-          <p className="text-amber-700 mb-5 text-center" style={{ fontSize: '13px', lineHeight: 1.6 }}>
+          <p className="text-amber-700 mb-6 text-center" style={{ fontSize: '13px', lineHeight: 1.6 }}>
             还有 4 段关于你的真相，等你揭开
           </p>
 
@@ -1088,7 +1095,7 @@ function ResultInner() {
               </div>
             )}
 
-            <h5 className="font-serif font-bold text-amber-950 text-lg text-left mt-5 mb-1">
+            <h5 className="font-serif font-bold text-amber-950 text-lg text-left mt-6 mb-1">
               完整版
             </h5>
             <p className="text-amber-700 text-left mb-2" style={{ fontSize: '13px' }}>
@@ -1108,13 +1115,13 @@ function ResultInner() {
               </span>
             </div>
 
-            <span className="inline-block text-left mb-5" style={{ fontSize: '12px', fontWeight: 600, color: '#C2410C' }}>
+            <span className="inline-block text-left mb-6" style={{ fontSize: '12px', fontWeight: 600, color: '#C2410C' }}>
               {discounted
                 ? `已省 ¥${savePrice} · 好友已完成自动抵扣`
                 : `省 ¥${savePrice}`}
             </span>
 
-            <ul className="text-left mb-5 space-y-2" role="list">
+            <ul className="text-left mb-6 space-y-2" role="list">
               {cfg.description.map((item) => (
                 <li
                   key={item}

@@ -23,7 +23,7 @@ export default function MemorySceneSection({ personalityName, perfume }: Props) 
   return (
     <section
       aria-label="专属记忆"
-      className="px-6 py-10"
+      className="px-6 mb-10"
       style={{ background: "#FAF3EA" }}
     >
       <p

@@ -112,10 +112,13 @@ export default function UnlockedContent({
   }, [personality.description]);
 
   return (
-    <div className="animate-fadeIn space-y-12 pb-10">
+    // 间距单一来源：容器不再用 space-y（会与子块自带的 mb 叠加）。
+    // 区块间主力值 mb-10（xl）；语义簇内的附属块用 mb-6（lg，见下方雷达图 section）。
+    // 最后一个直接子块不加 mb，末尾间距由父容器 pb-20 兜底。
+    <div className="animate-fadeIn">
       {justPaid && (
         <div
-          className="shimmer mx-6 rounded-lg px-5 py-3 flex items-center gap-3"
+          className="shimmer mx-6 mb-10 rounded-lg px-5 py-3 flex items-center gap-3"
           style={{ background: 'linear-gradient(120deg,#8B5E3C,#C4956A,#8B5E3C,#C4956A,#8B5E3C)' }}
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-800 text-sm font-bold">
@@ -127,10 +130,12 @@ export default function UnlockedContent({
         </div>
       )}
 
-      {/* ── 香气光谱：雷达图 ── */}
-      <section className="px-6" aria-label="香气光谱">
+      {/* ── 香气光谱：雷达图 ──
+          解析金句作为语义簇内附属块挂在 section 内部（与免费态结构一致），
+          故 section 用 mb-6（lg），而非区块间的 mb-10（xl） */}
+      <section className="px-6 mb-6" aria-label="香气光谱">
         <h3
-          className="font-serif text-amber-950 text-center mb-1 text-2xl"
+          className="font-serif text-amber-950 text-center mb-2 text-2xl"
         >
           你的香气光谱
         </h3>
@@ -146,14 +151,14 @@ export default function UnlockedContent({
             <li key={dim}>{RADAR_DIM_LABELS[dim] ?? dim}：{Math.round((val ?? 0) * 100)}%</li>
           ))}
         </ul>
-      </section>
 
-      {/* ━━━ 解析金句 ━━━ */}
-      <div className="px-6 text-center">
-        <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
-          {getParseQuote(personalityName)}
-        </p>
-      </div>
+        {/* ━━━ 解析金句（雷达图语义簇内的附属块）━━━ */}
+        <div className="mt-6 mb-6 text-center">
+          <p className="font-serif text-amber-700/80 italic leading-7" style={{ fontSize: '14px' }}>
+            {getParseQuote(personalityName)}
+          </p>
+        </div>
+      </section>
 
       {/* ── 令人心动的瞬间 ── */}
       <MemorySceneSection
@@ -162,8 +167,8 @@ export default function UnlockedContent({
         />
 
       {/* ━━━ 本命香水 ━━━ */}
-      <section className="px-6" aria-label="本命香水推荐">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="本命香水推荐">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
           <span className="h-px w-6 bg-amber-400" />
@@ -179,8 +184,8 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 性格解读 ━━━ */}
-      <section className="px-6" aria-label="性格解读">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="性格解读">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
           <span className="h-px w-6 bg-amber-400" />
@@ -196,7 +201,7 @@ export default function UnlockedContent({
             </p>
           ))}
         </div>
-        <div className="flex items-center justify-center gap-2 mt-5">
+        <div className="flex items-center justify-center gap-2 mt-6">
           <span className="h-px w-5 bg-amber-400" />
           <span className="w-1 h-1 rounded-full bg-amber-400" />
           <span className="h-px w-5 bg-amber-400" />
@@ -204,14 +209,14 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 用香哲学 ━━━ */}
-      <section className="px-6" aria-label="用香哲学">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="用香哲学">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p
-          className="text-amber-800 italic text-center mb-5"
+          className="text-amber-800 italic text-center mb-6"
           style={{ fontSize: '16px', lineHeight: 1.75 }}
         >
           {getUsagePhilosophy(personalityName)}
@@ -224,13 +229,13 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 香调偏好 ━━━ */}
-      <section className="px-6" aria-label="香调偏好">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="香调偏好">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
-        <div className="mb-5">
+        <div className="mb-6">
           <ScentPreferenceBar
             data={Object.fromEntries(radarGrid.map(({ dim, value }) => [dim, value]))}
             dimLabels={RADAR_DIM_LABELS}
@@ -239,7 +244,7 @@ export default function UnlockedContent({
         <div className="flex items-center justify-center gap-2 mb-4">
           <span className="h-px w-8 bg-amber-400" />
         </div>
-        <h4 className="font-serif text-base font-medium text-amber-950 mb-3">推荐探索方向</h4>
+        <h4 className="font-serif text-base font-medium text-amber-950 mb-2">推荐探索方向</h4>
         <ul className="space-y-2">
           <li className="text-sm text-amber-800" style={{ lineHeight: 1.7 }}>
             · {RADAR_DIM_LABELS[getTopDimName(radarData)] ?? getTopDimName(radarData)} 是你的舒适区
@@ -254,13 +259,13 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 关系解读 ━━━ */}
-      <section className="px-6" aria-label="关系解读">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="关系解读">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-white border border-amber-100 rounded-xl p-4">
             <h4 className="font-serif text-sm font-medium text-amber-950 mb-2">初次见面</h4>
             <p className="text-sm text-amber-800 leading-relaxed">
@@ -281,7 +286,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ── 朋友匹配入口 ── */}
-      <section className="px-6">
+      <section className="px-6 mb-10">
         <a
           href="/friend"
           className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
@@ -304,7 +309,7 @@ export default function UnlockedContent({
 
       {/* ── 隐藏人格面：深色杂志区块 ── */}
       <section
-        className="mx-6 rounded-3xl p-8 animate-blurReveal"
+        className="mx-6 mb-10 rounded-3xl p-8 animate-blurReveal"
         style={{ background: '#3D2817', color: '#FAF3EA' }}
         aria-label="隐藏人格面"
       >
@@ -320,18 +325,18 @@ export default function UnlockedContent({
         >
           你不知道的自己
         </h3>
-        <div className="flex items-center justify-center gap-2 mb-5">
+        <div className="flex items-center justify-center gap-2 mb-6">
           <span className="h-px w-5" style={{ background: '#D4A574' }} />
           <span className="w-1 h-1 rounded-full" style={{ background: '#D4A574' }} />
           <span className="h-px w-5" style={{ background: '#D4A574' }} />
         </div>
         <p
-          className="leading-relaxed mb-5"
+          className="leading-relaxed mb-6"
           style={{ fontSize: '15px', lineHeight: 1.75, color: 'rgba(212,165,116,0.9)' }}
         >
           {hidden.content}
         </p>
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-6">
           {hidden.traits.map((t) => (
             <span
               key={t}
@@ -356,8 +361,8 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 反差香 ━━━ */}
-      <section className="px-6" aria-label="反差香">
-        <div className="flex items-center justify-center gap-3 mb-7">
+      <section className="px-6 mb-10" aria-label="反差香">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">反差香</h2>
           <span className="h-px w-6 bg-amber-400" />
@@ -380,18 +385,19 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 气味底稿 ━━━ */}
+      {/* 最后一个直接子块：不加 mb，末尾间距由父容器 pb-20 兜底 */}
       <section className="px-6" aria-label="气味底稿">
-        <div className="flex items-center justify-center gap-3 mb-7">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">气味底稿</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
-        <p className="text-center text-amber-700 mb-5" style={{ fontSize: '14px' }}>
+        <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
           你的专属香方起点
         </p>
         <BlueprintRows blueprint={blueprint} />
         <p
-          className="mt-5 flex items-start gap-2 text-sm text-amber-700 leading-relaxed"
+          className="mt-6 flex items-start gap-2 text-sm text-amber-700 leading-relaxed"
           style={{ lineHeight: 1.7 }}
         >
           <span>💡</span>
@@ -643,7 +649,7 @@ function BlueprintRows({ blueprint }: { blueprint: { top: string; heart: string;
       {/* ── 签名调性：拉开间距 + 装饰分隔符 ── */}
       <div className="pt-8 pb-2">
         {/* 装饰：渐隐短线 + 中央金色八角星 + 渐隐短线 */}
-        <div className="flex items-center justify-center gap-2.5 mb-5">
+        <div className="flex items-center justify-center gap-2.5 mb-6">
           <span
             className="h-px block"
             style={{
