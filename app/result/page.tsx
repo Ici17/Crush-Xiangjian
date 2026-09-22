@@ -530,7 +530,12 @@ function ResultInner() {
 
   return (
     <main className="app-shell">
-      <div className="overflow-y-auto no-scrollbar pb-20 max-w-[430px] mx-auto">
+      {/* 内容滚动容器：刻意**不写** overflow-y-auto。
+          原因：overflow-y-auto 要成为滚动容器必须有受限高度（如其余页面的 max-h-[Nvh]），
+          而此处无高度约束 → 容器高度恒等于内容高度、永不溢出、永不滚动，
+          导致其内部所有 sticky（顶部导航、横幅）失去滚动参照而失效。
+          移除后由视口滚动，导航 top-0、横幅 top-[var(--nav-h)] 均能正常吸顶。 */}
+      <div className="no-scrollbar pb-20 max-w-[430px] mx-auto">
 
         {/* 顶部导航：首页返回（两态共用）+ 重新测试 */}
         <div className="sticky top-0 z-50 px-4 py-2 flex items-center justify-between gap-2 bg-cream/80 backdrop-blur-sm border-b border-amber-100/50">
