@@ -389,7 +389,7 @@ export default function LandingPage() {
 
         {/* ─── 7 Main CTA Button(脉冲动画) ─── */}
         <div
-          className="px-5 mt-5 animate-fadeIn relative"
+          className="px-5 mt-6 animate-fadeIn relative"
           style={{ animationDelay: '480ms' }}
         >
           {/* 已测用户:人格胶囊 + 双按钮 */}

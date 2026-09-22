@@ -163,7 +163,7 @@ export default function DiscoverPage() {
         </p>
 
         {/* 人格选择器 */}
-        <div className="mt-5">
+        <div className="mt-6">
           <div className="text-[11px] tracking-[0.2em] text-[#A8884E] mb-2">当 前 人 格</div>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
             {PERSONALITIES.map((p) => {
@@ -215,7 +215,7 @@ export default function DiscoverPage() {
         )}
 
         {/* Tab */}
-        <div className="mt-5 flex gap-1.5 bg-white/60 rounded-xl p-1">
+        <div className="mt-6 flex gap-1.5 bg-white/60 rounded-xl p-1">
           {TABS.map((t) => (
             <button
               key={t.key}
