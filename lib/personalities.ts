@@ -147,7 +147,9 @@ export function getRecommendations(personalityName: string): readonly Recommenda
  */
 /** 动态推荐缓存 schema 版本（Recommendation shape 变化时 +1，老缓存自动失效）
  * v3：本命香 match 改为 85-95 映射值（v2 缓存存的是 raw 分，需失效） */
-const DYNAMIC_RECS_SCHEMA_VERSION = 3;
+// v4（2026-10-18）：高端档改为「候选窗口内确定性加权随机」以打开长尾覆盖，
+// 旧缓存（v3）会导致老用户看不到新结果，故升版使其自然失效。
+const DYNAMIC_RECS_SCHEMA_VERSION = 4;
 
 /**
  * 同步读取动态推荐缓存（跨刷新锁定同一批 3 支）
@@ -202,7 +204,20 @@ export async function getDynamicRecommendations(personalityName: string): Promis
     const { getCalibratedRecommendations } = await import('@/lib/matchPerfumes');
     // 传入所属原型 id，启用「平价档全局去重分配表」（16 原型各拿一支互不重复的尝试香）
     const archetypeId = PERSONALITY_ID_MAP[personalityName];
-    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, archetypeId);
+
+    // P0：传入稳定访客 ID 作为随机种子，打开高端档长尾覆盖。
+    // 同一 vid → 同一种子 → 结果跨刷新稳定（分享卡也对得上）；
+    // 不同用户 → 不同种子 → 长尾香得以分流，避免千人一面。
+    // canonical 视图（探索页 / 分享卡）不传此参数，保持原确定性择优。
+    let userSeed = '';
+    try {
+      const { getVisitorId } = await import('@/lib/analytics');
+      userSeed = getVisitorId();
+    } catch {
+      userSeed = ''; // 取不到则退化为确定性择优，不影响主流程
+    }
+
+    const calibrated = getCalibratedRecommendations(radarVector, calChoices, pathLabels, archetypeId, false, userSeed || undefined);
 
     if (calibrated.length === 0) return getRecommendations(personalityName);
 

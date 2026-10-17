@@ -261,6 +261,13 @@ interface CalPreferences {
   scentStyle: 'sweet' | 'clean' | 'deep';   // cal1 气息偏向
   longevityPref: 'long' | 'medium' | 'light'; // cal2 留香偏好
   occasion: 'solo' | 'daytime' | 'date';    // cal3 使用场景
+  // ── P1（2026-10-19）新增三道校准题 ──
+  // null = 该用户没答过这题（老用户只有 3 条校准答案 / canonical 原型视图）。
+  // null 时对应评分函数必须返回常数 50，使新增项对所有香水的调整量恒为 0
+  // → 老结果与 16 原型 canonical 视图逐位不变，零历史漂移。
+  avoid: 'sweet' | 'floral' | 'woody' | 'none' | null;  // cal4 雷区
+  season: 'summer' | 'winter' | 'any' | null;           // cal5 季节/温度
+  budget: 'low' | 'mid' | 'high' | null;                // cal6 预算
 }
 
 /** 从校准答案 choiceId 解析偏好 */
@@ -277,6 +284,18 @@ function parseCalPreferences(calChoices: string[]): CalPreferences | null {
   const occasionMap: Record<string, CalPreferences['occasion']> = {
     cal3a: 'solo', cal3b: 'daytime', cal3c: 'date',
   };
+  // cal4: cal4a=避雷甜腻美食调, cal4b=避雷厚重白花, cal4c=避雷烟熏重木, cal4d=都不排斥
+  const avoidMap: Record<string, NonNullable<CalPreferences['avoid']>> = {
+    cal4a: 'sweet', cal4b: 'floral', cal4c: 'woody', cal4d: 'none',
+  };
+  // cal5: cal5a=夏天/湿热, cal5b=冬天/干燥, cal5c=四季都用
+  const seasonMap: Record<string, NonNullable<CalPreferences['season']>> = {
+    cal5a: 'summer', cal5b: 'winter', cal5c: 'any',
+  };
+  // cal6: cal6a=300 以内, cal6b=300–800, cal6c=800 以上
+  const budgetMap: Record<string, NonNullable<CalPreferences['budget']>> = {
+    cal6a: 'low', cal6b: 'mid', cal6c: 'high',
+  };
 
   if (calChoices.length < 3) return null;
 
@@ -284,8 +303,24 @@ function parseCalPreferences(calChoices: string[]): CalPreferences | null {
     scentStyle: scentMap[calChoices[0]] ?? 'clean',
     longevityPref: longevityMap[calChoices[1]] ?? 'medium',
     occasion: occasionMap[calChoices[2]] ?? 'daytime',
+    // 下标 3/4/5 对应 CALIBRATION_ORDER 里的 cal4/cal5/cal6；
+    // 老用户只有 3 条答案 → undefined → null → 对应评分退化为常数 50（不产生任何调整）
+    avoid: avoidMap[calChoices[3]] ?? null,
+    season: seasonMap[calChoices[4]] ?? null,
+    budget: budgetMap[calChoices[5]] ?? null,
   };
 }
+
+/** 香水三段香调拼成的检索文本 */
+function perfumeNotesText(perfume: Perfume): string {
+  return [
+    ...perfume.notes.top,
+    ...perfume.notes.heart,
+    ...perfume.notes.base,
+  ].join(' ');
+}
+
+const clamp0to100 = (n: number): number => Math.min(100, Math.max(0, n));
 
 /** cal1 气息偏向 → 香水 notes 得分 (0-100) */
 function calScentScore(perfume: Perfume, pref: CalPreferences): number {
@@ -327,6 +362,76 @@ function calOccasionScore(perfume: Perfume, pref: CalPreferences): number {
     case 'daytime': return i >= 3 && i <= 4 ? 100 : i === 2 || i === 5 ? 50 : 20; // 白天→适中
     case 'date':    return i >= 4 ? 100 : i === 3 ? 60 : 20;  // 约会→有存在感
   }
+}
+
+// ════════════════════════════════════════════════════════
+// P1（2026-10-19）三道新校准题的评分函数
+//
+// 共同契约（极重要）：
+//   未作答（null）或「都不排斥/中性」时，必须返回常数 50。
+//   totalScore 用的是 (score - 50) * weight 形式，常数 50 → 调整量恒为 0
+//   → 老用户（只有 3 条校准答案）与 16 原型 canonical 视图的结果逐位不变。
+//
+//   另外：这三题一律做「软加分/减分」，绝不做硬过滤。
+//   硬过滤会直接把 P0 刚修好的覆盖度（96.9%）砍回去，与覆盖目标冲突。
+// ════════════════════════════════════════════════════════
+
+/** cal4 雷区 → 命中雷区的香减分 (0-100，未答/不避雷恒 50) */
+function calAvoidScore(perfume: Perfume, pref: CalPreferences): number {
+  const notes = perfumeNotesText(perfume);
+  const desc = perfume.description;
+  const hay = `${notes} ${desc}`;
+  const patterns: Record<'sweet' | 'floral' | 'woody', RegExp> = {
+    // 甜腻美食调
+    sweet: /香草|焦糖|蜂蜜|可可|奶油|杏仁|巧克力|椰子|棉花糖|零陵香豆|太妃|糖|奶|gourmand/i,
+    // 厚重白花与脂粉
+    floral: /茉莉|晚香玉|栀子|白花|铃兰|依兰|鸢尾|粉|脂|floral/i,
+    // 烟熏与重木质
+    woody: /乌木|沉香|皮革|焚香|烟|雪松|广藿香|岩兰|香根草|woody|smoke/i,
+  };
+  if (!pref.avoid || pref.avoid === 'none') return 50;
+  const re = patterns[pref.avoid];
+  return re && re.test(hay) ? 10 : 60;
+}
+
+/** cal5 季节/温度 → 气候适配 (0-100，未答恒 50) */
+function calSeasonScore(perfume: Perfume, pref: CalPreferences): number {
+  if (!pref.season) return 50;
+  const notes = perfumeNotesText(perfume);
+  const cool = /薄荷|海盐|海洋|青草|柑橘|柠檬|佛手柑|葡萄柚|橙花|绿茶|水生|柚|fresh|citrus/i;
+  const warm = /香草|琥珀|檀香|雪松|乌木|沉香|皮革|焚香|肉桂|零陵香豆|辛|oriental|woody/i;
+
+  if (pref.season === 'summer') {
+    let s = 50;
+    if (cool.test(notes)) s += 25;
+    if (warm.test(notes)) s -= 20;
+    if (perfume.intensity >= 4) s -= 15;   // 夏天扛不住厚重的扩散
+    return clamp0to100(s);
+  }
+  if (pref.season === 'winter') {
+    let s = 50;
+    if (warm.test(notes)) s += 25;
+    if (cool.test(notes)) s -= 15;
+    if (perfume.longevity <= 2) s -= 15;   // 冬天留不住的香等于没喷
+    return clamp0to100(s);
+  }
+  // 四季都用 → 中庸最优：扩散与留香都落在中段
+  const iOk = perfume.intensity >= 3 && perfume.intensity <= 4;
+  const lOk = perfume.longevity >= 3 && perfume.longevity <= 4;
+  return clamp0to100(50 + (iOk ? 15 : -10) + (lOk ? 15 : -10));
+}
+
+/** cal6 预算 → 价位适配 (0-100，未答恒 50)。按单 ml 价比，不比整瓶绝对价。 */
+function calBudgetScore(perfume: Perfume, pref: CalPreferences): number {
+  if (!pref.budget) return 50;
+  const perMl = parseLowPricePerMl(perfume.priceRange);
+  if (perMl <= 0) return 50;
+  switch (pref.budget) {
+    case 'low':  return perMl <= 8 ? 100 : perMl <= 18 ? 60 : 25;
+    case 'mid':  return perMl > 8 && perMl <= 25 ? 100 : perMl <= 8 ? 55 : 60;
+    case 'high': return perMl >= 20 ? 100 : perMl >= 10 ? 60 : 30;
+  }
+  return 50;
 }
 
 /** 香水描述关键词匹配用户路径标签 (0-100 bonus) */
@@ -371,12 +476,24 @@ function totalScore(
   const calLongevity = calLongevityScore(perfume, prefs);
   const calOccasion = calOccasionScore(perfume, prefs);
   const descBonus = descriptionBonus(perfume, pathLabels);
+
+  // ── P1 三道新校准题：以「零中心增量」叠加，而不是并入上面的固定权重 ──
+  // 形式：(score - 50) * weight。未作答时 score 恒为 50 → 增量恒为 0，
+  // 因此老用户（3 条校准答案）与 canonical 视图的分数与排序逐位不变。
+  // 这样做的好处是新信号可以自由加，而不必每次都重分配已有权重（那会全量漂移）。
+  const avoidAdj = (calAvoidScore(perfume, prefs) - 50) * 0.12;
+  const seasonAdj = (calSeasonScore(perfume, prefs) - 50) * 0.08;
+  const budgetAdj = (calBudgetScore(perfume, prefs) - 50) * 0.06;
+
   return (
     radarScore * 0.45 +   // 雷达（最准信号）权重上调
     calScent * 0.15 +     // 香调偏好下调（与雷达有重叠，避免重复计权）
     calLongevity * 0.20 +
     calOccasion * 0.15 +
-    descBonus * 0.05
+    descBonus * 0.05 +
+    avoidAdj +            // cal4 雷区（负向信号，单题性价比最高）
+    seasonAdj +           // cal5 季节/温度
+    budgetAdj             // cal6 预算（软加分，绝不硬过滤）
   );
 }
 
@@ -654,6 +771,73 @@ function mapSignatureMatch(raw: number): number {
   return Math.round(MIN_DISP + t * (MAX_DISP - MIN_DISP));
 }
 
+// ════════════════════════════════════════════════════════
+// 选择层 · 确定性加权随机（P0，2026-10-18）
+//
+// 背景：高端档原本是「纯 top-1 / top-2 硬择优」，导致 225 支里 104 支
+//       在任何用户路径下都推不出去（见 audit-perfume-reachability）。
+//
+// 关键实测（scripts/verify-coverage-window.ts）：匹配分数曲线是「平」的——
+//   第 1 名相似度 0.96、第 12 名 0.91，仅差 6%。
+//   → 推第 1 还是第 12，用户感知不到差别，但覆盖度能翻数倍。
+//
+// 因此本层做两件事，分别对应两个独立旋钮：
+//   ① 相关性下限（PREMIUM_RELEVANCE_FLOOR）→ 锁死精度，不合格的香绝不入选
+//   ② 窗口内加权随机                        → 打开覆盖，让长尾有机会
+//
+// 确定性原则：随机必须由 userSeed 驱动，同一种子必得同一结果
+//   · 真实用户路径传 vid → 同一用户刷新不变、分享卡对得上，但不同用户拿到不同长尾香
+//   · canonical 视图（不传 userSeed）→ 完全走原逻辑，16 原型展示 / 分享卡零变动
+// ════════════════════════════════════════════════════════
+
+/**
+ * 高端档候选窗口大小。
+ * 实测（scripts/verify-coverage-window.ts）：Top-12 精度衰减 6.2%、覆盖不足；
+ * Top-20 精度衰减 8.5%（仍在容忍内）但覆盖显著提升，故取 20。
+ */
+const PREMIUM_WINDOW = 20;
+/** 相关性下限：候选分数不得低于窗口内最高分的该比例 */
+const PREMIUM_RELEVANCE_FLOOR = 0.85;
+/** 多样性下限权重：0 = 纯按分（退化成原逻辑），越大越均匀 */
+const PREMIUM_MIN_WEIGHT = 0.15;
+/** 权重指数：1 = 线性；<1 更均匀（覆盖更高），>1 更偏向头部（精度更高） */
+const PREMIUM_DIVERSITY_GAMMA = 1.0;
+
+/** 字符串 → 32 位种子（FNV-1a，与 lib/daily/draw.ts 同族的确定性做法） */
+function hashSeed(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** mulberry32：同一种子必产生同一序列 */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 加权抽样（确定性：给定 rng 与权重数组，结果唯一） */
+function weightedPick<T>(items: T[], weights: number[], rng: () => number): T | undefined {
+  if (items.length === 0) return undefined;
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (!(total > 0)) return items[0];
+  let r = rng() * total;
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
 /**
  * 校准匹配推荐：从香水库按用户偏好 + 雷达图打分，每个角色返回最佳匹配
  * @param radarScores 用户 6 维雷达分值 (0-1)
@@ -661,6 +845,8 @@ function mapSignatureMatch(raw: number): number {
  * @param pathLabels 全部 10 题路径标签
  * @param archetypeId 可选，传入用户所属原型 id 时，平价档强制走「全局去重分配表」
  *                      （保证 16 个原型各拿到一支互不重复的平价香，消除跨原型霸榜）
+ * @param userSeed 可选，稳定用户标识（vid）。传入时高端档启用「窗口内加权随机」以打开覆盖；
+ *                 不传（canonical 视图）时保持原确定性择优，行为零变化。
  */
 export function getCalibratedRecommendations(
   radarScores: ScentVector,
@@ -668,9 +854,13 @@ export function getCalibratedRecommendations(
   pathLabels: string[] = [],
   archetypeId?: string,
   useArchetypeBudget = false,
+  userSeed?: string,
 ): CalibratedRecommendation[] {
   const prefs = parseCalPreferences(calChoices);
   if (!prefs) return [];
+
+  // 随机种子基：仅在传入 userSeed 时启用（真实用户路径）
+  const seedBase = userSeed ? `${userSeed}|${calChoices.join('|')}` : '';
 
   // 修复：用户雷达向量可能是中文键（来自 personalities.getRadarScores），
   // 内部的 cosineSimilarity 使用英文键（floral/woody/...），混用会 NaN。
@@ -715,14 +905,41 @@ export function getCalibratedRecommendations(
   // 本命香：合并池 top1（价格不限，取最佳契合）
   // 进阶香：合并池中价格 ≥ ADVANCED_MIN_PRICE 的香，排除本命香品牌/同名，取 top1
   //         （保证进阶香高定价定位；若高价池为空则退回普通高端香，避免进阶香为空）
+  // 合格候选窗口：
+  //   ① 过滤掉已选 / 同品牌 / 价格不达标的
+  //   ② 取前 PREMIUM_WINDOW 支（premiumCandidates 已按分降序）
+  //   ③ 再用「相关性下限」剔除分数过低的 —— 这一步锁死精度
+  const buildPremiumWindow = (
+    minPricePerMl: number,
+  ): typeof premiumCandidates => {
+    const eligible = premiumCandidates.filter(
+      (c) =>
+        !selectedNames.has(c.perfume.name) &&
+        !selectedBrands.has(c.perfume.brand) && // 本命/进阶不同品牌
+        parseLowPricePerMl(c.perfume.priceRange) >= minPricePerMl,
+    );
+    if (eligible.length === 0) return [];
+    const floor = eligible[0].totalScore * PREMIUM_RELEVANCE_FLOOR;
+    return eligible.slice(0, PREMIUM_WINDOW).filter((c) => c.totalScore >= floor);
+  };
+
   const pickPremium = (role: 'signature' | 'advanced', minPricePerMl: number): typeof premiumCandidates[number] | undefined => {
-    for (const cand of premiumCandidates) {
-      if (selectedNames.has(cand.perfume.name)) continue;
-      if (selectedBrands.has(cand.perfume.brand)) continue; // 本命/进阶不同品牌
-      if (parseLowPricePerMl(cand.perfume.priceRange) < minPricePerMl) continue;
-      return cand;
-    }
-    return undefined;
+    const win = buildPremiumWindow(minPricePerMl);
+    if (win.length === 0) return undefined;
+
+    // canonical 视图（无 userSeed）：完全保持原「取最高分」行为，零变化
+    if (!seedBase) return win[0];
+
+    // 真实用户路径：窗口内按分数加权随机（确定性，由 userSeed 驱动）
+    const best = win[0].totalScore;
+    const floor = best * PREMIUM_RELEVANCE_FLOOR;
+    const span = Math.max(best - floor, 1e-6);
+    const rng = mulberry32(hashSeed(`${seedBase}|${role}`));
+    const weights = win.map((c) => {
+      const norm = Math.min(1, Math.max(0, (c.totalScore - floor) / span));
+      return PREMIUM_MIN_WEIGHT + Math.pow(norm, PREMIUM_DIVERSITY_GAMMA);
+    });
+    return weightedPick(win, weights, rng);
   };
 
   // 1) 本命香（无价格门槛）
@@ -842,12 +1059,38 @@ export function getCalibratedRecommendations(
     ? buildArchetypeBudgetAssignment().get(archetypeId) ?? []
     : buildBudgetDirectionAssignment().get(calKey) ?? [];
 
-  let fixedRec: CalibratedRecommendation | null = null;
+  // 收集该方向的候选组（已在分配表中做完全局去重，跨方向不重复）
+  const budgetCands: { cand: Perfume; score: number }[] = [];
   for (const candName of fixedNames) {
     const cand = (PERFUMES as Record<string, Perfume>)[candName];
     if (!cand || cand.tier !== 'budget') continue;
-    const candScore = totalScore(cand, radarEn, prefs!, pathLabels);
-    if (fixedRec && candScore <= fixedRec.score) continue;
+    budgetCands.push({ cand, score: totalScore(cand, radarEn, prefs!, pathLabels) });
+  }
+
+  // 平价档选优：
+  //   · canonical（无种子）→ 保持原「取组内最高分」行为，零变化
+  //   · 真实用户路径（有种子）→ 组内确定性加权随机。
+  //     原因：组内冷门香在 argmax 下永远出不去（实测 47 支里有 10 支不可达），
+  //     与高端档同理用加权随机打开覆盖。组内候选已全局去重，不影响跨方向唯一性。
+  const pickBudget = (): { cand: Perfume; score: number } | undefined => {
+    if (budgetCands.length === 0) return undefined;
+    if (!seedBase) return budgetCands.reduce((a, b) => (b.score > a.score ? b : a));
+    const best = Math.max(...budgetCands.map((c) => c.score));
+    const floor = best * PREMIUM_RELEVANCE_FLOOR;
+    const span = Math.max(best - floor, 1e-6);
+    const rng = mulberry32(hashSeed(`${seedBase}|budget`));
+    const weights = budgetCands.map((c) => {
+      const norm = Math.min(1, Math.max(0, (c.score - floor) / span));
+      return PREMIUM_MIN_WEIGHT + Math.pow(norm, PREMIUM_DIVERSITY_GAMMA);
+    });
+    return weightedPick(budgetCands, weights, rng);
+  };
+
+  let fixedRec: CalibratedRecommendation | null = null;
+  const chosenBudget = pickBudget();
+  if (chosenBudget) {
+    const cand = chosenBudget.cand;
+    const candScore = chosenBudget.score;
     // 平价档使用原始全局分数
     fixedRec = {
       name: cand.name,

@@ -218,7 +218,14 @@ export default function QuestionPage() {
     localStorage.setItem("crushxiangjian_personality_id", result.personalityId);
     localStorage.setItem("crushxiangjian_radar_scores", JSON.stringify(result.radarScores));
     localStorage.setItem("crushxiangjian_path_labels", JSON.stringify(getPathLabels(allChoices)));
-    localStorage.setItem("crushxiangjian_calibration_choices", JSON.stringify(allChoices.slice(-3)));
+    // 校准答案一律取「末尾 CALIBRATION_ORDER.length 条」。
+    // 曾硬编码 slice(-3)：P1 把校准题从 3 道扩到 6 道后，会把 cal4/cal5/cal6
+    // 当成 cal1/cal2/cal3 解析，气息/留香/场合三个维度全部错位。
+    // 校准题数量必须跟着 CALIBRATION_ORDER 走，不能写死数字。
+    localStorage.setItem(
+      "crushxiangjian_calibration_choices",
+      JSON.stringify(allChoices.slice(-CALIBRATION_ORDER.length)),
+    );
 
     // 延迟一点，让用户看到"正在调香"页
     timerRef.current = setTimeout(() => {

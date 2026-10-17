@@ -115,8 +115,9 @@ function genEid(): string {
   return `${Date.now().toString(36)}-${rand8()}`;
 }
 
-/** 长期访客 ID。迁移：优先 cx_vid；缺失则采纳旧键 cx_anon_session 的值，保证老访客 UV 连续。 */
-function getVisitorId(): string {
+/** 长期访客 ID。迁移：优先 cx_vid；缺失则采纳旧键 cx_anon_session 的值，保证老访客 UV 连续。
+ *  对外导出：推荐引擎用它做「确定性加权随机」的种子，保证同一用户刷新结果不变。 */
+export function getVisitorId(): string {
   if (typeof window === 'undefined') return '';
   try {
     let v = lsGet(VID_KEY);

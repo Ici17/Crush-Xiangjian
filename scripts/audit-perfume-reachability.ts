@@ -42,6 +42,22 @@ for (const arch of PERSONALITY_TYPES as any[]) {
   }
 }
 
+// ── P0（2026-10-18）新增：模拟多个用户种子，测量「真实用户路径」的覆盖度 ──
+// 真实用户路径会传入 vid 作为 userSeed，高端档改为「窗口内确定性加权随机」。
+// 只有枚举多个种子才能量到这个改动带来的覆盖提升（单个种子看不出来）。
+const SEEDED_USERS = Array.from({ length: 12 }, (_, i) => `sim-user-${i}`);
+const seenSeeded = new Map<string, number>();
+for (const arch of PERSONALITY_TYPES as any[]) {
+  const radar = arch.radarScores as any;
+  for (const cal of ALL_CAL) {
+    for (const seed of SEEDED_USERS) {
+      for (const rec of getCalibratedRecommendations(radar, cal, [], arch.id, false, seed)) {
+        seenSeeded.set(rec.name, (seenSeeded.get(rec.name) ?? 0) + 1);
+      }
+    }
+  }
+}
+
 const reachable = new Set<string>([...seenReal.keys(), ...seenCanon.keys()]);
 const dead = allPerfumes.filter((p) => !reachable.has(p.name));
 
@@ -93,6 +109,21 @@ for (const arch of PERSONALITY_TYPES as any[]) {
 }
 console.log(`canonical 视图 16 原型分配的尝试香：${canonBudget.size} 支`);
 console.log(`重复冲突数：${canonDup}（应为 0）`);
+
+// ── P0 覆盖度报告 ──
+const seededReachable = new Set(seenSeeded.keys());
+const seededRatio = ((seededReachable.size / allPerfumes.length) * 100).toFixed(1);
+const stillDead = allPerfumes.filter((p) => !seededReachable.has(p.name));
+console.log("");
+console.log("══════ P0 真实用户路径（含 12 个模拟用户种子）══════");
+console.log(`可达香水：${seededReachable.size} 支（占比 ${seededRatio}%）`);
+console.log(`仍不可达：${stillDead.length} 支`);
+if (stillDead.length > 0 && stillDead.length <= 20) {
+  for (const p of stillDead) console.log(`  [${p.tier}] ${p.name}`);
+}
+const seededSorted = [...seenSeeded.entries()].sort((a, b) => b[1] - a[1]);
+console.log("头部集中度 TOP 5（数值越低越分散）：");
+for (const [name, n] of seededSorted.slice(0, 5)) console.log(`  ${name} — ${n} 次`);
 
 console.log("");
 console.log(

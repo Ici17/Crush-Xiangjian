@@ -1208,9 +1208,69 @@ export const QUESTIONS: Record<string, Question> = {
       { id: "cal3c", text: "约会或重要场合（迷人记忆点）", nextQuestionId: undefined, personalityBias: { floral: 25, gourmand: 15 }, pathLabel: "约会", pathEmoji: "💞" },
     ],
   },
+  // ══════════════════════════════════════════════════════════
+  // cal4 雷区（负向信号，P1 2026-10-19）
+  // 「你不想要什么」往往比「你想要什么」更确定，是单题性价比最高的精度信号。
+  // 负向偏置取 −35 量级：足以把雷区香挤出 Top-20 窗口，但不至于一票否决
+  // （否决会同时砍掉覆盖度，与 P0 的覆盖目标冲突）。
+  // 末位「都不排斥」bias 留空：不污染雷达，也让无强烈好恶的用户不被迫表态。
+  // ══════════════════════════════════════════════════════════
+  cal4: {
+    id: "cal4",
+    scenario: "校准",
+    question: "有没有一种气味，是你确定不想在自己身上闻到的？",
+    choices: [
+      { id: "cal4a", text: "甜腻的美食调——焦糖、奶油、糖霜堆在一起", nextQuestionId: undefined, personalityBias: { gourmand: -35, oriental: -10 }, pathLabel: "避雷甜", pathEmoji: "🍰" },
+      { id: "cal4b", text: "厚重的白花与脂粉——大朵茉莉、晚香玉的浓香", nextQuestionId: undefined, personalityBias: { floral: -35, oriental: -10 }, pathLabel: "避雷花", pathEmoji: "💐" },
+      { id: "cal4c", text: "烟熏与重木质——乌木、皮革、焚香的压迫感", nextQuestionId: undefined, personalityBias: { woody: -35, oriental: -15 }, pathLabel: "避雷木", pathEmoji: "🪵" },
+      { id: "cal4d", text: "都不排斥——我对气味挺宽容的", nextQuestionId: undefined, personalityBias: {}, pathLabel: "不避雷", pathEmoji: "🕊️" },
+    ],
+  },
+  // ══════════════════════════════════════════════════════════
+  // cal5 季节/温度（P1 2026-10-19）
+  // 与 cal1 气息偏向部分重叠，但切入角度不同：cal1 问「审美偏好」，
+  // cal5 问「使用场景的气候」，能区分「喜欢木质但只在冬天用」这类真实人群。
+  // ══════════════════════════════════════════════════════════
+  cal5: {
+    id: "cal5",
+    scenario: "校准",
+    question: "你最常在什么样的天气里用它？",
+    choices: [
+      { id: "cal5a", text: "夏天或湿热的时候（想降温、想清爽）", nextQuestionId: undefined, personalityBias: { fresh: 25, citrus: 15, oriental: -10 }, pathLabel: "夏", pathEmoji: "🏖️" },
+      { id: "cal5b", text: "冬天或干燥的时候（想暖一点、厚一点）", nextQuestionId: undefined, personalityBias: { oriental: 20, woody: 15, fresh: -15 }, pathLabel: "冬", pathEmoji: "🔥" },
+      { id: "cal5c", text: "四季都用（希望它不挑时候）", nextQuestionId: undefined, personalityBias: { floral: 5, woody: 5 }, pathLabel: "四季", pathEmoji: "🔄" },
+    ],
+  },
+  // ══════════════════════════════════════════════════════════
+  // cal6 预算（P1 2026-10-19）
+  // 注意：预算只做「软加分」，绝不做硬过滤 —— 硬过滤会把 P0 刚修好的
+  // 覆盖度又砍回去。bias 留空：预算与气味审美无关，不该污染雷达。
+  // ══════════════════════════════════════════════════════════
+  cal6: {
+    id: "cal6",
+    scenario: "校准",
+    question: "如果现在就要买，你更愿意为它花多少？",
+    choices: [
+      { id: "cal6a", text: "300 元以内（先试试水）", nextQuestionId: undefined, personalityBias: {}, pathLabel: "轻预算", pathEmoji: "🪙" },
+      { id: "cal6b", text: "300–800 元（遇到喜欢的值得）", nextQuestionId: undefined, personalityBias: {}, pathLabel: "中预算", pathEmoji: "💳" },
+      { id: "cal6c", text: "800 元以上（收藏级，不太计较）", nextQuestionId: undefined, personalityBias: {}, pathLabel: "高预算", pathEmoji: "👑" },
+    ],
+  },
 };
 
-export const CALIBRATION_ORDER = ["cal1", "cal2", "cal3"];
+// 校准题顺序。新增/裁剪校准题只需改这一处：
+// 下一题指针由下方循环统一推导，不再手写 nextQuestionId。
+export const CALIBRATION_ORDER = ["cal1", "cal2", "cal3", "cal4", "cal5", "cal6"];
+
+// 校准题链式推进：把 nextQuestionId 由 CALIBRATION_ORDER 推导出来，
+// 避免「改顺序/删题却忘了改指针」导致流程断链或跳题。
+// 末题指针为 undefined → 触发出结果。
+for (let i = 0; i < CALIBRATION_ORDER.length; i++) {
+  const q = QUESTIONS[CALIBRATION_ORDER[i]];
+  if (!q) continue;
+  const next = CALIBRATION_ORDER[i + 1];
+  for (const c of q.choices) c.nextQuestionId = next;
+}
 
 
 
@@ -1304,7 +1364,13 @@ function findClosestPersonality(scores: RadarScore): string {
 function enumeratePaths(): string[][] {
   const nextIds = new Set<string>();
   Object.values(QUESTIONS).forEach((q) => q.choices.forEach((c) => c.nextQuestionId && nextIds.add(c.nextQuestionId)));
-  const roots = Object.keys(QUESTIONS).filter((qid) => !nextIds.has(qid));
+  // 校准题不参与「路径 → 人格」分配：
+  //   ① 语义上人格只应由 7 道分支题决定（校准题是偏好微调，不是人格判定）；
+  //   ② 校准题曾是隐式 root（cal1 无人指向），会把 cal 组合当成路径塞进分配表，
+  //      导致「新增一道校准题 → 路径空间从 3^3 涨到 3^6 → 分配表可能被重排」。
+  //      显式排除后，无论将来加多少道校准题，人格分配表都恒定不变。
+  const calSet = new Set<string>(CALIBRATION_ORDER);
+  const roots = Object.keys(QUESTIONS).filter((qid) => !nextIds.has(qid) && !calSet.has(qid));
   const paths: string[][] = [];
   const dfs = (qid: string, acc: string[]) => {
     const q = QUESTIONS[qid];
@@ -1312,7 +1378,7 @@ function enumeratePaths(): string[][] {
     if (!q.choices || q.choices.length === 0) { paths.push(acc); return; }
     let anyNext = false;
     for (const c of q.choices) {
-      if (c.nextQuestionId && QUESTIONS[c.nextQuestionId]) {
+      if (c.nextQuestionId && QUESTIONS[c.nextQuestionId] && !calSet.has(c.nextQuestionId)) {
         anyNext = true;
         dfs(c.nextQuestionId, [...acc, c.id]);
       } else {
