@@ -7,6 +7,7 @@ import {
   CALIBRATION_ORDER,
   BRANCH_QUESTION_MAX,
   TOTAL_QUESTION_COUNT,
+  PATH_LABEL_EXCLUDED_CAL,
   getPathLabels,
   calculatePersonalityFromPath,
   type Question,
@@ -221,7 +222,12 @@ export default function QuestionPage() {
     const result = calculatePersonalityFromPath(allChoices);
     localStorage.setItem("crushxiangjian_personality_id", result.personalityId);
     localStorage.setItem("crushxiangjian_radar_scores", JSON.stringify(result.radarScores));
-    localStorage.setItem("crushxiangjian_path_labels", JSON.stringify(getPathLabels(allChoices)));
+    // 「香气探索路径」只展示香气相关标签：预算这类非香气答案剔除，
+    // 否则结果页那条路径串里会冒出「中预算」这种与香气无关的词。
+    const pathLabelChoices = allChoices.filter(
+      (id) => !PATH_LABEL_EXCLUDED_CAL.some((prefix) => id.startsWith(prefix)),
+    );
+    localStorage.setItem("crushxiangjian_path_labels", JSON.stringify(getPathLabels(pathLabelChoices)));
     // 校准答案一律取「末尾 CALIBRATION_ORDER.length 条」。
     // 曾硬编码 slice(-3)：P1 把校准题从 3 道扩到 6 道后，会把 cal4/cal5/cal6
     // 当成 cal1/cal2/cal3 解析，气息/留香/场合三个维度全部错位。

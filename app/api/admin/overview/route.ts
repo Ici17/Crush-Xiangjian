@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ADMIN_COOKIE, adminEnabled, isProduction, isValidAdminCookie } from '@/lib/admin/auth';
 import { readRange, type DayResult, type StoredEvent } from '@/lib/analytics/store';
 import { EVENT_LABEL } from '@/lib/analytics/events';
+import { TOTAL_QUESTION_COUNT } from '@/lib/branchingQuestions';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -126,8 +127,13 @@ async function build(days: number) {
       scene: topN(sumDim(range.days, 'scene'), 6),
       sign: topN(sumDim(range.days, 'sign'), 6),
       // 答题漏斗：哪一步掉人最多 / 哪个选项被选得最多（改题的直接依据）
-      step: topN(sumDim(range.days, 'step'), 12),
-      choice: topN(sumDim(range.days, 'choice'), 20),
+      // ⚠️ step 的 N 必须 ≥ 总题数：曾写死 12，而题数是 13，
+      //    于是曝光量最低的那一步（通常是最后一题）被静默截断、永远看不到。
+      //    现在直接取 TOTAL_QUESTION_COUNT，题数再变也不会漏。
+      step: topN(sumDim(range.days, 'step'), TOTAL_QUESTION_COUNT),
+      // choice 从 20 提到 30：新增的 10 个校准选项（cal4/5/6）人人都会答，
+      //    曝光量天然远高于分支题选项，会把分支题挤出榜单、让这张图失去「改题依据」的作用。
+      choice: topN(sumDim(range.days, 'choice'), 30),
       // 裂变：落地页哪个 CTA 真的被点
       cta: topN(sumDim(range.days, 'cta'), 8),
       // 香气探索（第 2 批）：tab / action / perfume 分布

@@ -117,7 +117,7 @@ export const DIM_KEYS = [
   'sign',
   'level',
   // —— 答题漏斗（2026-09-16 新增）——
-  'step', // 第几步（分支题 1-7 + 校准题 8-10）
+  'step', // 第几步（分支题 1-7 + 校准题 8-13，随 CALIBRATION_ORDER 变化）
   'phase', // branch | calibration
   'qid', // 题目 id（q1 / q5a / cal1 …）
   'choice', // 选中项 id（q1a / cal1b …）

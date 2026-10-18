@@ -29,7 +29,7 @@ export interface MyTestStatus {
  *
  * 用于 /shared 页面：
  * - 已完成 → 顶部显示「你是 X」+ 「重新测试」入口
- * - 进行中 → 主 CTA 改文案「继续测试（已答 X/10）」
+ * - 进行中 → 主 CTA 改文案「继续测试（已答 X/总题数）」（总题数取唯一真源，不写死）
  * - 未开始 → 主 CTA「我也来测测」
  */
 export function useMyTestStatus(): MyTestStatus {
@@ -63,7 +63,9 @@ export function useMyTestStatus(): MyTestStatus {
           personalityName: pid ? (PERSONALITY_NAME_MAP[pid] ?? pid) : null,
           inProgress,
           answeredCount,
-          totalCount: 10,
+          // 必须也走唯一真源：只改初始 state 没用，每次 read() 都会覆盖回来
+          // （曾只改了初始 state，运行时仍返回写死的 10，等于没修）
+          totalCount: TOTAL_QUESTION_COUNT,
         });
       } catch {
         // ignore

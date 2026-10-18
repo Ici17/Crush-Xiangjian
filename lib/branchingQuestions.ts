@@ -1275,6 +1275,14 @@ export const BRANCH_QUESTION_MAX = 7;
  */
 export const TOTAL_QUESTION_COUNT = BRANCH_QUESTION_MAX + CALIBRATION_ORDER.length;
 
+/**
+ * 不计入「香气探索路径」展示的校准题。
+ * 结果页那条「你的香气探索路径」会把所有答案标签串起来展示，
+ * 但「中预算 / 高预算」根本不是香气描述，混在「海边灯塔 → 雪松 → 独处夜」里很违和。
+ * 雷区（避雷甜）与季节（夏/冬）仍算香气表达，保留展示。
+ */
+export const PATH_LABEL_EXCLUDED_CAL: readonly string[] = ['cal6'];
+
 // 校准题链式推进：把 nextQuestionId 由 CALIBRATION_ORDER 推导出来，
 // 避免「改顺序/删题却忘了改指针」导致流程断链或跳题。
 // 末题指针为 undefined → 触发出结果。

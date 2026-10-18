@@ -349,7 +349,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             {myStatus.completed
               ? '查看我的香气结果'
               : myStatus.inProgress
-              ? `继续测试（已答 ${myStatus.answeredCount}/10）`
+              ? `继续测试（已答 ${myStatus.answeredCount}/${myStatus.totalCount}）`
               : '我也来测测我的香气'}
           </button>
 
