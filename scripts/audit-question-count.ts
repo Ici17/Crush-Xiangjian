@@ -9,9 +9,10 @@
  *   ② app/api/admin/overview 的 `topN(..., 12)`
  *      —— 13 步取前 12，曝光最低的最后一步被静默截断、永远看不到
  *
- * 本门禁守三件事：
+ * 本门禁守四件事：
  *   A. 真源自洽：TOTAL_QUESTION_COUNT === BRANCH_QUESTION_MAX + CALIBRATION_ORDER.length
  *   B. 无残留字面量：app/ 与 lib/ 里不许再出现「/10」「10 题」这类写死题数
+ *   B2. 静态 JSON：public/*.json（manifest 等）拿不到 TS 真源，只能手工跟随，单独扫
  *   C. 后台漏斗不断头：step 分布取的 N 必须 ≥ 总题数，否则最后一步会被截断
  */
 
@@ -75,6 +76,72 @@ if (hits.length === 0) {
 } else {
   no(`发现 ${hits.length} 处疑似写死题数（应改用 TOTAL_QUESTION_COUNT）`);
   for (const h of hits.slice(0, 20)) console.log(`      ${h}`);
+}
+
+// ── B2. 静态 JSON 扫描（public/ 下的 manifest 等，不受 TS 真源约束） ──
+// 为什么单列：public/*.json 是编译期拿不到 TOTAL_QUESTION_COUNT 的静态文件，
+// 它「逃出」了真源体系 —— 2026-10-18 复检第三轮才发现 manifest.json 仍写着「10道情境题」，
+// 而这是用户「添加到主屏幕」时看到的安装说明，属真实对外文案，不是文档残留。
+console.log("\nB2. 静态 JSON 扫描（public/）");
+const PUBLIC_DIR = path.join(process.cwd(), "public");
+const jsonHits: string[] = [];
+function walkJson(dir: string) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (["node_modules", ".next", ".git", "icons"].includes(entry.name)) continue;
+      walkJson(p);
+    } else if (/\.json$/.test(entry.name)) {
+      const rel = p.split(path.sep).join("/").replace(/.*\/public\//, "public/");
+      const src = fs.readFileSync(p, "utf8");
+      src.split("\n").forEach((line, i) => {
+        if (SUSPECT.test(line)) jsonHits.push(`${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);
+      });
+    }
+  }
+}
+walkJson(PUBLIC_DIR);
+if (jsonHits.length === 0) {
+  ok("public/*.json 内无写死题数字面量");
+} else {
+  no(`发现 ${jsonHits.length} 处静态文案写死题数（manifest 描述等用户可见文案，须手工跟随）`);
+  for (const h of jsonHits.slice(0, 20)) console.log(`      ${h}`);
+}
+
+// ── B3. 时长承诺扫描 ──
+// 时长是「题数」的派生量：10 题 ≈ 3 分钟，13 题 ≈ 4 分钟。
+// 2026-10-18 复检第三轮才发现首页 Hero 与 /shared 分享卡页脚都还写着「3 分钟」——
+// 这两处都是转化路径上的承诺，题数涨了还按旧时长说，等于先少报再打脸。
+console.log("\nB3. 时长承诺扫描（应由 ESTIMATED_MINUTES 派生）");
+const DURATION = /\d+\s*分钟/;
+// 埋点侧的「30 分钟」是会话滚动窗口，跟测试时长毫无关系，排除误报
+const DUR_EXCLUDE = ["lib/analytics.ts", "lib/analytics/"];
+const durHits: string[] = [];
+function walkDur(dir: string) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (["node_modules", ".next", ".git"].includes(entry.name)) continue;
+      walkDur(p);
+    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+      const rel = p.split(path.sep).join("/").replace(/.*\/(app|lib|components)\//, "$1/");
+      if (DUR_EXCLUDE.some((f) => rel.startsWith(f))) continue;
+      const src = fs.readFileSync(p, "utf8");
+      src.split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return; // 注释里举例说明是允许的
+        if (DURATION.test(line)) durHits.push(`${rel}:${i + 1}  ${line.trim().slice(0, 90)}`);
+      });
+    }
+  }
+}
+for (const t of targets) walkDur(path.join(process.cwd(), t));
+if (durHits.length === 0) {
+  ok("无写死的「N 分钟」时长承诺（均引用 ESTIMATED_MINUTES）");
+} else {
+  no(`发现 ${durHits.length} 处写死时长（题数一变就会说错，应改用 ESTIMATED_MINUTES）`);
+  for (const h of durHits.slice(0, 20)) console.log(`      ${h}`);
 }
 
 // ── C. 后台漏斗不断头 ──

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
 import { TOTAL_PERFUMES } from '@/lib/data';
-import { TOTAL_QUESTION_COUNT } from '@/lib/branchingQuestions';
+import { ESTIMATED_MINUTES, TOTAL_QUESTION_COUNT } from '@/lib/branchingQuestions';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
 import { track } from '@/lib/analytics';
@@ -452,7 +452,7 @@ export default function LandingPage() {
           style={{ animationDelay: '580ms' }}
         >
           <span className="text-amber-700 text-[12px]" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>
-            3 分钟 · 16 种灵魂人格 · 免费
+            {ESTIMATED_MINUTES} 分钟 · 16 种灵魂人格 · 免费
           </span>
         </div>
 

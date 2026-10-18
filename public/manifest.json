@@ -1,7 +1,7 @@
 {
   "name": "Crush香鉴",
   "short_name": "香鉴",
-  "description": "10道情境题，测出你的灵魂香气与本命香水。",
+  "description": "13道情境题，测出你的灵魂香气与本命香水。",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAF3EA",

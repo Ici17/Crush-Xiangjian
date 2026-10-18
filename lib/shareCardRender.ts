@@ -29,6 +29,7 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RADAR_DIM_LABELS } from "@/lib/personalities";
+import { ESTIMATED_MINUTES } from "@/lib/branchingQuestions";
 
 // ── 强制打包追踪 sharp 的 libvips 原生库 ─────────────────────────────────────
 // sharp 在运行时通过 dlopen 动态加载 libvips 的 .so，打包器（Turbopack/NFT）无法
@@ -1217,7 +1218,7 @@ function buildSharedCard(
 
   // 页脚品牌带（大二维码 + 长按识别引导）
   const linkText = _base.replace(/^https?:\/\//, "");
-  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", "3 分钟测你的香气", linkText);
+  const bottomRow = buildFooterBand(JSX, qrBase64, qrSize, "长按识别二维码", `${ESTIMATED_MINUTES} 分钟测你的香气`, linkText);
 
   return JSX("div", {
     style: {

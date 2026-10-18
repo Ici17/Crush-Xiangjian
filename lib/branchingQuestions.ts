@@ -1,6 +1,7 @@
 // ============================================================
-// Crush香鉴 — 7题分支路径系统（全分支·128路径）
-// 2^7 = 128条路径 → 映射到16种人格
+// Crush香鉴 — 7题分支路径系统（全分支·192路径）
+// 注意不是 2^7=128：树并非满二叉树，实测叶子路径为 192 条 → 映射到16种人格
+// （契约指纹 af09610，改动后跑 scripts/verify-path-fingerprint.ts 校验）
 // ============================================================
 
 import { PERSONALITY_TYPES } from "./data";
@@ -1274,6 +1275,13 @@ export const BRANCH_QUESTION_MAX = 7;
  * 校准题一增一减，所有文案自动跟着变。
  */
 export const TOTAL_QUESTION_COUNT = BRANCH_QUESTION_MAX + CALIBRATION_ORDER.length;
+
+/**
+ * 预估完成时长（分钟）。同样是「题数」的派生量，不许在别处写死「3 分钟」。
+ * 单题按 18 秒估：10 题 → 3 分钟（与历史文案一致），13 题 → 4 分钟。
+ * 用法：首页 Hero 的时长承诺、分享卡页脚的「N 分钟测你的香气」。
+ */
+export const ESTIMATED_MINUTES = Math.ceil((TOTAL_QUESTION_COUNT * 18) / 60);
 
 /**
  * 不计入「香气探索路径」展示的校准题。
