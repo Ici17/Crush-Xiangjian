@@ -5,6 +5,8 @@
 // ============================================================
 
 import { PERFUMES, PERSONALITY_TYPES, type Perfume } from "./data";
+import { getPerfumeSemantics } from "./data/perfumeSemantics";
+import type { Texture } from "./data/noteSemantics";
 
 export interface ScentVector {
   floral: number;
@@ -434,6 +436,90 @@ function calBudgetScore(perfume: Perfume, pref: CalPreferences): number {
   return 50;
 }
 
+// ════════════════════════════════════════════════════════
+// P2（2026-10-19）离线语义层：温度 × 质感的匹配
+//
+// 为什么需要：6 维余弦已经撞天花板（Top-1 0.96 / Top-20 仍有 0.885，
+// 见 scripts/verify-coverage-window.ts）。再调权重榨不出区分度，
+// 只能换「表示」——这里引入两个 6 维雷达完全没有的轴：
+//   temp     体感冷暖（-1 冷 … +1 暖）
+//   texture  质感（花瓣/粉/水/烟/奶/绿/木/辛/果/皮革/树脂/矿物）
+//
+// 为什么是静态查表：语义由 scripts/gen-perfume-semantics.ts 离线生成，
+// 运行时只读表，零 LLM 调用、零延迟、完全可复现。
+//
+// 熔断开关：语义层任何异常都可一键关停，退回「不参与打分」的常数 50，
+// 不会带崩推荐（新增信号层必须有撤退路径，这是硬要求）。
+// ════════════════════════════════════════════════════════
+const SEMANTICS_ENABLED = true;
+
+/** 用户的语义偏好（温度 + 带符号的质感权重，负值表示雷区） */
+interface SemanticPref {
+  temp: number;                                  // -1..1
+  texture: Partial<Record<Texture, number>>;     // 可正可负
+}
+
+/**
+ * 由校准答案推导用户的语义偏好。
+ * 关键约束：只有答过 cal4（雷区）或 cal5（季节）才返回非 null。
+ * 老用户只有 cal1-3 → 返回 null → 语义评分恒为 50 → 增量恒为 0 → 零漂移。
+ * （若这里用 cal1/cal3 也能触发，老用户结果就会变，历史契约就破了。）
+ */
+function userSemanticPref(prefs: CalPreferences): SemanticPref | null {
+  if (!prefs.avoid && !prefs.season) return null;
+
+  // 温度：季节是主信号（±0.8）
+  let temp = 0;
+  if (prefs.season === 'summer') temp = -0.8;
+  else if (prefs.season === 'winter') temp = 0.8;
+  else if (prefs.season === 'any') temp = 0;
+
+  const texture: Partial<Record<Texture, number>> = {};
+  const add = (t: Texture, v: number) => { texture[t] = (texture[t] ?? 0) + v; };
+
+  // 质感：cal1 气息偏向 + cal3 场合 + cal4 雷区（负向）
+  switch (prefs.scentStyle) {
+    case 'sweet': add('milk', 1); add('fruit', 0.4); break;
+    case 'clean': add('water', 1); add('green', 0.5); break;
+    case 'deep':  add('wood', 1); add('resin', 0.6); add('smoke', 0.3); break;
+  }
+  switch (prefs.occasion) {
+    case 'date':    add('petal', 0.8); add('milk', 0.4); break;
+    case 'daytime': add('water', 0.6); add('green', 0.4); break;
+    case 'solo':    add('wood', 0.6); add('smoke', 0.5); add('resin', 0.4); break;
+  }
+  switch (prefs.avoid) {
+    case 'sweet':  add('milk', -1.2); break;
+    case 'floral': add('petal', -1.2); add('powder', -0.8); break;
+    case 'woody':  add('wood', -1.2); add('smoke', -1); add('resin', -0.6); break;
+  }
+  return { temp, texture };
+}
+
+/** 语义契合度 (0-100，未启用/未作答/缺数据恒 50) */
+function semanticScore(perfume: Perfume, prefs: CalPreferences): number {
+  if (!SEMANTICS_ENABLED) return 50;
+  const pref = userSemanticPref(prefs);
+  const sem = getPerfumeSemantics(perfume.id);
+  if (!pref || !sem || Object.keys(sem.texture).length === 0) return 50;
+
+  // 温度对齐：|Δ| ∈ [0,2] → 对齐度 ∈ [1,0]
+  const tempAlign = 1 - Math.min(2, Math.abs(sem.temp - pref.temp)) / 2;
+
+  // 质感契合：pref 带符号（负值=雷区），与香的质感分布做余弦
+  let dot = 0;
+  let pNorm = 0;
+  for (const [k, v] of Object.entries(pref.texture)) {
+    pNorm += v * v;
+    dot += v * (sem.texture[k as Texture] ?? 0);
+  }
+  let sNorm = 0;
+  for (const v of Object.values(sem.texture)) sNorm += (v ?? 0) ** 2;
+  const texFit = pNorm > 0 && sNorm > 0 ? dot / Math.sqrt(pNorm * sNorm) : 0; // -1..1
+
+  return clamp0to100(50 + (tempAlign - 0.5) * 40 + texFit * 40);
+}
+
 /** 香水描述关键词匹配用户路径标签 (0-100 bonus) */
 function descriptionBonus(perfume: Perfume, pathLabels: string[]): number {
   const desc = perfume.description;
@@ -484,6 +570,18 @@ function totalScore(
   const avoidAdj = (calAvoidScore(perfume, prefs) - 50) * 0.12;
   const seasonAdj = (calSeasonScore(perfume, prefs) - 50) * 0.08;
   const budgetAdj = (calBudgetScore(perfume, prefs) - 50) * 0.06;
+  // 权重 0.26 由 scripts/verify-semantics-lift.ts 实测扫描确定（2026-10-19）：
+  //   权重   用户表态命中率   本命香雷达相似度（护栏）
+  //   0（关）   69.01%          0.6416
+  //   0.10      73.44%          0.6363
+  //   0.18      74.22%          0.6331
+  //   0.26      77.60%          0.6287   ← 取此点：+8.6pp 命中率，只掉 2.0% 相似度
+  //   0.34      79.43%          0.6247
+  //   0.45      83.07%          0.6230
+  // 「相似度掉多少算可接受」的标尺来自 P0 实测（scripts/verify-coverage-window.ts）：
+  // 第 1 名 0.9614 → 第 20 名 0.8853，差 8% 都在用户感知之外，
+  // 所以 2% 的代价换 8.6pp 的「说到做到」是划算的。
+  const semanticAdj = (semanticScore(perfume, prefs) - 50) * 0.26;
 
   return (
     radarScore * 0.45 +   // 雷达（最准信号）权重上调
@@ -493,7 +591,8 @@ function totalScore(
     descBonus * 0.05 +
     avoidAdj +            // cal4 雷区（负向信号，单题性价比最高）
     seasonAdj +           // cal5 季节/温度
-    budgetAdj             // cal6 预算（软加分，绝不硬过滤）
+    budgetAdj +           // cal6 预算（软加分，绝不硬过滤）
+    semanticAdj           // P2 离线语义层：温度 × 质感（只有答过 cal4/cal5 才激活）
   );
 }
 
