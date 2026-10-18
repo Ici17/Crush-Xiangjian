@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PERSONALITIES, type Personality, getPersonality } from '@/lib/personalities';
 import { TOTAL_PERFUMES } from '@/lib/data';
+import { TOTAL_QUESTION_COUNT } from '@/lib/branchingQuestions';
 import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
 import { track } from '@/lib/analytics';
@@ -23,7 +24,7 @@ import DailyPanel from '@/components/DailyPanel';
  * - 浮动光斑:5 颗(恢复)
  * - 香水瓶尺寸:160×220(恢复)
  * - "Crush / 香鉴" 双行大标题(恢复)
- * - 数据条 16/{TOTAL_PERFUMES}/10(恢复,香水数动态计算)
+ * - 数据条 16/{TOTAL_PERFUMES}/{TOTAL_QUESTION_COUNT}(三项均动态计算，不再写死)
  * - 16 人格胶囊(保留)
  * - About Section(恢复)
  */
@@ -311,7 +312,7 @@ export default function LandingPage() {
             <div className="w-px h-8 bg-amber-300/60" aria-hidden />
             <div className="text-center px-4">
               <span className="block text-amber-950" style={{ fontFamily: 'Noto Serif SC, serif', fontSize: '24px', fontWeight: 500 }}>
-                10
+                {TOTAL_QUESTION_COUNT}
               </span>
               <span className="block text-amber-700" style={{ fontFamily: 'Noto Sans SC, sans-serif', fontSize: '12px' }}>
                 题
@@ -474,7 +475,7 @@ export default function LandingPage() {
               className="text-amber-700 text-[14px] leading-[1.7]"
               style={{ fontFamily: 'Noto Sans SC, sans-serif' }}
             >
-              「Crush 香鉴」融合嗅觉心理学与人格特质理论，通过 10 道沉浸式情境题，探索你的感官偏好与内心世界。我们将为你匹配 16 种灵魂人格之一，并找到那支与你共振的本命香。
+              「Crush 香鉴」融合嗅觉心理学与人格特质理论，通过 {TOTAL_QUESTION_COUNT} 道沉浸式情境题，探索你的感官偏好与内心世界。我们将为你匹配 16 种灵魂人格之一，并找到那支与你共振的本命香。
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <span

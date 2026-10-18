@@ -868,7 +868,7 @@ export const PERSONALITY_TYPES: PersonalityType[] = [
 ];
 
 // ============================================================
-// 问卷题目（10道情境向量题）
+// 问卷题目（情境向量题，总数见 branchingQuestions.TOTAL_QUESTION_COUNT）
 // ============================================================
 
 export interface Question {

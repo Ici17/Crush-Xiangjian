@@ -1262,6 +1262,19 @@ export const QUESTIONS: Record<string, Question> = {
 // 下一题指针由下方循环统一推导，不再手写 nextQuestionId。
 export const CALIBRATION_ORDER = ["cal1", "cal2", "cal3", "cal4", "cal5", "cal6"];
 
+/** 分支题的最深层数（q1–q7）。注意是「最大值」：
+ *  当前有 128 条路径走满 7 题、64 条在第 6 题就收尾（部分 q6 节点是叶子），
+ *  所以它是进度条的满格基准，不是每个用户都会走到的长度。 */
+export const BRANCH_QUESTION_MAX = 7;
+
+/**
+ * 测试总题数 = 分支题（最大） + 校准题。
+ * 这是「题数」的唯一真源：首页数据条、SEO description、分享卡、
+ * 「你上次做到第 N/M 题」都必须引用它，绝对不要再写死 10 或 13。
+ * 校准题一增一减，所有文案自动跟着变。
+ */
+export const TOTAL_QUESTION_COUNT = BRANCH_QUESTION_MAX + CALIBRATION_ORDER.length;
+
 // 校准题链式推进：把 nextQuestionId 由 CALIBRATION_ORDER 推导出来，
 // 避免「改顺序/删题却忘了改指针」导致流程断链或跳题。
 // 末题指针为 undefined → 触发出结果。

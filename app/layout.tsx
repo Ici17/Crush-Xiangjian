@@ -2,10 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import PageTracker from "@/components/PageTracker";
+import { TOTAL_QUESTION_COUNT } from "@/lib/branchingQuestions";
+
+// 题数取自唯一真源：校准题增减后 SEO 描述自动跟上，不会留下过时文案
+const DESC = `${TOTAL_QUESTION_COUNT}道情境题，测出你的灵魂香气与本命香水。好友匹配、性格解读、香调雷达图——发现独属于你的嗅觉人格。`;
 
 export const metadata: Metadata = {
   title: "Crush香鉴 | 你的灵魂，藏在哪种香气里",
-  description: "10道情境题，测出你的灵魂香气与本命香水。好友匹配、性格解读、香调雷达图——发现独属于你的嗅觉人格。",
+  description: DESC,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -14,7 +18,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Crush香鉴 | 你的灵魂，藏在哪种香气里",
-    description: "10道情境题，测出你的灵魂香气与本命香水。好友匹配、性格解读、香调雷达图——发现独属于你的嗅觉人格。",
+    description: DESC,
     type: "website",
     siteName: "Crush香鉴",
     locale: "zh_CN",
@@ -22,7 +26,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Crush香鉴 | 你的灵魂，藏在哪种香气里",
-    description: "10道情境题，测出你的灵魂香气与本命香水。",
+    description: `${TOTAL_QUESTION_COUNT}道情境题，测出你的灵魂香气与本命香水。`,
   },
   other: {
     "mobile-web-app-capable": "yes",

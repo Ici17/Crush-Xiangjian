@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   QUESTIONS,
   CALIBRATION_ORDER,
+  BRANCH_QUESTION_MAX,
+  TOTAL_QUESTION_COUNT,
   getPathLabels,
   calculatePersonalityFromPath,
   type Question,
@@ -127,9 +129,11 @@ export default function QuestionPage() {
     setAnimating(false);
   }, [currentQ, isCalibration]);
 
-  // 语义步数（PRD 格式："第 N 题 / 共 7 题"，校准题不额外计数）
-  const TOTAL_BRANCH = 7;
-  const TOTAL_STEPS = CALIBRATION_ORDER.length + 7;
+  // 语义步数（PRD 格式："第 N 题 / 共 M 题"）
+  // 题数一律取自 lib/branchingQuestions 的唯一真源，这里不许写死数字：
+  // P1 把校准题从 3 道加到 6 道后，凡是写死 10 / 7 的地方全部变成过时文案。
+  const TOTAL_BRANCH = BRANCH_QUESTION_MAX;
+  const TOTAL_STEPS = TOTAL_QUESTION_COUNT;
 
   // 顶层 q1–q7 映射：走 q1aa、q2aa、q5a、q6cd 等任何子分支都算走完第 N 题
   // 用 choice id 长度推断层数（首字符 qN，N∈[1,7]），避免被子分支干扰

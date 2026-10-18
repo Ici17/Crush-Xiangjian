@@ -17,6 +17,7 @@ import { useMyTestStatus, clearMyTestProgress } from '@/lib/useMyTestStatus';
 import { encodeInvite } from '@/lib/inviteState';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 import { TOTAL_PERFUMES } from '@/lib/data';
+import { TOTAL_QUESTION_COUNT } from '@/lib/branchingQuestions';
 import { track } from '@/lib/analytics';
 
 function Toast({ message }: { message: string }) {
@@ -62,7 +63,8 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
     if (myStatus.completed) {
       msg = `你之前测过的人格是「${myStatus.personalityName}」。\n\n重新测试将清除你当前的所有答案与结果。确定继续？`;
     } else {
-      msg = `你上次测到 ${myStatus.answeredCount}/10 题。\n\n「重新开始」将清除进度从头测；「继续」会接上次。\n\n选「重新开始」？`;
+      // 用 myStatus.totalCount 而不是写字面量：题数改了这里自动跟上
+      msg = `你上次测到 ${myStatus.answeredCount}/${myStatus.totalCount} 题。\n\n「重新开始」将清除进度从头测；「继续」会接上次。\n\n选「重新开始」？`;
     }
     const ok = typeof window !== 'undefined' ? window.confirm(msg) : true;
     if (ok) {
@@ -405,7 +407,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
             </div>
             <p className="text-amber-800 font-sans text-xs font-medium">Crush香鉴</p>
           </div>
-          <p className="text-amber-400/50 font-sans text-[10px] mt-1">10题 · 16人格 · {TOTAL_PERFUMES}支香水库</p>
+          <p className="text-amber-400/50 font-sans text-[10px] mt-1">{TOTAL_QUESTION_COUNT}题 · 16人格 · {TOTAL_PERFUMES}支香水库</p>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { STORAGE_KEYS, PERSONALITY_NAME_MAP } from './personalities';
+import { TOTAL_QUESTION_COUNT } from './branchingQuestions';
 
 const BRANCH_PROGRESS_KEY = 'crushxiangjian_branch_progress';
 
@@ -14,7 +15,7 @@ export interface MyTestStatus {
   inProgress: boolean;
   /** 当前做到第几题 / 总共几题（inProgress 时才有值） */
   answeredCount: number;
-  /** 一共多少题（branch 阶段 7 + calibration 3 = 10） */
+  /** 一共多少题（题数唯一真源见 lib/branchingQuestions 的 TOTAL_QUESTION_COUNT） */
   totalCount: number;
 }
 
@@ -37,7 +38,7 @@ export function useMyTestStatus(): MyTestStatus {
     personalityName: null,
     inProgress: false,
     answeredCount: 0,
-    totalCount: 10,
+    totalCount: TOTAL_QUESTION_COUNT,
   });
 
   useEffect(() => {

@@ -941,7 +941,7 @@ function weightedPick<T>(items: T[], weights: number[], rng: () => number): T | 
  * 校准匹配推荐：从香水库按用户偏好 + 雷达图打分，每个角色返回最佳匹配
  * @param radarScores 用户 6 维雷达分值 (0-1)
  * @param calChoices 校准题原始选择 ['cal1a','cal2b','cal3c']
- * @param pathLabels 全部 10 题路径标签
+ * @param pathLabels 全部题目路径标签（含分支题 + 校准题）
  * @param archetypeId 可选，传入用户所属原型 id 时，平价档强制走「全局去重分配表」
  *                      （保证 16 个原型各拿到一支互不重复的平价香，消除跨原型霸榜）
  * @param userSeed 可选，稳定用户标识（vid）。传入时高端档启用「窗口内加权随机」以打开覆盖；
