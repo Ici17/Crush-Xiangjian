@@ -10,6 +10,7 @@ import {
 } from '@/lib/daily/draw';
 import { drawAlmanac } from '@/lib/daily/almanac';
 import { getNightMood } from '@/lib/daily/night';
+import { getTodayAdvice, TEMP_LABEL } from '@/lib/daily/advice';
 import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/daily/history';
 import ScentCodex from '@/components/ScentCodex';
 import PerfumeBottleShowcase from '@/components/PerfumeBottleShowcase';
@@ -40,6 +41,9 @@ export default function DailyPanel() {
   const draw: DailyDraw = drawDaily(today);
   const almanac = useMemo(() => drawAlmanac(today), [today]);
   const night = useMemo(() => getNightMood(today), [today]);
+  // 今日穿香建议：与香签并行的第二条路径，零 AI、由节气推导、全员同卡。
+  // 刻意不在 drawDaily 里做 —— 抽签结果一个字都不能动（历史契约由 audit-pool-stable 守着）。
+  const advice = useMemo(() => getTodayAdvice(3), [today]);
 
   const [revealed, setRevealed] = useState(false);
   const [holding, setHolding] = useState(false);
@@ -69,6 +73,26 @@ export default function DailyPanel() {
   useEffect(() => {
     if (view === 'codex') track('codex_view');
   }, [view]);
+
+  // 埋点：穿香建议卡曝光（每日每会话一次）。
+  // 与 daily_draw 分开记：香签是「仪式」，建议卡是「决策」，两条曲线含义不同。
+  useEffect(() => {
+    if (!revealed) return;
+    try {
+      const k = `cx_advice_tracked_${today}`;
+      if (!sessionStorage.getItem(k)) {
+        sessionStorage.setItem(k, '1');
+        track('daily_advice_view', {
+          term: advice.advice.term,
+          // 刻意不叫 level：level 已被付费档位占用
+          relax: String(advice.level),
+        });
+      }
+    } catch {
+      /* 埋点失败不影响体验 */
+    }
+  }, [revealed, today, advice.advice.term, advice.level]);
+
 
   useEffect(() => {
     let hasDrawn = false;
@@ -506,6 +530,99 @@ export default function DailyPanel() {
             }}
           >
             「{night.line}」
+          </div>
+        </div>
+      )}
+
+      {/* ── 今日穿香建议（零 AI · 节气推导 · 全员同卡） ──
+          与香签并行：香签是「仪式」，这一张是「决策」。
+          候选由规则给，条件全部公开（扩散/留香/体感），用户可以自己判断要不要听。
+          想调规则改 lib/daily/advice.ts 顶部的 TERM_ADVICE 表。 */}
+      {revealed && advice.perfumes.length > 0 && (
+        <div
+          className="mt-6 rounded-2xl border p-4"
+          style={{ borderColor: 'rgba(168,136,78,0.35)', background: '#FBF6EE' }}
+        >
+          <div className="text-center" style={{ fontFamily: 'Noto Serif SC, serif' }}>
+            <div style={{ fontSize: '14px', letterSpacing: '0.2em', color: '#2C1810' }}>
+              今日穿香建议
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#B6A892', marginTop: '4px' }}>
+              {advice.advice.term} · 一时一节的用香提示
+            </div>
+          </div>
+
+          <div
+            className="text-center mt-3"
+            style={{
+              fontSize: '12.5px',
+              color: '#6B5E4C',
+              lineHeight: 1.7,
+              fontStyle: 'italic',
+              fontFamily: 'Noto Serif SC, serif',
+            }}
+          >
+            {advice.advice.note}
+          </div>
+
+          {/* 三条筛选条件：把推荐依据摊开给用户看，而不是只甩三支香。
+              ⚠️ 显示的是**实际生效**的条件（applied），不是理想条件 ——
+              条件被放宽时若不跟着显示，卡上就等于在写假话。 */}
+          <div className="flex items-center justify-center gap-1.5 mt-3 flex-wrap">
+            {[
+              advice.applied.maxIntensity === null
+                ? null
+                : `扩散 ≤ ${advice.applied.maxIntensity}`,
+              `留香 ≥ ${advice.applied.minLongevity}`,
+              advice.applied.tempDir === null ? null : TEMP_LABEL[advice.applied.tempDir],
+            ]
+              .filter((t): t is string => !!t)
+              .map((t) => (
+              <span
+                key={t}
+                className="rounded-full"
+                style={{
+                  fontSize: '10.5px',
+                  color: '#8B6F4E',
+                  padding: '3px 9px',
+                  border: '1px solid rgba(168,136,78,0.35)',
+                  background: 'rgba(168,136,78,0.06)',
+                }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-3 pt-3" style={{ borderTop: '1px dashed rgba(168,136,78,0.3)' }}>
+            {advice.perfumes.map((p, i) => (
+              <div
+                key={p.id}
+                className="flex items-baseline justify-between gap-2"
+                style={{ marginTop: i === 0 ? 0 : '8px' }}
+              >
+                <div className="min-w-0 flex-1">
+                  <span
+                    style={{
+                      fontFamily: 'Noto Serif SC, serif',
+                      fontSize: '13.5px',
+                      color: '#2C1810',
+                    }}
+                  >
+                    {p.name}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#A8884E', marginLeft: '6px' }}>
+                    {p.brand}
+                  </span>
+                </div>
+                <span
+                  className="shrink-0"
+                  style={{ fontSize: '10.5px', color: '#B6A892', letterSpacing: '0.05em' }}
+                >
+                  扩散 {p.intensity} · 留香 {p.longevity}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

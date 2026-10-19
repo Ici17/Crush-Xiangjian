@@ -57,6 +57,24 @@ export function getSolarTerm(dateStr: string): string | null {
 }
 
 /**
+ * 取当天所处的**节气区间**（最近一个「已到或刚过」的节气），任何一天都有值。
+ *
+ * 与 getSolarTerm 的区别：后者只在节气当日（±1）命中，一年里绝大多数日子返回 null；
+ * 而「今日穿香建议」需要**每天都给出一个环境档位**，所以必须能取到「当前处在哪个节气里」。
+ *
+ * 刻意复用同一张 SOLAR_TERMS —— 节气表只有这一份，不在别处再抄一遍。
+ * 1/1–1/5 落在上一年冬至之后，环回取表内最后一个节气（冬至）。
+ */
+export function getSolarTermPhase(dateStr: string): string {
+  const [, m, d] = dateStr.split('-').map(Number);
+  let hit: string | null = null;
+  for (const t of SOLAR_TERMS) {
+    if (t.m < m || (t.m === m && t.d <= d)) hit = t.name;
+  }
+  return hit ?? SOLAR_TERMS[SOLAR_TERMS.length - 1].name;
+}
+
+/**
  * 取当天月相。
  * name/index：8 相展示位（0=新月 4=满月）；
  * exact：是否为「精确正日」——满月/新月各只取最贴近的那 1 天（±0.5 天窗口），

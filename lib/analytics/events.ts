@@ -41,6 +41,8 @@ export const TRACK_EVENTS = [
   'session_start', // 新会话首触（track() 自动补发，调用点无需手动埋）
   'daily_view', // 香签面板曝光（含未揭笺 hasDrawn=false）
   'daily_streak', // 揭笺后连续静候天数（带 days）
+  'daily_advice_view', // 今日穿香建议卡曝光（带 term/relaxed）—— 与 daily_draw（抽签）分开记，
+  //   建议卡是「决策」，香签是「仪式」，两条留存曲线的含义不同，不能混在一个柱子里
   // —— 兜底可观测 ——
   // 2026-09-17 第 3 批：从「埋点自身」扩到「业务失败」两类。
   // analytics —— 埋点管线自身（队列溢出 / drain 连续失败），由 lib/analytics.ts 自动上报；
@@ -93,6 +95,7 @@ export const EVENT_LABEL: Record<string, string> = {
   session_start: '会话开始',
   daily_view: '香签曝光',
   daily_streak: '连续静候',
+  daily_advice_view: '穿香建议曝光',
   error: '埋点异常',
 };
 
@@ -120,6 +123,10 @@ export const DIM_KEYS = [
   'step', // 第几步（分支题 1-7 + 校准题 8-13，随 CALIBRATION_ORDER 变化）
   'phase', // branch | calibration
   'qid', // 题目 id（q1 / q5a / cal1 …）
+  // —— 今日穿香建议（2026-10-20 新增）——
+  // ⚠️ 刻意不叫 level：level 已被「付费档位」占用，同名不同义会让看板串味。
+  'term', // 节气（24 值，低基数，可聚合）
+  'relax', // 建议条件放宽级别 0-4；>0 是数据健康度的金丝雀，值得在后台看得见
   'choice', // 选中项 id（q1a / cal1b …）
   // —— 裂变落地页 ——
   'cta', // 落地页按钮标识（start_test / match / copy_link / save_image / qr / my_result）
