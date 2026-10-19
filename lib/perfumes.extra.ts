@@ -2070,7 +2070,7 @@ export const PERFUMES_EXTRA: Record<string, Perfume> = {
     intensity: 3, longevity: 3,
     tier: "budget",
     priceRange: "¥120-240/50ml",
-    description: "薰衣草与雪松的宁静夜晚，安神助眠的木质草本。",
+    description: "薰衣草与雪松的宁静夜晚，舒缓放松的木质草本。",
   },
   佛手柑伯爵茶: {
     id: "佛手柑伯爵茶",
