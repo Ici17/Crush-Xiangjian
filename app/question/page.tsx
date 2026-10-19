@@ -146,6 +146,9 @@ export default function QuestionPage() {
     return match ? parseInt(match[1], 10) : 0;
   }
   const branchTopLevel = getTopLevelFromChoices(progress.choices);
+  // ⚠️ 顶部步进器必须用 stepNumber / TOTAL_STEPS（含校准题的 13 步口径），
+  // 不能用 branchStep / TOTAL_BRANCH —— 后者在整个校准阶段被钉死在 7/7，
+  // 而下方进度条却在 62%→100% 跑，用户会看到「7/7 但才 80%」的自相矛盾（2026-10-19 用户截图发现）。
   const branchStep = isCalibration
     ? TOTAL_BRANCH
     : Math.min(branchTopLevel + 1, TOTAL_BRANCH);
@@ -609,7 +612,7 @@ export default function QuestionPage() {
           {/* 章节步进器（PRD 格式） */}
           <div className="flex flex-col items-center">
             <span className="text-amber-600 font-sans font-semibold text-sm">
-              {branchStep} / {TOTAL_BRANCH}
+              {stepNumber} / {TOTAL_STEPS}
             </span>
             {scenarioLabel && (
               <span className="text-amber-400/60 font-sans text-xs mt-0.5">
