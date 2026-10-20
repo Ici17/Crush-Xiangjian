@@ -18,6 +18,8 @@
  *  · `warn` 是广告法极限词，**只提醒不阻断**：这类词常有无害用法，交给人工判断
  */
 
+import type { Perfume } from "@/lib/data";
+
 export type GuardSeverity = "block" | "warn";
 
 export interface GuardRule {
@@ -151,7 +153,132 @@ export function checkPriceClaims(text: string | undefined | null, price: { min: 
   return out;
 }
 
-/** 一次性把红线 + 价格主张都查了 */
-export function checkAll(text: string | undefined | null, price?: { min: number; max: number } | null): GuardViolation[] {
-  return [...checkCopy(text), ...checkPriceClaims(text, price ?? null)];
+/**
+ * 香调主张校验：文案里出现的香调词，**必须是这支香真实拥有的**。
+ *
+ * 为什么要这道闸：实测抓到过 —— 库里写的是「橙」，模型自己补成了「橙花」。
+ * 这种「近义词替换」看起来无害，但它已经不是我们的数据了：
+ * 用户照着去找会找错，而且它是幻觉的入口（今天换橙花，明天可能换出整段三调）。
+ *
+ * 词典复用 P2 语义层的 `noteSemantics`（203 个香调词），不另建一份。
+ * 允许命中范围 = 该香水的三调 + 我们的描述文案（都来自 PERFUMES，是事实）。
+ */
+/**
+ * 类别词 → 支撑它的具体香调。
+ *
+ * 为什么需要：文案说「木质」是正当的 —— 只要这支香真的有雪松/檀香。
+ * 一刀切禁掉类别词会让文案变得像成分表；一律放行又会回到编造。
+ * 所以规则是：**类别词必须由该香真实拥有的具体香调支撑**。
+ *
+ * 这是本文件里唯一「人工维护」的知识，改动时请只加不减，并在
+ * audit-perfume-data 的自检里确认它仍然工作。
+ */
+const NOTE_CATEGORIES: Record<string, string[]> = {
+  // ⚠️ 「檀木」和「檀香」都列 —— 库里两种写法都有（漏一个就会把正当的「木质」误判为编造）
+  木质: ["雪松", "檀香", "檀木", "乌木", "沉香", "松木", "柏木", "香根草", "愈创木", "桦木", "杉木", "广藿香", "木质"],
+  柑橘: ["柠檬", "橙", "葡萄柚", "佛手柑", "香柠檬", "橘子", "青柠", "柚", "柑橘", "西柚", "血橙"],
+  花香: ["茉莉", "玫瑰", "橙花", "晚香玉", "栀子", "铃兰", "鸢尾", "紫罗兰", "牡丹", "桂花", "鸡蛋花", "木兰"],
+  白花: ["茉莉", "橙花", "晚香玉", "栀子", "铃兰", "鸡蛋花", "木兰", "依兰"],
+  辛香: ["肉桂", "胡椒", "丁香", "豆蔻", "孜然", "姜", "藏红花"],
+  东方: ["乳香", "没药", "焚香", "安息香", "琥珀", "香草", "树脂", "苏合香"],
+  美食: ["香草", "焦糖", "蜂蜜", "可可", "杏仁", "零陵香豆", "太妃", "巧克力", "奶油"],
+  水生: ["海盐", "海洋", "水生", "海藻", "西瓜酮"],
+  绿意: ["薰衣草", "鼠尾草", "薄荷", "罗勒", "青草", "茶叶", "绿茶", "无花果叶", "紫苏"],
+  麝香: ["麝香", "白麝香", "麝猫香"],
+  皮革: ["皮革", "麂皮", "烟草"],
+  粉感: ["鸢尾", "紫罗兰", "米粉", "粉末"],
+};
+
+/** 该香是否真的拥有足以支撑这个类别词的香调 */
+function categorySupported(word: string, owned: string): boolean {
+  const members = NOTE_CATEGORIES[word];
+  if (!members) return false;
+  return members.some((m) => owned.includes(m));
+}
+
+export function checkNoteClaims(
+  text: string | undefined | null,
+  perfume: Perfume | null,
+  vocabulary: readonly string[] = [],
+): GuardViolation[] {
+  if (typeof text !== "string" || !text || !perfume) return [];
+  // 允许命中范围 = 三调 + 我们的描述 + **香水名本身**。
+  // 名字必须算进去：有一支香就叫「木质玫瑰」，而它的三调里并没有「木质」「玫瑰」，
+  // 文案提它的名字是完全正当的 —— 不把 name 加进来会产生假阳性。
+  const owned = [
+    perfume.name ?? "",
+    ...(perfume.notes?.top ?? []),
+    ...(perfume.notes?.heart ?? []),
+    ...(perfume.notes?.base ?? []),
+    perfume.description ?? "",
+  ].join(" ");
+
+  const out: GuardViolation[] = [];
+  const seen = new Set<string>();
+  // 贪心最长匹配：短词会「吃掉」近义词 —— 比如库里是「橙」，模型写「橙花」，
+  // 若按「橙」匹配就放行了。必须从长到短匹配，才能抓到「橙花」这种替换。
+  const sorted = [...vocabulary].sort((a, b) => b.length - a.length);
+  let i = 0;
+  while (i < text.length) {
+    let hit: string | null = null;
+    for (const w of sorted) {
+      if (w.length < 2) continue;
+      if (text.startsWith(w, i)) {
+        hit = w;
+        break;
+      }
+    }
+    if (hit) {
+      // 两类放行：① 字面就是它的香调 ② 是类别词但被它真实拥有的香调支撑
+      const allowed = owned.includes(hit) || categorySupported(hit, owned);
+      if (!seen.has(hit) && !allowed) {
+        seen.add(hit);
+        out.push({
+          ruleId: "note-claim",
+          label: "出现了这支香没有的香调词（疑似模型自行补充）",
+          severity: "block",
+          word: hit,
+          index: i,
+          snippet: snippetOf(text, i, hit),
+          suggest: `该香真实的香调：${[...(perfume.notes?.top ?? []), ...(perfume.notes?.heart ?? []), ...(perfume.notes?.base ?? [])].join("、")}`,
+        });
+      }
+      i += hit.length;
+    } else {
+      i += 1;
+    }
+  }
+  return out;
+}
+
+/**
+ * 从香水库推导「香调词表」—— 225 支香真实三调的并集。
+ *
+ * 为什么不用 noteSemantics 的词典：那个模块只导出了查表函数与**数量**
+ * （`ANNOTATED_NOTE_COUNT` 是 number 不是 Set），词表本身没导出。
+ * 而我们要校验的是「这个词是不是我们香水库里的香调」，
+ * 直接从 PERFUMES 推导反而更贴切 —— 它就是我们的事实宇宙，且同样是唯一真源。
+ */
+export function buildNoteVocabulary(perfumes: Record<string, Perfume>): string[] {
+  const set = new Set<string>();
+  for (const p of Object.values(perfumes)) {
+    for (const n of [...(p.notes?.top ?? []), ...(p.notes?.heart ?? []), ...(p.notes?.base ?? [])]) {
+      const w = n.trim();
+      if (w.length >= 2) set.add(w);
+    }
+  }
+  return [...set];
+}
+
+/** 一次性把红线 + 价格主张 + 香调主张都查了 */
+export function checkAll(
+  text: string | undefined | null,
+  price?: { min: number; max: number } | null,
+  perfume?: Perfume | null,
+): GuardViolation[] {
+  return [
+    ...checkCopy(text),
+    ...checkPriceClaims(text, price ?? null),
+    ...checkNoteClaims(text, perfume ?? null),
+  ];
 }

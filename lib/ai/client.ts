@@ -195,15 +195,30 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
   throw new Error(`AI 请求重试 ${MAX_RETRIES} 次仍失败：${lastErr}`);
 }
 
-/** 要求 JSON 输出并解析；解析失败会把原文一起抛出来，便于定位 prompt 问题 */
+/**
+ * 要求 JSON 输出并解析。
+ *
+ * ⚠️ `response_format: json_object` **并不保证**输出一定合法 —— 实测抓到过模型
+ * 在字符串里多吐一个 `}` 导致解析失败。批量生成几百条时这种偶发足以毁掉一整批，
+ * 所以解析失败会**重试一次**（换一次采样通常就好了），两次都不行才报错。
+ */
 export async function chatJson<T>(opts: ChatOptions): Promise<{ data: T } & ChatResult> {
-  const r = await chat({ ...opts, jsonMode: true });
-  const cleaned = r.text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-  try {
-    return { data: JSON.parse(cleaned) as T, ...r };
-  } catch {
-    throw new Error(`AI 返回的不是合法 JSON（模型=${r.actualModel}）：${cleaned.slice(0, 300)}`);
+  let lastRaw = "";
+  let last: ChatResult | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const r = await chat({ ...opts, jsonMode: true });
+    last = r;
+    const cleaned = r.text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    lastRaw = cleaned;
+    try {
+      return { data: JSON.parse(cleaned) as T, ...r };
+    } catch {
+      // 第二次仍失败才抛；第一次静默重试
+    }
   }
+  throw new Error(
+    `AI 连续 2 次返回的都不是合法 JSON（模型=${last?.actualModel}）：${lastRaw.slice(0, 300)}`,
+  );
 }
 
 /** 配置自检：不发起请求，只看 env 齐不齐 */

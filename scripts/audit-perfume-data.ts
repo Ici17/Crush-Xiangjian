@@ -19,7 +19,7 @@
 
 import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
 import { parsePriceRange } from "@/lib/priceRange";
-import { checkCopy, checkPriceClaims } from "@/lib/contentGuard";
+import { checkCopy, checkPriceClaims, checkNoteClaims, buildNoteVocabulary } from "@/lib/contentGuard";
 
 let pass = 0;
 let fail = 0;
@@ -179,6 +179,25 @@ for (const t of SELF_TESTS) {
     ? ok("价格未知时，出现具体价格会被拦下")
     : no("价格未知时漏放了具体价格");
 }
+// 香调白名单闸：文案里的香调词必须是这支香真实拥有的。
+// ⚠️ 挑词必须动态挑 —— 写死「佛手柑/雪松」会因为某支香恰好有它们而变成假绿。
+{
+  const vocab = buildNoteVocabulary(PERFUMES);
+  const pf = Object.values(PERFUMES)[0];
+  const owned = [...pf.notes.top, ...pf.notes.heart, ...pf.notes.base, pf.description].join(" ");
+  const foreign = vocab.find((w) => !owned.includes(w));
+  const real = pf.notes.top[0];
+  if (!foreign || !real || vocab.length < 50) {
+    no(`香调白名单闸自检无法构造样例（词表 ${vocab.length} 条，或三调为空）`);
+  } else {
+    const caught = checkNoteClaims(`前调是${foreign}，很特别`, pf, vocab);
+    const wrong = checkNoteClaims(`前调是${real}`, pf, vocab);
+    caught.length > 0 && wrong.length === 0
+      ? ok(`香调白名单闸能抓到越界香调词（如「${foreign}」），且不误伤真实香调（如「${real}」）`)
+      : no(`香调白名单闸异常：越界项=${caught.length} 真实项误报=${wrong.length}`);
+  }
+}
+
 // 干净文案必须零命中（防词表被误伤到正常文案）
 {
   const clean = "清冽的木质与微苦的柚皮，適合通勤的清淡一日。留香 3-4，扩散适中。";
