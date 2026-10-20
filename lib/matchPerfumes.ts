@@ -272,44 +272,42 @@ interface CalPreferences {
   budget: 'low' | 'mid' | 'high' | null;                // cal6 预算
 }
 
+// ── 校准选项 id ↔ 语义值（唯一真源，对外可读） ──
+// 为什么要导出：探索页要允许用户「改其中一项再重算」，需要 语义值 → choiceId 的反向查表。
+// 若在那里重抄一份映射就成了第二真源 —— 改题库时两边会静默不一致（这正是本项目最怕的坑）。
+// cal1: cal1a=甜润温柔, cal1b=清冽干净, cal1c=深沉有故事
+export const CAL_ID_TO_VALUE = {
+  scent: { cal1a: 'sweet', cal1b: 'clean', cal1c: 'deep' },
+  longevity: { cal2a: 'long', cal2b: 'medium', cal2c: 'light' },
+  occasion: { cal3a: 'solo', cal3b: 'daytime', cal3c: 'date' },
+  // cal4: cal4a=避雷甜腻美食调, cal4b=避雷厚重白花, cal4c=避雷烟熏重木, cal4d=都不排斥
+  avoid: { cal4a: 'sweet', cal4b: 'floral', cal4c: 'woody', cal4d: 'none' },
+  // cal5: cal5a=夏天/湿热, cal5b=冬天/干燥, cal5c=四季都用
+  season: { cal5a: 'summer', cal5b: 'winter', cal5c: 'any' },
+  // cal6: cal6a=300 以内, cal6b=300–800, cal6c=800 以上
+  budget: { cal6a: 'low', cal6b: 'mid', cal6c: 'high' },
+} as const;
+
+/** 反查：语义值 → choiceId（探索页改动某一项后重新拼装 calChoices 用） */
+export const CAL_VALUE_TO_ID = {
+  avoid: { sweet: 'cal4a', floral: 'cal4b', woody: 'cal4c', none: 'cal4d' },
+  season: { summer: 'cal5a', winter: 'cal5b', any: 'cal5c' },
+  budget: { low: 'cal6a', mid: 'cal6b', high: 'cal6c' },
+} as const;
+
 /** 从校准答案 choiceId 解析偏好 */
 function parseCalPreferences(calChoices: string[]): CalPreferences | null {
-  // cal1: cal1a=甜润温柔, cal1b=清冽干净, cal1c=深沉有故事
-  const scentMap: Record<string, CalPreferences['scentStyle']> = {
-    cal1a: 'sweet', cal1b: 'clean', cal1c: 'deep',
-  };
-  // cal2: cal2a=持久, cal2b=适中, cal2c=清淡
-  const longevityMap: Record<string, CalPreferences['longevityPref']> = {
-    cal2a: 'long', cal2b: 'medium', cal2c: 'light',
-  };
-  // cal3: cal3a=独处深夜, cal3b=白天出门, cal3c=约会重要场合
-  const occasionMap: Record<string, CalPreferences['occasion']> = {
-    cal3a: 'solo', cal3b: 'daytime', cal3c: 'date',
-  };
-  // cal4: cal4a=避雷甜腻美食调, cal4b=避雷厚重白花, cal4c=避雷烟熏重木, cal4d=都不排斥
-  const avoidMap: Record<string, NonNullable<CalPreferences['avoid']>> = {
-    cal4a: 'sweet', cal4b: 'floral', cal4c: 'woody', cal4d: 'none',
-  };
-  // cal5: cal5a=夏天/湿热, cal5b=冬天/干燥, cal5c=四季都用
-  const seasonMap: Record<string, NonNullable<CalPreferences['season']>> = {
-    cal5a: 'summer', cal5b: 'winter', cal5c: 'any',
-  };
-  // cal6: cal6a=300 以内, cal6b=300–800, cal6c=800 以上
-  const budgetMap: Record<string, NonNullable<CalPreferences['budget']>> = {
-    cal6a: 'low', cal6b: 'mid', cal6c: 'high',
-  };
-
   if (calChoices.length < 3) return null;
-
+  const m = CAL_ID_TO_VALUE;
   return {
-    scentStyle: scentMap[calChoices[0]] ?? 'clean',
-    longevityPref: longevityMap[calChoices[1]] ?? 'medium',
-    occasion: occasionMap[calChoices[2]] ?? 'daytime',
+    scentStyle: (m.scent as Record<string, CalPreferences['scentStyle']>)[calChoices[0]] ?? 'clean',
+    longevityPref: (m.longevity as Record<string, CalPreferences['longevityPref']>)[calChoices[1]] ?? 'medium',
+    occasion: (m.occasion as Record<string, CalPreferences['occasion']>)[calChoices[2]] ?? 'daytime',
     // 下标 3/4/5 对应 CALIBRATION_ORDER 里的 cal4/cal5/cal6；
     // 老用户只有 3 条答案 → undefined → null → 对应评分退化为常数 50（不产生任何调整）
-    avoid: avoidMap[calChoices[3]] ?? null,
-    season: seasonMap[calChoices[4]] ?? null,
-    budget: budgetMap[calChoices[5]] ?? null,
+    avoid: (m.avoid as Record<string, NonNullable<CalPreferences['avoid']>>)[calChoices[3]] ?? null,
+    season: (m.season as Record<string, NonNullable<CalPreferences['season']>>)[calChoices[4]] ?? null,
+    budget: (m.budget as Record<string, NonNullable<CalPreferences['budget']>>)[calChoices[5]] ?? null,
   };
 }
 

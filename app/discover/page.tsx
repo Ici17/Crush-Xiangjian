@@ -11,8 +11,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PERSONALITIES, getSimilarPersonalities, getUsageGuide, getPersonalityNameFromStorage, getShareQuote } from "@/lib/personalities";
-import { getCalibratedRecommendations } from "@/lib/matchPerfumes";
+import { PERSONALITIES, getSimilarPersonalities, getUsageGuide, getPersonalityNameFromStorage, getShareQuote, STORAGE_KEYS } from "@/lib/personalities";
+import { getCalibratedRecommendations, CAL_ID_TO_VALUE, CAL_VALUE_TO_ID } from "@/lib/matchPerfumes";
 import { PERSONALITY_TYPES } from "@/lib/data";
 import {
   SCENE_OPTIONS,
@@ -52,6 +52,43 @@ function archOf(name: string) {
   };
 }
 
+/** 筛选行：value 为 null 时表示「未筛选」，此时不高亮任何一项 */
+function FilterRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T | null;
+  options: { v: T; t: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+      <span className="w-7 shrink-0 text-[11px] text-amber-700/70">{label}</span>
+      {options.map((o) => {
+        const on = value === o.v;
+        return (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            className="rounded-full px-2.5 py-1 transition-colors"
+            style={{
+              background: on ? "#FFFFFF" : "transparent",
+              border: on ? "1px solid #A8884E" : "1px solid rgba(168,136,78,.25)",
+              color: on ? "#2C1810" : "#8A7357",
+              fontSize: "11px",
+            }}
+          >
+            {o.t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DiscoverPage() {
   const [tab, setTab] = useState<Tab>("scene");
   const [personality, setPersonality] = useState<string>("暗流");
@@ -78,11 +115,62 @@ export default function DiscoverPage() {
 
   const current = PERSONALITIES.find((p) => p.name === personality) ?? PERSONALITIES[0];
 
+  // ── 按需筛选（F6）：雷区 / 季节 / 预算 ──
+  // 关键：这些用户**在 13 题的 cal4/cal5/cal6 里已经答过了**，答案存在 localStorage。
+  // 这里直接读，绝不让用户再填一遍 —— 重复采集既烦人又白烧 token。
+  // 用户在探索页手动改某一项时，只是替换对应那一枚 choiceId，其余仍用档案值。
+  type AvoidV = keyof typeof CAL_VALUE_TO_ID.avoid;
+  type SeasonV = keyof typeof CAL_VALUE_TO_ID.season;
+  type BudgetV = keyof typeof CAL_VALUE_TO_ID.budget;
+
+  const [avoid, setAvoid] = useState<AvoidV | null>(null);
+  const [seasonV, setSeasonV] = useState<SeasonV | null>(null);
+  const [budgetV, setBudgetV] = useState<BudgetV | null>(null);
+  const [fromProfile, setFromProfile] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  // 从档案恢复默认筛选（只恢复一次；用户手动改过之后不再覆盖）
+  useEffect(() => {
+    if (touched) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CALIBRATION_CHOICES);
+      const arr = raw ? (JSON.parse(raw) as string[]) : [];
+      if (!Array.isArray(arr) || arr.length < 6) return;
+      const a = (CAL_ID_TO_VALUE.avoid as Record<string, AvoidV>)[arr[3]];
+      const s = (CAL_ID_TO_VALUE.season as Record<string, SeasonV>)[arr[4]];
+      const b = (CAL_ID_TO_VALUE.budget as Record<string, BudgetV>)[arr[5]];
+      if (a) setAvoid(a);
+      if (s) setSeasonV(s);
+      if (b) setBudgetV(b);
+      setFromProfile(true);
+    } catch {
+      /* 读不到档案就走「不筛选」，不影响使用 */
+    }
+  }, [touched]);
+
+  /**
+   * 拼装传给推荐引擎的 calChoices。
+   *
+   * ⚠️ 零漂移约定：只有「用户答过 cal4-6」或「用户手动改过筛选」时才拼成 6 条。
+   * 两者都没有时保持原来的 3 条 —— 因为 calBudgetScore 对 budget=null 才返回常数 50，
+   * 一旦默认塞一个 cal6b（中预算）进去，会给所有未测用户凭空改分。
+   */
+  const calChoices = useMemo(() => {
+    const base3 = ["cal1b", "cal2b", "cal3b"];
+    if ((!fromProfile && !touched) || (!avoid && !seasonV && !budgetV)) return base3;
+    return [
+      ...base3,
+      CAL_VALUE_TO_ID.avoid[avoid ?? "none"],
+      CAL_VALUE_TO_ID.season[seasonV ?? "any"],
+      CAL_VALUE_TO_ID.budget[budgetV ?? "mid"],
+    ];
+  }, [fromProfile, touched, avoid, seasonV, budgetV]);
+
   // 该人格的三档推荐（场景选香的候选池）
   const arch = useMemo(() => archOf(personality), [personality]);
   const recs = useMemo(
-    () => getCalibratedRecommendations(arch.radar, ["cal1b", "cal2b", "cal3b"], [], arch.id, true),
-    [arch]
+    () => getCalibratedRecommendations(arch.radar, calChoices, [], arch.id, true),
+    [arch, calChoices]
   );
 
   const scenePick = useMemo(() => pickPerfumeForScene(recs, scene), [recs, scene]);
@@ -262,6 +350,64 @@ export default function DiscoverPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* ── 按需筛选（默认取自你在 13 题里已答的 雷区/季节/预算，不会再问一遍）── */}
+            <div className="mt-3 rounded-2xl bg-white/60 p-3" style={{ border: "1px solid rgba(168,136,78,.2)" }}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] tracking-[0.2em] text-[#A8884E]">按 你 的 条 件</span>
+                {fromProfile ? (
+                  <span className="text-[10.5px] text-amber-700/60">
+                    {touched ? "已手动调整" : "已按你的档案"}
+                  </span>
+                ) : (
+                  <span className="text-[10.5px] text-amber-700/50">测过之后会自动带上</span>
+                )}
+              </div>
+
+              <FilterRow
+                label="季节"
+                value={seasonV}
+                onChange={(v) => {
+                  setSeasonV(v);
+                  setTouched(true);
+                  track("discover_action", { tab: "scene", action: "filter_season", perfume: scenePick?.name ?? "" });
+                }}
+                options={[
+                  { v: "summer", t: "夏 / 湿热" },
+                  { v: "winter", t: "冬 / 干燥" },
+                  { v: "any", t: "四季" },
+                ]}
+              />
+              <FilterRow
+                label="预算"
+                value={budgetV}
+                onChange={(v) => {
+                  setBudgetV(v);
+                  setTouched(true);
+                  track("discover_action", { tab: "scene", action: "filter_budget", perfume: scenePick?.name ?? "" });
+                }}
+                options={[
+                  { v: "low", t: "300 内" },
+                  { v: "mid", t: "300–800" },
+                  { v: "high", t: "800 以上" },
+                ]}
+              />
+              <FilterRow
+                label="雷区"
+                value={avoid}
+                onChange={(v) => {
+                  setAvoid(v);
+                  setTouched(true);
+                  track("discover_action", { tab: "scene", action: "filter_avoid", perfume: scenePick?.name ?? "" });
+                }}
+                options={[
+                  { v: "none", t: "都不排斥" },
+                  { v: "sweet", t: "避雷甜腻" },
+                  { v: "floral", t: "避雷白花" },
+                  { v: "woody", t: "避雷重木" },
+                ]}
+              />
             </div>
 
             {scenePick && (
