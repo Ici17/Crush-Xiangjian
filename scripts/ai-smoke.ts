@@ -42,8 +42,20 @@ async function main() {
       maxTokens: 120,
     });
     console.log(`  ✅ 有内容：${r.text.slice(0, 60)}`);
+    console.log(`  ✅ 请求模型：${r.requestedModel}`);
     console.log(`  ✅ 实际模型：${r.actualModel}`);
-    if (r.usage?.totalTokens) console.log(`  ℹ️ 本次 token：${r.usage.totalTokens}`);
+    if (r.modelMismatch) {
+      console.log("  ⚠️ 实际模型与请求名不一致 —— 公示必须写实际模型名，不能写请求名");
+    }
+    if (r.usage?.totalTokens) {
+      console.log(
+        `  ℹ️ token：总 ${r.usage.totalTokens}（推理 ${r.usage.reasoningTokens ?? 0}）`,
+      );
+      if ((r.usage.reasoningTokens ?? 0) > 0) {
+        console.log("  ⚠️ 推理 token > 0：思考模式开着会显著抬高成本，" +
+          "批量生成前请确认 AI_THINKING 未设成 on");
+      }
+    }
   } catch (e) {
     console.log(`  ❌ ${(e as Error).message}`);
     process.exit(1);

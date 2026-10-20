@@ -18,6 +18,7 @@
  */
 
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_MAX_TOKENS = 800;
 const MAX_RETRIES = 2;
 
 export type ModelAlias = "fast" | "smart";
@@ -36,9 +37,28 @@ export interface ChatOptions {
 
 export interface ChatResult {
   text: string;
+  /** 我们请求时用的模型名 */
+  requestedModel: string;
   /** 供应商实际使用的模型名 —— 公示与计费都要以它为准 */
   actualModel: string;
-  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  /** 两者不一致时必须警觉：说明供应商做了映射/降级，公示要以 actualModel 为准 */
+  modelMismatch: boolean;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    /** DeepSeek 思考模式的推理 token（思考开着时可能占掉大半配额） */
+    reasoningTokens?: number;
+  };
+}
+
+/**
+ * 供应商风味，从 base URL 推断。
+ * 为什么需要：有些参数是厂商私有的（如 DeepSeek 的 thinking），
+ * 发给了不认识的供应商轻则被忽略、重则报 400。所以只在对应 flavor 下才带。
+ */
+function flavor(): "deepseek" | "generic" {
+  return env("AI_BASE_URL").includes("deepseek") ? "deepseek" : "generic";
 }
 
 function env(name: string): string {
@@ -91,9 +111,14 @@ async function once(body: Record<string, unknown>, timeoutMs: number): Promise<R
 }
 
 interface ChatResponseJson {
-  choices?: { message?: { content?: string } }[];
+  choices?: { message?: { content?: string; reasoning_content?: string } }[];
   model?: string;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    completion_tokens_details?: { reasoning_tokens?: number };
+  };
   error?: { message?: string };
 }
 
@@ -111,7 +136,13 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
   };
   if (opts.jsonMode) body.response_format = { type: "json_object" };
   if (typeof opts.temperature === "number") body.temperature = opts.temperature;
-  if (typeof opts.maxTokens === "number") body.max_tokens = opts.maxTokens;
+  // ⚠️ 默认给足 token：DeepSeek v4 系列**默认开思考模式**，推理本身就要吃掉几十上百 token。
+  // 实测同一句话：思考开着 144 token（其中 87 是推理）、关掉只要 27 —— 差 5 倍。
+  // 批量生成几百条时这是实打实的钱，所以默认关思考、并把上限给足。
+  body.max_tokens = typeof opts.maxTokens === "number" ? opts.maxTokens : DEFAULT_MAX_TOKENS;
+  if (flavor() === "deepseek" && env("AI_THINKING") !== "on") {
+    body.thinking = { type: "disabled" };
+  }
 
   let lastErr = "";
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -132,16 +163,31 @@ export async function chat(opts: ChatOptions): Promise<ChatResult> {
       throw new Error(`AI 返回不是合法 JSON：${raw.slice(0, 300)}`);
     }
     if (data.error?.message) throw new Error(`AI 返回错误：${data.error.message}`);
-    const text = data.choices?.[0]?.message?.content ?? "";
-    if (!text) throw new Error("AI 返回空内容");
+    const msg = data.choices?.[0]?.message;
+    const text = (msg?.content ?? "").trim();
+    if (!text) {
+      // 思考模式下很容易「推理用光额度、content 为空」。这个提示要说到点子上，
+      // 否则只会看到一句干巴巴的「空内容」，不知道该怎么修。
+      const reasoning = (msg?.reasoning_content ?? "").trim();
+      throw new Error(
+        "AI 返回空内容。" +
+          (reasoning
+            ? "看起来 token 全被推理吃掉了（DeepSeek v4 默认开思考模式）—— 请确认 AI_THINKING 未设成 on，或调大 maxTokens。"
+            : "请检查 maxTokens 是否过小，或供应商是否返回了异常结构。"),
+      );
+    }
+    const actual = data.model ?? model;
     return {
       text,
-      actualModel: data.model ?? model,
+      requestedModel: model,
+      actualModel: actual,
+      modelMismatch: actual !== model,
       usage: data.usage
         ? {
             promptTokens: data.usage.prompt_tokens,
             completionTokens: data.usage.completion_tokens,
             totalTokens: data.usage.total_tokens,
+            reasoningTokens: data.usage.completion_tokens_details?.reasoning_tokens,
           }
         : undefined,
     };
