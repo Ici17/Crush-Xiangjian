@@ -39,6 +39,8 @@ import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
 import GuardianScentCard from '@/components/GuardianScentCard';
+import AiBadge from '@/components/AiBadge';
+import { getNarrative } from '@/lib/data/perfumeNarratives';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import { clearMyTestProgress } from '@/lib/useMyTestStatus';
@@ -471,6 +473,27 @@ function ResultInner() {
     }
     getDynamicRecommendations(personalityName).then(setRecommendations);
   }, [personalityName]);
+
+  // ── AI 解读（L1 离线生成，零运行时成本）──
+  // 「为什么是你」的文案来自 lib/data/perfumeNarratives.ts：离线预生成、完全可复现。
+  // 取不到就整块不显示 —— 宁可少一块，也不要拿空壳占位。
+  const [openNarratives, setOpenNarratives] = useState<ReadonlySet<string>>(new Set());
+  const reasonViewedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!revealed) return;
+    try {
+      for (const rec of recommendations) {
+        const key = `${personalityName}::${rec.name}`;
+        if (!getNarrative(personalityName, rec.name)) continue;
+        if (reasonViewedRef.current.has(key)) continue;
+        reasonViewedRef.current.add(key);
+        track('ai_reason_view', { personality: personalityName, perfume: rec.name });
+      }
+    } catch {
+      /* 埋点失败不影响体验 */
+    }
+  }, [revealed, recommendations, personalityName]);
 
   // 锁定版动态 Recommendation[] → 解锁版 PerfumeDetail[] 映射
   // 目的：保留锁定版那 3 支香水，解锁后不换一批（与『同一批去模糊』承诺一致）
@@ -927,6 +950,69 @@ function ResultInner() {
                       </div>
                     </>
                   )}
+
+                  {/* ── 为什么是你（AI 解读）──
+                      只在已解锁/限时免费时展示：解读本身就是付费内容的一部分，
+                      锁定态给出来会削弱「解锁能看到更深」的价值感。 */}
+                  {(() => {
+                    const narrative = getNarrative(personalityName, rec.name);
+                    if (isLocked || !narrative) return null;
+                    const key = `${rec.role}-${rec.name}`;
+                    const open = openNarratives.has(key);
+                    return (
+                      <div
+                        className="mt-3 pt-3 text-left"
+                        style={{ borderTop: '1px dashed rgba(168,136,78,.35)' }}
+                      >
+                        <button
+                          onClick={() => {
+                            setOpenNarratives((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(key)) next.delete(key);
+                              else next.add(key);
+                              return next;
+                            });
+                            if (!open) {
+                              track('ai_reason_expand', {
+                                personality: personalityName,
+                                perfume: rec.name,
+                              });
+                            }
+                          }}
+                          className="flex items-center gap-1 text-amber-700"
+                          style={{ fontSize: '12px' }}
+                          aria-expanded={open}
+                          aria-label={`查看为什么 ${rec.name} 适合你`}
+                        >
+                          为什么是你
+                          <span aria-hidden style={{ fontSize: '10px' }}>
+                            {open ? '▲' : '▼'}
+                          </span>
+                        </button>
+
+                        {open && (
+                          <div className="mt-2">
+                            <p
+                              className="text-amber-900 leading-relaxed"
+                              style={{ fontSize: '13px' }}
+                            >
+                              {narrative.line1}
+                            </p>
+                            <p
+                              className="text-amber-800 leading-relaxed"
+                              style={{ fontSize: '13px', marginTop: 4 }}
+                            >
+                              {narrative.line2}
+                            </p>
+                            {/* AI 生成内容必须显式标识（《标识办法》），且不能为了好看改小改淡 */}
+                            <div className="mt-2 flex justify-center">
+                              <AiBadge />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </article>
               );
             })}

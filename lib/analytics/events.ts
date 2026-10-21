@@ -52,6 +52,11 @@ export const TRACK_EVENTS = [
   // 拆成三个事件反而会让看板漏斗上多出三坨几乎为空的柱子。
   // ⚠️ 仍绝不含错误文本 / 堆栈 / URL —— 只传稳定的枚举值。
   'error', // 失败（带 scope, status）
+  // —— AI 解读（2026-10-22 新增）——
+  // 与 day 系列同理：view（出现了解读位）与 expand（真的点开看）必须分开，
+  // 否则分不清「没人看到」和「看到了不感兴趣」，而这俩的修法完全不同。
+  'ai_reason_view', // 结果页出现「为什么是你」解读位（带 personality, perfume）
+  'ai_reason_expand', // 用户点开解读（带 personality, perfume）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -96,6 +101,8 @@ export const EVENT_LABEL: Record<string, string> = {
   daily_view: '香签曝光',
   daily_streak: '连续静候',
   daily_advice_view: '穿香建议曝光',
+  ai_reason_view: 'AI解读曝光',
+  ai_reason_expand: 'AI解读展开',
   error: '埋点异常',
 };
 

@@ -264,12 +264,12 @@ if (unusedDims.length) {
 
 // ── H. 事件总数 / KV 每日布局门禁（第 2 批）───────
 console.log("H. 事件总数与 KV 每日布局门禁");
-// 30 = 第 2 批的 29 + 2026-10-20 新增的 daily_advice_view。
+// 32 = 第 2 批的 29 + 2026-10-20 的 daily_advice_view + 2026-10-22 的 ai_reason_view/ai_reason_expand。
 // ⚠️ 这个数字是「锁」不是「记录」：加事件必须同步改这里，否则漏埋/多埋立刻暴露。
 ck(
-  defined.length === 30,
-  `事件总数 === 30（当前 ${defined.length}）`,
-  `实际 ${defined.length} —— 第 2 批 22 → 29，2026-10-20 加 daily_advice_view 到 30`,
+  defined.length === 32,
+  `事件总数 === 32（当前 ${defined.length}）`,
+  `实际 ${defined.length} —— 第 2 批 22 → 29，+daily_advice_view → 30，+AI 解读两条 → 32`,
 );
 // KV 每日 layout = counts + uv + sess + sstart + 各 DIM_KEYS，共 DIM_KEYS.length + 4。
 // 该断言守住「读写共享同一份 layout」：一旦有人把 store.ts 改回硬编码下标，这里立刻红。
