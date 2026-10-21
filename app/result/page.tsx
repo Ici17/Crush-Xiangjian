@@ -38,7 +38,6 @@ import ScarcityStrip from '@/components/ScarcityStrip';
 import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining, getPromoRemainingMs, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
-import GuardianScentCard from '@/components/GuardianScentCard';
 import AiBadge from '@/components/AiBadge';
 import { getNarrative } from '@/lib/data/perfumeNarratives';
 import ShareGuideModal from '@/components/ShareGuideModal';
@@ -725,9 +724,6 @@ function ResultInner() {
           )}
           </div>
         </section>
-
-        {/* ━━━ 本命守护香（常驻 · 16 人格唯一锚定，测完立刻可见，两态共用）━━━ */}
-        {revealed && <GuardianScentCard personalityName={personalityName} />}
 
         {/* ━━━ ⑦ 合香回流 banner：来自朋友的合香邀请 ━━━ */}
         {revealed && params.get('cp') && (
