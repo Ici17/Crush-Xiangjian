@@ -17,6 +17,8 @@
  */
 
 import "./_env";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { PERSONALITY_TYPES, PERFUMES } from "@/lib/data";
 import { getCalibratedRecommendations } from "@/lib/matchPerfumes";
 import { findPerfume } from "@/lib/discover";
@@ -31,6 +33,8 @@ const SYSTEM = [
   "   香调尤其严格：只能用「三调」里列出的那些词，**一个字都不要改**，",
   "   不得替换成近义词或上位词（例如「橙」不能写成「橙花」，「玫瑰」不能写成「白花」），",
   "   不得补充任何我没列出的香料。",
+  "   **香调词只能用来描述这支香本身** —— 不要拿它形容人格、心情，也不要做比喻",
+  "   （不要写「海盐般的清透」「带着海盐的活力」这类；这支香没有的香调，一个字都别提）。",
   "2. 禁止医疗与疗效暗示（治愈、助眠、安神、镇静、消炎…）。情绪词一律用「舒缓」。",
   "3. 禁止迷信与宿命表述（转运、命定、命中注定、招桃花、招财…）。这是趣味人格侧写，不是命理。",
   "4. 不得写成心理诊断：不要说「你的深层性格」「你其实害怕」，只谈气味与氛围。",
@@ -88,8 +92,9 @@ async function main() {
   const limitArg = args.includes("--limit") ? Number(args[args.indexOf("--limit") + 1]) : 8;
   const model = (args.includes("--model") ? args[args.indexOf("--model") + 1] : "fast") as ModelAlias;
   const limit = Number.isFinite(limitArg) ? limitArg : 8;
+  const emit = args.includes("--emit");
 
-  console.log(`══════ 人格×香水文案生成（model=${model}, limit=${limit || "全量"}）══════\n`);
+  console.log(`══════ 人格×香水文案生成（model=${model}, limit=${limit || "全量"}, emit=${emit}）══════\n`);
 
   const tasks: Array<Record<string, string> & { intensity: number; longevity: number; price: { min: number; max: number } | null }> = [];
 
@@ -135,38 +140,72 @@ async function main() {
   let badCount = 0;
   let totalTokens = 0;
   const actualModels = new Set<string>();
+  /** 过闸的条目，--emit 时落盘 */
+  const results: Array<{ key: string; line1: string; line2: string }> = [];
 
   for (let i = 0; i < tasks.length; i++) {
     const t = tasks[i];
     const prompt = buildPrompt(t);
-    try {
-      const r = await chatJson<Narrative>({ model, system: SYSTEM, prompt });
-      actualModels.add(r.actualModel);
-      totalTokens += r.usage?.totalTokens ?? 0;
+    const pf = findPerfume(t.perfume);
+    let done = false;
 
-      const text = `${r.data.line1} ${r.data.line2}`;
-      const guardHits = checkCopy(text);
-      const priceHits = checkPriceClaims(text, t.price);
-      // 香调白名单：模型必须只用这支香真实拥有的香调词（实测抓到过「橙」被写成「橙花」）
-      const noteHits = checkNoteClaims(text, findPerfume(t.perfume), vocab);
-      const blocks = [...guardHits, ...priceHits, ...noteHits].filter((v) => v.severity === "block");
+    // 单条最多 3 次：模型偶发编造香调或吐坏 JSON，重试通常就好了。
+    // 批量生成时「整批重跑」比「逐条重试」贵得多，所以这里必须逐条重试。
+    let correction = "";
+    for (let attempt = 1; attempt <= 3 && !done; attempt++) {
+      try {
+        // 把上一次的违规词回喂给它自我纠正 —— 单纯重试同一 prompt 会一直犯同一个错
+        const r = await chatJson<Narrative>({
+          model,
+          system: SYSTEM,
+          prompt: correction ? `${prompt}\n\n${correction}` : prompt,
+        });
+        actualModels.add(r.actualModel);
+        totalTokens += r.usage?.totalTokens ?? 0;
 
-      console.log(`── ${i + 1}. ${t.pName} × ${t.perfume}（${t.brand}·${t.role}）`);
-      console.log(`   ${r.data.line1}`);
-      console.log(`   ${r.data.line2}`);
-      if (blocks.length === 0) {
-        console.log(`   ✅ 过闸`);
-        okCount++;
-      } else {
-        console.log(`   ❌ 未过闸：${blocks.map((b) => `${b.label}「${b.word}」`).join("；")}`);
-        badCount++;
+        const text = `${r.data.line1} ${r.data.line2}`;
+        const blocks = [
+          ...checkCopy(text),
+          ...checkPriceClaims(text, t.price),
+          // 香调白名单：模型必须只用这支香真实拥有的香调词（实测抓到过「橙」被写成「橙花」）
+          ...checkNoteClaims(text, pf, vocab),
+        ].filter((v) => v.severity === "block");
+
+        if (blocks.length !== 0) {
+          const bad = blocks.map((b) => b.word).filter((w) => w && w !== "¥");
+          correction = bad.length
+            ? `修正要求：上一次你用了 ${[...new Set(bad)].map((w) => `「${w}」`).join("、")}，` +
+              `但这支香并没有这些香调。请只使用上面「三调」里列出的词重写，不要再做比喻。`
+            : "修正要求：上一次的输出不符合规则，请严格按规则重写。";
+        }
+
+        if (blocks.length === 0) {
+          console.log(`── ${i + 1}. ${t.pName} × ${t.perfume}（${t.brand}·${t.role}）`);
+          console.log(`   ${r.data.line1}`);
+          console.log(`   ${r.data.line2}`);
+          console.log(`   ✅ 过闸${attempt > 1 ? `（第 ${attempt} 次）` : ""}`);
+          okCount++;
+          results.push({
+            key: `${t.pName}::${t.perfume}`,
+            line1: r.data.line1.trim(),
+            line2: r.data.line2.trim(),
+          });
+          done = true;
+        } else if (attempt === 3) {
+          const why = blocks.map((b) => `${b.label}「${b.word}」`).join("；");
+          console.log(`── ${i + 1}. ${t.pName} × ${t.perfume}（${t.brand}·${t.role}）`);
+          console.log(`   ❌ 重试 3 次仍未过闸：${why}`);
+          badCount++;
+        }
+      } catch (e) {
+        if (attempt === 3) {
+          console.log(`── ${i + 1}. ${t.pName} × ${t.perfume}`);
+          console.log(`   ❌ 生成失败：${(e as Error).message}`);
+          badCount++;
+        }
       }
-      console.log("");
-    } catch (e) {
-      console.log(`── ${i + 1}. ${t.pName} × ${t.perfume}`);
-      console.log(`   ❌ 生成失败：${(e as Error).message}\n`);
-      badCount++;
     }
+    console.log("");
   }
 
   console.log("══════ 汇总 ══════");
@@ -179,8 +218,73 @@ async function main() {
   }
   if (badCount > 0) {
     console.log("\n  ⚠️ 有未过闸项，先修 prompt 或词表，别把脏文案进静态文件。");
+    if (emit) {
+      console.log("  ⛔ 已 --emit 但存在失败项 → **拒绝写文件**。");
+      console.log("     宁可少几条，也不能把没过闸的文案固化成静态数据。");
+    }
     process.exit(1);
   }
+
+  if (emit) {
+    writeNarratives(results, [...actualModels].join(", ") || "unknown");
+  }
+}
+
+/**
+ * 落静态文件。
+ *
+ * ⚠️ 文件头必须标「自动生成，勿手改」—— 与 perfumeSemantics.ts 同一套约定：
+ * 手改会在下次生成时被静默覆盖，而且没人知道改过什么。
+ */
+function writeNarratives(
+  rows: Array<{ key: string; line1: string; line2: string }>,
+  modelUsed: string,
+): void {
+  const outPath = path.join(process.cwd(), "lib", "data", "perfumeNarratives.ts");
+  const body = rows
+    .map(
+      (r) =>
+        `  ${JSON.stringify(r.key)}: { line1: ${JSON.stringify(r.line1)}, line2: ${JSON.stringify(r.line2)} },`,
+    )
+    .join("\n");
+
+  const src = `// ============================================================
+// ⚠️ 本文件由 scripts/gen-narratives.ts 自动生成，请勿手改。
+//    改文案请改生成脚本的 prompt（或改词典后重跑），手改会在下次生成时被静默覆盖。
+//
+// L1 离线生成产物：人格 × 香水 的「为什么是你」双句解读。
+//   键格式："人格名::香水展示名"
+//   运行时只读本表，零 LLM 调用、零延迟、完全可复现。
+//   覆盖度与文案合规由 scripts/audit-perfume-data.ts 的 F 项守着。
+//
+// 生成信息：
+//   条数    ${rows.length}
+//   模型    ${modelUsed}
+//   时间    ${new Date().toISOString()}
+// ============================================================
+
+export interface PerfumeNarrative {
+  /** 人格气质与这支香气的呼应 */
+  line1: string;
+  /** 它的气味气质，以及适合出现的时刻 */
+  line2: string;
+}
+
+export const PERFUME_NARRATIVES: Record<string, PerfumeNarrative> = {
+${body}
+};
+
+/** 取文案；没有则返回 null（调用方自行决定是否展示） */
+export function getNarrative(
+  personalityName: string,
+  perfumeName: string,
+): PerfumeNarrative | null {
+  return PERFUME_NARRATIVES[\`\${personalityName}::\${perfumeName}\`] ?? null;
+}
+`;
+
+  fs.writeFileSync(outPath, src, "utf8");
+  console.log(`\n  💾 已写入 ${path.relative(process.cwd(), outPath)}（${rows.length} 条）`);
 }
 
 /** 只为给 checkPriceClaims 提供区间；这里不解析价格就不校验价格主张 */

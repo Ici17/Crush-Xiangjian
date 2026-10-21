@@ -18,6 +18,8 @@
  */
 
 import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
+import { PERFUME_NARRATIVES } from "@/lib/data/perfumeNarratives";
+import { findPerfume } from "@/lib/discover";
 import { parsePriceRange } from "@/lib/priceRange";
 import { checkCopy, checkPriceClaims, checkNoteClaims, buildNoteVocabulary } from "@/lib/contentGuard";
 
@@ -204,6 +206,57 @@ for (const t of SELF_TESTS) {
   checkCopy(clean).length === 0
     ? ok("正常文案零误报")
     : no(`正常文案被误报：${checkCopy(clean).map((v) => v.word).join("/")}`);
+}
+
+// ── F. L1 离线文案产物（人格 × 香水的「为什么是你」）──
+// 为什么在这里而不是单独一个脚本：产物本身就是数据层的一部分，
+// 它的覆盖度与合规必须和其他数据契约一起过闸，否则会变成「只有生成时检查过一次」。
+console.log("\nF. L1 离线文案产物（perfumeNarratives）");
+{
+  const vocab = buildNoteVocabulary(PERFUMES);
+  const entries = Object.entries(PERFUME_NARRATIVES);
+  const expected = PERSONALITY_TYPES.length * 3; // 每人格 3 支（本命/进阶/尝试）
+  entries.length === expected
+    ? ok(`文案条数 ${entries.length} = 16 人格 × 3 支（完整覆盖结果页）`)
+    : no(`文案条数 ${entries.length}，应为 ${expected} → 有用户会看到「没有解读」的卡片`);
+
+  const perPerson = new Map<string, number>();
+  const badKey: string[] = [];
+  const badCopy: string[] = [];
+  for (const [key, n] of entries) {
+    const [pName, pfName] = key.split("::");
+    if (!pName || !pfName || !PERSONALITY_TYPES.some((p) => p.name === pName)) {
+      badKey.push(`${key}（人格名不合法）`);
+      continue;
+    }
+    const pf = findPerfume(pfName);
+    if (!pf) {
+      badKey.push(`${key}（香水名查不到，注意库里有 2 支「键≠名」）`);
+      continue;
+    }
+    perPerson.set(pName, (perPerson.get(pName) ?? 0) + 1);
+    const text = `${n.line1} ${n.line2}`;
+    const blocks = [
+      ...checkCopy(text),
+      ...checkPriceClaims(text, null),
+      ...checkNoteClaims(text, pf, vocab),
+    ].filter((v) => v.severity === "block");
+    if (blocks.length) {
+      badCopy.push(`${key} → ${blocks.map((b) => `${b.label}「${b.word}」`).join("；")}`);
+    }
+    if (!n.line1?.trim() || !n.line2?.trim()) badCopy.push(`${key} → 有空句`);
+  }
+
+  badKey.length === 0
+    ? ok("所有键都合法（人格名存在、香水名可被 findPerfume 解析）")
+    : no(`${badKey.length} 个键不合法：${badKey.slice(0, 5).join("；")}`);
+  const incomplete = [...perPerson.entries()].filter(([, c]) => c !== 3);
+  incomplete.length === 0
+    ? ok("每个人格都是完整的 3 条")
+    : no(`这些人格的文案不全：${incomplete.map(([p, c]) => `${p}(${c})`).join(" ")}`);
+  badCopy.length === 0
+    ? ok("全部文案过三道闸（红线词 / 价格主张 / 香调白名单）")
+    : no(`${badCopy.length} 条文案未过闸：${badCopy.slice(0, 5).join("；")}`);
 }
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);
