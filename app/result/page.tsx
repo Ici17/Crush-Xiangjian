@@ -39,7 +39,10 @@ import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
 import AiBadge from '@/components/AiBadge';
+import AdvisorIntent from '@/components/AdvisorIntent';
 import { getNarrative } from '@/lib/data/perfumeNarratives';
+import { getVisitorId } from '@/lib/analytics';
+import type { ScentVector } from '@/lib/matchPerfumes';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import { clearMyTestProgress } from '@/lib/useMyTestStatus';
@@ -493,6 +496,20 @@ function ResultInner() {
       /* 埋点失败不影响体验 */
     }
   }, [revealed, recommendations, personalityName]);
+
+  // 「想问点别的」用的用户向量。
+  // 尺度不用管：cosine 对整体缩放不变，radarData 是 0-1 还是 0-100 都不影响排序。
+  const advisorVector = useMemo<ScentVector>(
+    () => ({
+      floral: (radarData as Record<string, number>).floral ?? 50,
+      woody: (radarData as Record<string, number>).woody ?? 50,
+      fresh: (radarData as Record<string, number>).fresh ?? 50,
+      oriental: (radarData as Record<string, number>).oriental ?? 50,
+      citrus: (radarData as Record<string, number>).citrus ?? 50,
+      gourmand: (radarData as Record<string, number>).gourmand ?? 50,
+    }),
+    [radarData],
+  );
 
   // 锁定版动态 Recommendation[] → 解锁版 PerfumeDetail[] 映射
   // 目的：保留锁定版那 3 支香水，解锁后不换一批（与『同一批去模糊』承诺一致）
@@ -1014,6 +1031,17 @@ function ResultInner() {
             })}
           </div>
         </section>
+
+        {/* ━━━ 想问点别的：提问率探针（规则实现，不调模型，仅解锁态）━━━ */}
+        {/* 目的：上 L2 在线顾问之前先测出「多少人真的会追问」。零在线成本、零延迟。 */}
+        {unlocked && (
+          <AdvisorIntent
+            userVector={advisorVector}
+            excludeNames={displayPerfumes.map((p) => p.name)}
+            vid={getVisitorId()}
+            personalityName={personalityName}
+          />
+        )}
 
         {/* ━━━ 免费内容：性格解读 ━━━ */}
         <section className="px-6 mb-10" aria-label="性格解读">

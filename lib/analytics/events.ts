@@ -58,6 +58,9 @@ export const TRACK_EVENTS = [
   'ai_reason_view', // 结果页出现「为什么是你」解读位（带 personality, perfume）
   'ai_reason_expand', // 用户点开解读（带 personality, perfume）
   'ai_cp_view', // 合香卡出现 AI 解读（带 pair = "人格A×人格B"，已排序）
+  // 结果页「想问点别的」：在上 L2 在线顾问之前，先用零成本测「到底有多少人会追问」。
+  // intent = 结构化问题 id（rare/season/budget），不是自由文本 —— 不采用户输入。
+  'ai_advisor_intent', // 用户点了某个追问意图（带 intent, personality）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -105,6 +108,7 @@ export const EVENT_LABEL: Record<string, string> = {
   ai_reason_view: 'AI解读曝光',
   ai_reason_expand: 'AI解读展开',
   ai_cp_view: '合香AI解读曝光',
+  ai_advisor_intent: '追问意图点击',
   error: '埋点异常',
 };
 

@@ -21,6 +21,13 @@ import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
 import { PERFUME_NARRATIVES } from "@/lib/data/perfumeNarratives";
 import { CP_NARRATIVES } from "@/lib/data/cpNarratives";
 import { getCpResonance } from "@/lib/cpResonance";
+import {
+  pickLongTail,
+  pickBySeason,
+  pickByBudget,
+  longTailPoolSize,
+} from "@/lib/longTailPick";
+import { getCalibratedRecommendations, type ScentVector } from "@/lib/matchPerfumes";
 import { findPerfume } from "@/lib/discover";
 import { countNoteWords, MAX_NOTE_WORDS_IN_LINE2 as MAX_NOTE_WORDS } from "./_narrativeQuality";
 import { parsePriceRange } from "@/lib/priceRange";
@@ -344,6 +351,69 @@ console.log("\nG. L1 离线文案产物（cpNarratives · CP 合香）");
   asym.length === 0
     ? ok("合香卡完全可交换（A×B ≡ B×A，256 对全部一致）")
     : no(`${asym.length} 对不可交换：${asym.slice(0, 5).join("、")} → 同一个人 CP 两人会看到不同的卡`);
+}
+
+// ── H. 长尾 / 追问挑选（结果页「想问点别的」）──
+// 这些挑选不进推荐主链路，但同样是数据层的产物，必须跟着过闸。
+// 最关键的一条是**季节不退化**：首版把 PERFUME_SEMANTICS.temp（尺度 -1~1）
+// 当成 0-100 用，季节项退化成常数，1/4/7/10 四个月返回完全一样的结果 ——
+// 界面上完全看不出来，只有跨月份对比才能发现。
+console.log("\nH. 长尾 / 追问挑选（longTailPick）");
+{
+  const v0 = PERSONALITY_TYPES[0].radarScores as unknown as ScentVector;
+  const pool = longTailPoolSize();
+  pool > 0
+    ? ok(`长尾池 ${pool} 支（canonical 之外的候选非空）`)
+    : no("长尾池为空 → 「来点少见的」会永远没结果");
+
+  // 长尾不得与 16 原型 canonical 推荐重叠（否则就不是「平时轮不到」的那批了）
+  const canonSet = new Set<string>();
+  for (const arch of PERSONALITY_TYPES) {
+    for (const rec of getCalibratedRecommendations(
+      arch.radarScores as unknown as ScentVector,
+      ["cal1b", "cal2b", "cal3b"],
+      [],
+      arch.id,
+      true,
+    )) canonSet.add(rec.name);
+  }
+  let overlap = 0;
+  for (const arch of PERSONALITY_TYPES) {
+    const v = arch.radarScores as unknown as ScentVector;
+    const excl = getCalibratedRecommendations(v, ["cal1b", "cal2b", "cal3b"], [], arch.id, false).map(
+      (r) => r.name,
+    );
+    for (const p of pickLongTail(v, excl, "gate-vid", 3)) {
+      if (canonSet.has(p.name) || excl.includes(p.name)) overlap++;
+    }
+  }
+  overlap === 0
+    ? ok("长尾挑选与三香 / canonical 零重叠")
+    : no(`${overlap} 支同时出现在三香或 canonical 里 → 「少见的」并不少见`);
+
+  // 确定性：同一 vid 必须永远同一批（否则用户刷新就换一批，像 bug）
+  const a1 = pickLongTail(v0, [], "gate-vid", 3).map((p) => p.name).join();
+  const a2 = pickLongTail(v0, [], "gate-vid", 3).map((p) => p.name).join();
+  a1 === a2
+    ? ok("同一 vid 结果稳定（刷新不换一批）")
+    : no("同一 vid 两次结果不同 → 用户刷新会看到不同的香");
+
+  // 季节不退化（首版踩过的坑）
+  const w = pickBySeason(v0, [], "gate-vid", 1, 3).map((p) => p.name).join();
+  const s = pickBySeason(v0, [], "gate-vid", 7, 3).map((p) => p.name).join();
+  w !== s
+    ? ok("季节挑选在冬 / 夏两月给出不同结果（防 temp 尺度退化）")
+    : no("冬季与夏季结果相同 → 季节项已退化（检查 temp 是否为 -1~1 尺度）");
+
+  // 预算必须真的落在预算内
+  const cheap = pickByBudget(v0, [], "gate-vid", 800, 3);
+  const over = cheap.filter((p) => {
+    const pr = parsePriceRange(p.priceRange);
+    return pr === null || pr.min > 800;
+  });
+  over.length === 0
+    ? ok("预算挑选全部落在预算内（区间下限 ≤ 800）")
+    : no(`${over.length} 支超出预算：${over.map((p) => `${p.name}(${p.priceRange})`).join("、")}`);
 }
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);
