@@ -30,6 +30,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RADAR_DIM_LABELS } from "@/lib/personalities";
 import { ESTIMATED_MINUTES } from "@/lib/branchingQuestions";
+import type { CpTier } from "@/lib/cpScore";
 
 // ── 强制打包追踪 sharp 的 libvips 原生库 ─────────────────────────────────────
 // sharp 在运行时通过 dlopen 动态加载 libvips 的 .so，打包器（Turbopack/NFT）无法
@@ -1054,21 +1055,19 @@ function buildFriendCard(
   });
 
   // 相处建议句（基于 tier 生成一句克制建议）
-  const ADVICE_MAP: Record<string, string> = {
+  //
+  // ⚠️ 2026-10-22 清理：原表 12 个键里 **11 个是历史死键**（还混进了
+  // 「灵魂伴侣」「天生一对」这类宿命表述），而实际生效的 4 个 tier 里 3 个
+  // 根本没对应句、全落到 fallback —— 表看着满，其实只有 1 条在起作用。
+  // 现在键集合由 `CpTier` 联合类型锁死：少一个键 **编译不过**，多一个也过不了，
+  // 不需要再靠人记得同步两处。
+  const ADVICE_MAP: Record<CpTier, string> = {
     "气息同频": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
-    "默契成对": "他补上你缺的那一味，别急着调成一样。",
-    "互补有趣": "不一样才好玩，先闻闻对方世界里没去过的那块。",
-    "各有所爱": "你们合起来，是一整座调香台。",
-    "气质迥异": "不必勉强同频，记住这股味道就好。",
-    "灵魂伴侣": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
-    "灵魂共振": "你们是同一支香的两种写法，留一点距离，香气会更清楚。",
-    "天生一对": "他补上你缺的那一味，别急着调成一样。",
-    "互补搭档": "他补上你缺的那一味，别急着调成一样。",
-    "有趣的碰撞": "不一样才好玩，先闻闻对方世界里没去过的那块。",
-    "气味互补": "你们合起来，是一整座调香台。",
-    "不同的香气世界": "不必勉强同频，记住这股味道就好。",
+    "惊喜感": "他身上有你没闻过的那一段，不必急着调成一样。",
+    "新鲜感": "陌生也是一层还没打开的香气，慢慢闻。",
+    "吸引力": "不必勉强同频，记住这股味道就好。",
   };
-  const adviceText = ADVICE_MAP[d.tier] ?? "香气不同没关系，相遇本身就是一次调香。";
+  const adviceText = ADVICE_MAP[d.tier as CpTier] ?? "香气不同没关系，相遇本身就是一次调香。";
   const advice = JSX("div", {
     style: { display: "flex", flexDirection: "row", justifyContent: "center", marginBottom: "20px" },
     children: [JSX("span", { style: { color: GOLD, fontSize: "28px", fontStyle: "italic", textAlign: "center", lineHeight: 1.5 }, children: adviceText })],

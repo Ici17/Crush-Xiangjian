@@ -24,30 +24,11 @@ import CpBlendCard from "@/components/CpBlendCard";
 import ShareImagePreviewModal from "@/components/ShareImagePreviewModal";
 import { PERSONALITY_NAME_MAP, getRadarScores, brandLabel, getRecommendations } from "@/lib/personalities";
 import { saveShareCard, isWeChat } from "@/lib/saveShareImage";
+// 契合度四档的唯一真源（分享图的建议句也用它），不再在本文件里另写一份
+import { getCpTierStory } from "@/lib/cpScore";
 
-/** 契合度四档解读 */
-function getCompatibilityStory(score: number): { tier: string; copy: string } {
-  if (score >= 75)
-    return {
-      tier: "气息同频",
-      copy: "你们的香气频率高度共振——靠近，就像回到了该在的地方。",
-    };
-  if (score >= 55)
-    return {
-      tier: "惊喜感",
-      copy: "意外调出的好味道——你们的差异里，藏着彼此最缺的那一味。",
-    };
-  if (score >= 42)
-    return {
-      tier: "新鲜感",
-      copy: "闻到陌生，也闻到新鲜——你们之间，总有还没说完的香气故事。",
-    };
-  return {
-    tier: "吸引力",
-    copy: "忍不住想靠近，再靠近一点——截然不同的香调，却莫名相互吸引。",
-  };
-}
-
+/** 兼容旧名：本文件内部仍按 getCompatibilityStory 调用 */
+const getCompatibilityStory = getCpTierStory;
 
 /** 契合度颜色 */
 function getCompatibilityColor(score: number): string {
