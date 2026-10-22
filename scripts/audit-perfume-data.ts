@@ -19,7 +19,10 @@
 
 import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
 import { PERFUME_NARRATIVES } from "@/lib/data/perfumeNarratives";
+import { CP_NARRATIVES } from "@/lib/data/cpNarratives";
+import { getCpResonance } from "@/lib/cpResonance";
 import { findPerfume } from "@/lib/discover";
+import { countNoteWords, MAX_NOTE_WORDS_IN_LINE2 as MAX_NOTE_WORDS } from "./_narrativeQuality";
 import { parsePriceRange } from "@/lib/priceRange";
 import { checkCopy, checkPriceClaims, checkNoteClaims, buildNoteVocabulary } from "@/lib/contentGuard";
 
@@ -257,6 +260,90 @@ console.log("\nF. L1 离线文案产物（perfumeNarratives）");
   badCopy.length === 0
     ? ok("全部文案过三道闸（红线词 / 价格主张 / 香调白名单）")
     : no(`${badCopy.length} 条文案未过闸：${badCopy.slice(0, 5).join("；")}`);
+}
+
+// ── G. L1 离线文案产物（CP 合香）──
+// 与 F 项同一套理由：产物是数据层的一部分，必须跟着一起过闸。
+// 三条额外硬约束：
+//   ① 条数 = C(16+1,2) = 136（不是 256）—— 合香卡可交换，两个方向同一句。
+//      哪天有人改回 256，说明有人把「可交换」这个前提破坏了。
+//   ② 键内两人名必须已排序 —— 否则 A×B 和 B×A 会查到两条，且只有一条有文案。
+//   ③ 可交换性：getCpResonance(A,B) 必须等于 getCpResonance(B,A)。
+//      这是 2026-10-22 修掉的 bug（原先 256 对里 240 对不可交换），必须锁死不回退。
+console.log("\nG. L1 离线文案产物（cpNarratives · CP 合香）");
+{
+  const vocab = buildNoteVocabulary(PERFUMES);
+  const entries = Object.entries(CP_NARRATIVES);
+  const n = PERSONALITY_TYPES.length;
+  const expected = (n * (n + 1)) / 2; // 无序对，含自配
+  entries.length === expected
+    ? ok(`文案条数 ${entries.length} = C(${n}+1,2)（合香卡可交换，故非 ${n * n}）`)
+    : no(`文案条数 ${entries.length}，应为 ${expected} → 有人格对会回落到通用分档文案`);
+
+  const unsorted: string[] = [];
+  const badKey: string[] = [];
+  const badCopy: string[] = [];
+  const tooManyNotes: string[] = [];
+  for (const [key, v] of entries) {
+    const [a, b] = key.split("::");
+    if (!a || !b || !PERSONALITY_TYPES.some((p) => p.name === a) || !PERSONALITY_TYPES.some((p) => p.name === b)) {
+      badKey.push(`${key}（人格名不合法）`);
+      continue;
+    }
+    if (a > b) unsorted.push(key); // 键未排序 → A×B 与 B×A 会查到不同条目
+    const cp = getCpResonance(a, b);
+    if (!cp) {
+      badKey.push(`${key}（合香算不出来）`);
+      continue;
+    }
+    const text = `${v.line} ${v.hint}`;
+    const blocks = [
+      ...checkCopy(text),
+      ...checkPriceClaims(text, null),
+      // 合香三调当「这支香的三调」喂给白名单闸：文案不得提合香没有的香调
+      ...checkNoteClaims(text, { name: cp.blendName, notes: { top: cp.top, heart: cp.heart, base: cp.base } } as never, vocab),
+    ].filter((x) => x.severity === "block");
+    if (blocks.length) badCopy.push(`${key} → ${blocks.map((x) => `${x.label}「${x.word}」`).join("；")}`);
+    if (!v.line?.trim() || !v.hint?.trim()) badCopy.push(`${key} → 有空句`);
+    const hits = countNoteWords(text, vocab);
+    if (hits.length > MAX_NOTE_WORDS) tooManyNotes.push(`${key}（${hits.length} 个：${hits.join("、")}）`);
+  }
+
+  badKey.length === 0
+    ? ok("所有键都合法（人格名存在、合香可算）")
+    : no(`${badKey.length} 个键不合法：${badKey.slice(0, 5).join("；")}`);
+  unsorted.length === 0
+    ? ok("键内两人名均已排序（A×B 与 B×A 命中同一条）")
+    : no(`${unsorted.length} 个键未排序：${unsorted.slice(0, 5).join("；")}`);
+  badCopy.length === 0
+    ? ok("全部文案过三道闸（红线词 / 价格主张 / 香调白名单）")
+    : no(`${badCopy.length} 条文案未过闸：${badCopy.slice(0, 5).join("；")}`);
+  tooManyNotes.length === 0
+    ? ok(`香调词均不超过 ${MAX_NOTE_WORDS} 个（多则成成分表）`)
+    : no(`${tooManyNotes.length} 条香调词超限：${tooManyNotes.slice(0, 5).join("；")}`);
+
+  // 可交换性回归锁：这条挂了说明有人把 cpResonance 的排序改回去了
+  const names = PERSONALITY_TYPES.map((p) => p.name);
+  const asym: string[] = [];
+  for (const a of names) {
+    for (const b of names) {
+      const x = getCpResonance(a, b);
+      const y = getCpResonance(b, a);
+      if (!x || !y) continue;
+      if (
+        x.blendName !== y.blendName ||
+        x.top.join() !== y.top.join() ||
+        x.heart.join() !== y.heart.join() ||
+        x.base.join() !== y.base.join() ||
+        x.seal !== y.seal ||
+        x.diffTones !== y.diffTones ||
+        x.toneA !== y.toneA
+      ) asym.push(`${a}×${b}`);
+    }
+  }
+  asym.length === 0
+    ? ok("合香卡完全可交换（A×B ≡ B×A，256 对全部一致）")
+    : no(`${asym.length} 对不可交换：${asym.slice(0, 5).join("、")} → 同一个人 CP 两人会看到不同的卡`);
 }
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);

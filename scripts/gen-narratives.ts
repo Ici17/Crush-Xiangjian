@@ -25,6 +25,7 @@ import { getCalibratedRecommendations } from "@/lib/matchPerfumes";
 import { findPerfume } from "@/lib/discover";
 import { checkCopy, checkPriceClaims, checkNoteClaims, buildNoteVocabulary } from "@/lib/contentGuard";
 import { chatJson, type ModelAlias } from "@/lib/ai/client";
+import { countNoteWords, echoSegments, MAX_NOTE_WORDS_IN_LINE2 } from "./_narrativeQuality";
 
 const SYSTEM = [
   "你是 Crush 香鉴的文案撰写者。品牌调性：克制、高级、留白，像一句短诗，不像广告。",
@@ -151,44 +152,6 @@ function buildPrompt(f: {
     ``,
     `输出 JSON：{"line1":"...","line2":"..."}`,
   ].join("\n");
-}
-
-/** 文案里实际点到的香调词（贪心最长匹配后去重）—— 用来数有没有写成成分表 */
-function countNoteWords(text: string, vocab: string[]): string[] {
-  const sorted = [...vocab].filter(Boolean).sort((a, b) => b.length - a.length);
-  let rest = text;
-  const hits: string[] = [];
-  for (const w of sorted) {
-    let idx = rest.indexOf(w);
-    if (idx < 0) continue;
-    hits.push(w);
-    while (idx >= 0) {
-      rest = rest.slice(0, idx) + " ".repeat(w.length) + rest.slice(idx + w.length);
-      idx = rest.indexOf(w);
-    }
-  }
-  return hits;
-}
-
-/**
- * line1 是不是在复读人格一句话。
- * 判据：人格一句话按标点切段后，任意 ≥5 字的片段原样出现在 line1 里，或两者开头 8 字相同。
- * 这是抽检里 44% 条目的毛病，必须在闸里能被抓出来 —— 光靠肉眼看 48 条看不干净。
- */
-const MAX_NOTE_WORDS_IN_LINE2 = 2;
-
-function echoSegments(line1: string, tagline: string): string[] {
-  const norm = (s: string) => s.replace(/[\s，。、；：！？,.!?;:：""''（）()]/g, "");
-  const l = norm(line1);
-  const segs = norm(tagline)
-    .split(/[，。、；：！？,.!?;:]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length >= 5);
-  const hits = segs.filter((s) => l.includes(s));
-  if (hits.length === 0 && l.length >= 8 && norm(tagline).slice(0, 8) === l.slice(0, 8)) {
-    hits.push(norm(tagline).slice(0, 8));
-  }
-  return hits;
 }
 
 const ROLE_CN: Record<string, string> = {

@@ -57,6 +57,7 @@ export const TRACK_EVENTS = [
   // 否则分不清「没人看到」和「看到了不感兴趣」，而这俩的修法完全不同。
   'ai_reason_view', // 结果页出现「为什么是你」解读位（带 personality, perfume）
   'ai_reason_expand', // 用户点开解读（带 personality, perfume）
+  'ai_cp_view', // 合香卡出现 AI 解读（带 pair = "人格A×人格B"，已排序）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -103,6 +104,7 @@ export const EVENT_LABEL: Record<string, string> = {
   daily_advice_view: '穿香建议曝光',
   ai_reason_view: 'AI解读曝光',
   ai_reason_expand: 'AI解读展开',
+  ai_cp_view: '合香AI解读曝光',
   error: '埋点异常',
 };
 

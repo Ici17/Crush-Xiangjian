@@ -1,8 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { getCpResonance } from '@/lib/cpResonance';
 import { RADAR_DIM_LABELS } from '@/lib/personalities';
+import { getCpNarrative } from '@/lib/data/cpNarratives';
+import { track } from '@/lib/analytics';
+import AiBadge from '@/components/AiBadge';
 
 const SEAL_COLOR: Record<string, string> = {
   隐: '#2C1810',
@@ -30,6 +33,24 @@ export default function CpBlendCard({
   footnote?: string;
 }) {
   const cp = useMemo(() => getCpResonance(nameA, nameB), [nameA, nameB]);
+
+  // 每对人格的专属合香解读（L1 离线生成，运行时零 LLM 调用）。
+  // 取不到就回落到原先按「差几调」分档的那 4 条通用文案 —— 宁可通用，也不要空壳。
+  const nar = useMemo(() => getCpNarrative(nameA, nameB), [nameA, nameB]);
+
+  // 用 AI 文案才算一次曝光；回落态不记，否则会把「没有文案」统计成「曝光了」。
+  const cpViewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!nar) return;
+    const pair = [nameA, nameB].sort().join('×');
+    if (cpViewedRef.current === pair) return;
+    cpViewedRef.current = pair;
+    try {
+      track('ai_cp_view', { pair });
+    } catch {
+      /* 埋点失败不影响体验 */
+    }
+  }, [nar, nameA, nameB]);
 
   if (!cp) return null;
 
@@ -101,11 +122,20 @@ export default function CpBlendCard({
         ))}
       </div>
 
-      {/* 合香解读 */}
+      {/* 合香解读：优先用这对人格的专属文案，取不到才回落到分档文案 */}
       <div className="mt-3 pt-3" style={{ borderTop: '1px dashed rgba(168,136,78,0.35)' }}>
         <p style={{ fontSize: '12.5px', color: '#8B6F5C', fontStyle: 'italic', lineHeight: 1.7 }}>
-          「{cp.line}」
+          「{nar?.line ?? cp.line}」
         </p>
+        {nar && (
+          <div className="mt-2 flex items-start justify-between gap-3">
+            <span style={{ fontSize: '11.5px', color: '#8B7C68', lineHeight: 1.6 }}>
+              {nar.hint}
+            </span>
+            {/* 《人工智能生成合成内容标识办法》：AI 生成的文本必须显式标识，且清晰可辨 */}
+            <AiBadge />
+          </div>
+        )}
       </div>
 
       {/* 卡底：分享 / 小字 */}

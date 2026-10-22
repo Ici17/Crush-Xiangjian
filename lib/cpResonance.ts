@@ -63,9 +63,15 @@ const RESONANCE_LINES: Record<number, string> = {
  * 取两人格的合香卡（确定性）。任一人格无守护香时返回 null。
  */
 export function getCpResonance(nameA: string, nameB: string): CpResonance | null {
-  const ga = getGuardianPerfume(nameA);
-  const gb = getGuardianPerfume(nameB);
-  if (!ga || !gb) return null;
+  if (!getGuardianPerfume(nameA) || !getGuardianPerfume(nameB)) return null;
+
+  // ⚠️ 可交换性：合香卡必须 A×B ≡ B×A，否则同一个人 CP 两个人各自打开会看到两张不同的卡，
+  //   分享出去也对不上（「同一对永远同一支合香」这条确定性承诺就是空的）。
+  //   blendName 已经用 sort 保证了，但三调是 dedupe([...A, ...B]).slice(0,3) —— 截断依赖入参顺序，
+  //   实测 256 对里 240 对不可交换。所以先把两个人格按名字稳定排序，再往下算。
+  const [n1, n2] = [nameA, nameB].sort();
+  const ga = getGuardianPerfume(n1)!;
+  const gb = getGuardianPerfume(n2)!;
 
   // 合香名：两人守护香中调首材意象相合（heart 为空则回落前调）
   // 按音符稳定排序，使合香名可交换（A×B == B×A 同名），图鉴对称双亮不冲突
@@ -87,8 +93,9 @@ export function getCpResonance(nameA: string, nameB: string): CpResonance | null
   const heart = dedupe([...ga.notes.heart, ...gb.notes.heart]).slice(0, 3);
   const base = dedupe([...ga.notes.base, ...gb.notes.base]).slice(0, 3);
 
-  const toneA = topTone(nameA);
-  const toneB = topTone(nameB);
+  // 调族也跟排序后的顺序走，卡片上「木质 × 柑橘」的左右顺序才不会因谁发起而变。
+  const toneA = topTone(n1);
+  const toneB = topTone(n2);
   const diff = diffTones(toneA, toneB);
 
   // 合香印：取更深者（隐 > 雅 > 常）
