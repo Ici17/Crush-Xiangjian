@@ -14,12 +14,20 @@
  *   C. 必填字段完整：名称/品牌/三调/扩散/留香/档位/描述
  *   D. 文案合规：225 条描述 + 16 人格全部文案过 contentGuard
  *
- * A、B、C 是硬卡（有错就红）；D 的 warn 级只统计不阻断。
+ * 之后陆续加了（产物本身就是数据层的一部分，必须跟着一起过闸）：
+ *   E. 校验器自检（词表被改坏时这里会红）
+ *   F. 人格 × 香水的「为什么是你」48 条
+ *   G. CP 合香 136 条（含可交换性回归锁）
+ *   H. 长尾 / 季节 / 预算挑选（含季节不退化）
+ *   I. 单香档案 225 条（覆盖度双向全等 + 三道闸 + 不复读 description）
+ *
+ * A、B、C 与 E–I 的覆盖度/闸项是硬卡（有错就红）；D 的 warn 级只统计不阻断。
  */
 
 import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
 import { PERFUME_NARRATIVES } from "@/lib/data/perfumeNarratives";
 import { CP_NARRATIVES } from "@/lib/data/cpNarratives";
+import { PERFUME_PROFILES } from "@/lib/data/perfumeProfiles";
 import { getCpResonance } from "@/lib/cpResonance";
 import {
   pickLongTail,
@@ -29,7 +37,7 @@ import {
 } from "@/lib/longTailPick";
 import { getCalibratedRecommendations, type ScentVector } from "@/lib/matchPerfumes";
 import { findPerfume } from "@/lib/discover";
-import { countNoteWords, MAX_NOTE_WORDS_IN_LINE2 as MAX_NOTE_WORDS } from "./_narrativeQuality";
+import { countNoteWords, echoSegments, MAX_NOTE_WORDS_IN_LINE2 as MAX_NOTE_WORDS } from "./_narrativeQuality";
 import { parsePriceRange } from "@/lib/priceRange";
 import { checkCopy, checkPriceClaims, checkNoteClaims, buildNoteVocabulary } from "@/lib/contentGuard";
 
@@ -414,6 +422,60 @@ console.log("\nH. 长尾 / 追问挑选（longTailPick）");
   over.length === 0
     ? ok("预算挑选全部落在预算内（区间下限 ≤ 800）")
     : no(`${over.length} 支超出预算：${over.map((p) => `${p.name}(${p.priceRange})`).join("、")}`);
+}
+
+// ── I. L1 离线文案产物（单香档案 · F7）──
+// 225 条不乘人格，键 = PERFUMES 的键（库里有 2 支「键≠展示名」，按键存最稳）。
+// 硬约束：
+//   ① 覆盖度必须是双向全等的 225 条 —— 少一条，那支香在探索页就回落到
+//      通用 description；多一条则是脏数据。
+//   ② 与生成脚本同一套闸（红线 / 价格主张按真实区间 / 香调白名单），
+//      防止「生成时检查过一次、之后手改/重生成时无人再查」。
+//   ③ line 不得复读 PERFUMES.description —— 档案的价值是「新的说法」，
+//      与旧描述撞句就是白花生成成本。
+console.log("\nI. L1 离线文案产物（perfumeProfiles · 单香档案）");
+{
+  const vocab = buildNoteVocabulary(PERFUMES);
+  const entries = Object.entries(PERFUME_PROFILES);
+
+  // 覆盖度：键集合与香水库双向全等
+  const pfKeys = new Set(Object.keys(PERFUMES));
+  const prKeys = new Set(entries.map(([k]) => k));
+  const missingProfiles = [...pfKeys].filter((k) => !prKeys.has(k));
+  const orphanProfiles = [...prKeys].filter((k) => !pfKeys.has(k));
+  entries.length === keys.length && missingProfiles.length === 0 && orphanProfiles.length === 0
+    ? ok(`覆盖度 ${entries.length} = 香水库 ${keys.length}，键集合双向全等（无缺档、无孤儿）`)
+    : no(`覆盖度不对：缺档 ${missingProfiles.length} 支（${missingProfiles.slice(0, 5).join("、")}${missingProfiles.length > 5 ? "…" : ""}），孤儿 ${orphanProfiles.length} 支（${orphanProfiles.slice(0, 5).join("、")}）`);
+
+  const badCopy: string[] = [];
+  const tooManyNotes: string[] = [];
+  const echoes: string[] = [];
+  for (const [id, v] of entries) {
+    const p = PERFUMES[id];
+    if (!p) continue; // 孤儿键已在上面报过
+    const text = `${v.line} ${v.hint}`;
+    const blocks = [
+      ...checkCopy(text),
+      ...checkPriceClaims(text, parsePriceRange(p.priceRange)),
+      ...checkNoteClaims(text, p, vocab),
+    ].filter((x) => x.severity === "block");
+    if (blocks.length) badCopy.push(`${id} → ${blocks.map((x) => `${x.label}「${x.word}」`).join("；")}`);
+    if (!v.line?.trim() || !v.hint?.trim()) badCopy.push(`${id} → 有空句`);
+    const hits = countNoteWords(text, vocab);
+    if (hits.length > MAX_NOTE_WORDS) tooManyNotes.push(`${id}（${hits.length} 个：${hits.join("、")}）`);
+    const dup = echoSegments(v.line ?? "", p.description);
+    if (dup.length) echoes.push(`${id}（复读：${dup.join("、")}）`);
+  }
+
+  badCopy.length === 0
+    ? ok("全部档案过三道闸（红线词 / 价格主张按真实区间 / 香调白名单）")
+    : no(`${badCopy.length} 条未过闸：${badCopy.slice(0, 5).join("；")}`);
+  tooManyNotes.length === 0
+    ? ok(`香调词均不超过 ${MAX_NOTE_WORDS} 个（多则成成分表）`)
+    : no(`${tooManyNotes.length} 条香调词超限：${tooManyNotes.slice(0, 5).join("；")}`);
+  echoes.length === 0
+    ? ok("档案文案与现有 description 零复读")
+    : no(`${echoes.length} 条复读旧描述：${echoes.slice(0, 5).join("；")}`);
 }
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);
