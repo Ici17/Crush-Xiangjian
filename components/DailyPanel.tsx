@@ -18,6 +18,7 @@ import IncenseRitual from '@/components/IncenseRitual';
 import ShareGuideModal from '@/components/ShareGuideModal';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 import { track } from '@/lib/analytics';
+import { ProfileHint } from '@/components/PerfumeProfile';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -340,6 +341,11 @@ export default function DailyPanel() {
                     }}
                   >
                     {c.p.description}
+                  </div>
+
+                  {/* 单香档案 · 适合出现的时刻（F7 离线生成，仅展示层，不参与抽签） */}
+                  <div style={{ marginTop: '7px', padding: '0 2px' }}>
+                    <ProfileHint p={c.p} />
                   </div>
 
                   {/* 香调 · 前/中/后 三行（更有签的层次，替代原单行长串） */}

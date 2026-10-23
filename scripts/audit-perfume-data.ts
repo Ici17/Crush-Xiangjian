@@ -28,6 +28,8 @@ import { PERFUMES, TOTAL_PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
 import { PERFUME_NARRATIVES } from "@/lib/data/perfumeNarratives";
 import { CP_NARRATIVES } from "@/lib/data/cpNarratives";
 import { PERFUME_PROFILES } from "@/lib/data/perfumeProfiles";
+// UI 唯一取值口：数据是全的，界面也可能因为「id ≠ key」而取不到 —— 这条必须一起守
+import { getPerfumeProfile } from "@/lib/perfumeProfile";
 import { getCpResonance } from "@/lib/cpResonance";
 import {
   pickLongTail,
@@ -476,6 +478,14 @@ console.log("\nI. L1 离线文案产物（perfumeProfiles · 单香档案）");
   echoes.length === 0
     ? ok("档案文案与现有 description 零复读")
     : no(`${echoes.length} 条复读旧描述：${echoes.slice(0, 5).join("；")}`);
+
+  // UI 取值口覆盖 —— 库里有 3 支 id ≠ key（无花果/同名版/旷野），UI 手里只有 id 和 name。
+  // 这条挂了 = 「数据有、界面没有」，表现为某些香水永远不显示档案，且不会报错。
+  const viaName = keys.filter((k) => !getPerfumeProfile({ name: PERFUMES[k].name }));
+  const viaId = keys.filter((k) => !getPerfumeProfile({ id: PERFUMES[k].id }));
+  viaName.length === 0 && viaId.length === 0
+    ? ok("UI 取值口全覆盖：按 name 与按 id 都能取到 225 条档案")
+    : no(`取值口漏取：按 name ${viaName.length} 支（${viaName.slice(0, 5).join("、")}）、按 id ${viaId.length} 支（${viaId.slice(0, 5).join("、")}）`);
 }
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);

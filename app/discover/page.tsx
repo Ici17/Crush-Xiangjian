@@ -19,11 +19,13 @@ import {
   pickPerfumeForScene,
   findPersonalitiesByPerfume,
   searchPerfumes,
+  findPerfume,
   type SceneKey,
 } from "@/lib/discover";
 import SiteFooter from "@/components/SiteFooter";
 import { saveShareCard } from "@/lib/saveShareImage";
 import { track } from "@/lib/analytics";
+import { ProfileLine, ProfileDetail } from "@/components/PerfumeProfile";
 
 type Tab = "scene" | "reverse" | "kinship";
 
@@ -98,6 +100,17 @@ export default function DiscoverPage() {
   const [picked, setPicked] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // 单香档案展开态（F7）：同一时刻只展开一支，避免页面越点越长
+  const [openProfile, setOpenProfile] = useState<string | null>(null);
+  const toggleProfile = (name: string) => {
+    const next = openProfile === name ? null : name;
+    setOpenProfile(next);
+    if (next) {
+      // 复用既有 discover_action（不新增事件类型），action 用 profile_expand 区分
+      track("discover_action", { tab, action: "profile_expand", perfume: name });
+    }
+  };
 
   // 已测用户默认落在自己的人格上
   useEffect(() => {
@@ -227,6 +240,9 @@ export default function DiscoverPage() {
   const kinships = useMemo(() => getSimilarPersonalities(personality), [personality]);
 
   const searchResults = useMemo(() => searchPerfumes(keyword, 20), [keyword]);
+  // 以香搜人：拿到被选中香的完整数据，用于展示单香档案（F7）
+  // 必须走 findPerfume（而不是 PERFUMES[picked]）—— 库里有 2 支「键≠展示名」，按键取会落空
+  const pickedPerfume = useMemo(() => (picked ? findPerfume(picked) : undefined), [picked]);
   const reverseMatches = useMemo(
     () => (picked ? findPersonalitiesByPerfume(picked, 3) : []),
     [picked]
@@ -411,7 +427,10 @@ export default function DiscoverPage() {
             </div>
 
             {scenePick && (
-              <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(44,24,16,.06)]">
+              <div
+                onClick={() => toggleProfile(scenePick.name)}
+                className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(44,24,16,.06)] cursor-pointer active:opacity-80"
+              >
                 <div className="text-[10px] tracking-[0.24em] text-[#A8884E]">今 天 穿 这 支</div>
                 <div className="mt-2.5 font-serif text-[19px] text-[#2C1810] leading-snug">
                   {scenePick.name}
@@ -422,6 +441,8 @@ export default function DiscoverPage() {
                 <div className="mt-3 inline-flex rounded-full bg-[#F5EDE1] px-3 py-1 text-[11px] text-[#8A6332]">
                   {scenePick.reason}
                 </div>
+                <ProfileLine p={scenePick} className="mt-2.5" />
+                <ProfileDetail p={openProfile === scenePick.name ? scenePick : null} />
               </div>
             )}
 
@@ -432,15 +453,20 @@ export default function DiscoverPage() {
                 .map((r) => (
                   <div
                     key={r.name}
-                    className="rounded-xl bg-white/70 px-4 py-3 flex items-center justify-between gap-3"
+                    onClick={() => toggleProfile(r.name)}
+                    className="rounded-xl bg-white/70 px-4 py-3 cursor-pointer active:opacity-80"
                   >
-                    <div className="min-w-0">
-                      <div className="text-[13px] text-[#2C1810] truncate">{r.name}</div>
-                      <div className="text-[11px] text-amber-700/60 truncate">{r.brandCn || r.brand}</div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[13px] text-[#2C1810] truncate">{r.name}</div>
+                        <div className="text-[11px] text-amber-700/60 truncate">{r.brandCn || r.brand}</div>
+                      </div>
+                      <div className="shrink-0 text-[11px] text-[#A8884E]">
+                        {r.role === "signature" ? "本命香" : r.role === "advanced" ? "进阶香" : "尝试香"}
+                      </div>
                     </div>
-                    <div className="shrink-0 text-[11px] text-[#A8884E]">
-                      {r.role === "signature" ? "本命香" : r.role === "advanced" ? "进阶香" : "尝试香"}
-                    </div>
+                    <ProfileLine p={r} className="mt-1.5" />
+                    <ProfileDetail p={openProfile === r.name ? r : null} />
                   </div>
                 ))}
             </div>
@@ -476,6 +502,15 @@ export default function DiscoverPage() {
               <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(44,24,16,.06)]">
                 <div className="text-[10px] tracking-[0.24em] text-[#A8884E]">这 支 香 属 于</div>
                 <div className="mt-2 font-serif text-[18px] text-[#2C1810]">{picked}</div>
+                {pickedPerfume && (
+                  <div
+                    onClick={() => toggleProfile(picked)}
+                    className="cursor-pointer active:opacity-80"
+                  >
+                    <ProfileLine p={pickedPerfume} className="mt-1.5" />
+                    <ProfileDetail p={openProfile === picked ? pickedPerfume : null} />
+                  </div>
+                )}
                 <div className="mt-3 space-y-2">
                   {reverseMatches.map((m, i) => (
                     <div key={m.name} className="flex items-center gap-3">
@@ -528,6 +563,7 @@ export default function DiscoverPage() {
                     <div className="text-[11px] text-amber-700/60">
                       {p.brandCn || p.brand}　{p.priceRange}
                     </div>
+                    <ProfileLine p={p} className="mt-1" />
                   </button>
                 ))}
                 {keyword && searchResults.length === 0 && (
