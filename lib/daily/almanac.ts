@@ -74,7 +74,9 @@ const JI_POOL: string[] = [
 ];
 
 // 今日一语：写给自己的一句（启示体）
-const NOTE_POOL: string[] = [
+// ⚠️ 导出给 F5 个性化用：`lib/daily/signCopy.ts` 需要「原句下标」来选人格化改写版本。
+//    本池只许追加/替换句子（会改变历史那天的 note），不得改变 drawAlmanac 的取用逻辑。
+export const NOTE_POOL: string[] = [
   '今日宜做自己的天气。',
   '你不需要被读懂，才值得被爱。',
   '有些安静，比热闹更接近你。',

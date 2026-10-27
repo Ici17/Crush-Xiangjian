@@ -8,7 +8,7 @@ import {
   type DailyDraw,
   type DrawnPerfume,
 } from '@/lib/daily/draw';
-import { drawAlmanac } from '@/lib/daily/almanac';
+import { drawAlmanac, NOTE_POOL } from '@/lib/daily/almanac';
 import { getNightMood } from '@/lib/daily/night';
 import { getTodayAdvice, TEMP_LABEL } from '@/lib/daily/advice';
 import { markVisited, getStreakView, RARITY_DOT, type StreakView } from '@/lib/daily/history';
@@ -19,6 +19,9 @@ import ShareGuideModal from '@/components/ShareGuideModal';
 import { saveShareCard, isWeChat } from '@/lib/saveShareImage';
 import { track } from '@/lib/analytics';
 import { ProfileHint } from '@/components/PerfumeProfile';
+import { getPersonalityNameFromStorage } from '@/lib/personalities';
+import { getSignLine, getSignWord } from '@/lib/daily/signCopy';
+import AiBadge from '@/components/AiBadge';
 
 const WEEKDAYS = '日一二三四五六';
 
@@ -56,6 +59,19 @@ export default function DailyPanel() {
   const [showShareGuide, setShowShareGuide] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // F5 个性化：只有测过的人才有「人格」，签面文案才换说法；未测用户保持全员同一句。
+  // 必须在 effect 里读 localStorage —— SSR 阶段拿不到，初始 null 与水合结果一致。
+  const [myPersonality, setMyPersonality] = useState<string | null>(null);
+  useEffect(() => {
+    setMyPersonality(getPersonalityNameFromStorage());
+  }, []);
+
+  // 今日一语的人格化改写：按「原句下标」取，同一人格 8 天一轮换（确定性，无随机）
+  const signWord = useMemo(
+    () => getSignWord(myPersonality, NOTE_POOL.indexOf(almanac.note)),
+    [myPersonality, almanac.note],
+  );
 
   // 埋点：揭笺（每日每会话只记一次）+ 首页图鉴浏览（codex_view 保留给首页内嵌图鉴）
   useEffect(() => {
@@ -233,6 +249,9 @@ export default function DailyPanel() {
       <div className="flex gap-2.5 justify-center mt-6">
         {cards.map((c, i) => {
           const stamp = RARITY_LABEL[c.p.rarity];
+          // F5：签面短评按「你的人格 × 这支香的香调族」换说法；未测用户回落库里的 description。
+          // 抽到哪支香、稀有度、三调一个字都没变 —— 只换显示层这一句。
+          const signLine = getSignLine(myPersonality, c.p);
           return (
             <div
               key={i}
@@ -328,7 +347,8 @@ export default function DailyPanel() {
                     />
                   </div>
 
-                  {/* 描述 · 诗化短评（填满中部留白的核心内容） */}
+                  {/* 描述 · 诗化短评（填满中部留白的核心内容）
+                      F5：测过人格的人看到与自己有关的说法，未测用户仍看原描述 */}
                   <div
                     style={{
                       fontFamily: 'Noto Serif SC, serif',
@@ -340,7 +360,8 @@ export default function DailyPanel() {
                       letterSpacing: '0.02em',
                     }}
                   >
-                    {c.p.description}
+                    {signLine ?? c.p.description}
+                    {signLine ? <AiBadge className="ml-1 align-middle" /> : null}
                   </div>
 
                   {/* 单香档案 · 适合出现的时刻（F7 离线生成，仅展示层，不参与抽签） */}
@@ -493,7 +514,9 @@ export default function DailyPanel() {
             className="text-center mt-3"
             style={{ fontSize: '12px', color: '#8B7C68', lineHeight: 1.6, fontStyle: 'italic' }}
           >
-            {almanac.note}
+            {/* F5：今日一语按人格改写；未测用户仍是全站同一句 */}
+            {signWord ?? almanac.note}
+            {signWord ? <AiBadge className="ml-1.5 align-middle" /> : null}
           </div>
 
           {/* 留白：绑定今日香，限 20 字 */}

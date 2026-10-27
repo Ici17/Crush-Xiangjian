@@ -14,7 +14,18 @@
  */
 
 import { getScentAdvice, getAdvicePerfumes, TERM_ADVICE } from "@/lib/daily/advice";
-import { checkCopy } from "@/lib/contentGuard";
+import { checkCopy, checkPriceClaims, buildNoteVocabulary } from "@/lib/contentGuard";
+import { PERFUMES, PERSONALITY_TYPES } from "@/lib/data";
+import { NOTE_POOL } from "@/lib/daily/almanac";
+import { SIGN_LINES, SIGN_WORDS } from "@/lib/data/dailySigns";
+import {
+  getSignFamily,
+  SIGN_FAMILIES,
+  FAMILY_LABEL,
+  getSignLine,
+  getSignWord,
+} from "@/lib/daily/signCopy";
+import { countNoteWords, echoSegments } from "./_narrativeQuality";
 
 let pass = 0;
 let fail = 0;
@@ -141,6 +152,125 @@ for (const t of SOLAR_24) {
 badNotes.length === 0
   ? ok("24 条节气文案无迷信 / 医疗 / 财务红线命中")
   : no(`${badNotes.length} 条节气文案踩红线`);
+
+// ── F5. 香签个性化文案（签面短评 × 人格 × 香调族 + 今日一语改写）──
+// 这一段的判据与其它项不同：这些句子会配到**任意一支香**上，
+// 所以「出现任何香调词」本身就是错配（224/225 的场合是错的），比 checkNoteClaims 更严。
+console.log("\nF5. 香签个性化文案（dailySigns）");
+{
+  const vocab = buildNoteVocabulary(PERFUMES);
+  const perNames = PERSONALITY_TYPES.map((p) => p.name);
+
+  // ① 覆盖度：短评 16×6、一语 16×8，且键集合必须双向全等（缺一条就有用户回到原描述）
+  const wantLines = new Set<string>();
+  for (const n of perNames) for (const f of SIGN_FAMILIES) wantLines.add(`${n}::${f}`);
+  const wantWords = new Set<string>();
+  for (const n of perNames) for (let i = 0; i < NOTE_POOL.length; i++) wantWords.add(`${n}::${i}`);
+
+  const missL = [...wantLines].filter((k) => !(k in SIGN_LINES));
+  const extraL = Object.keys(SIGN_LINES).filter((k) => !wantLines.has(k));
+  missL.length === 0 && extraL.length === 0 && Object.keys(SIGN_LINES).length === wantLines.size
+    ? ok(`签面短评 ${Object.keys(SIGN_LINES).length} 条 = ${perNames.length} 人格 × ${SIGN_FAMILIES.length} 族（无缺档、无孤儿）`)
+    : no(`短评覆盖不全：缺 ${missL.length}（${missL.slice(0, 3).join("、")}）多 ${extraL.length}`);
+
+  const missW = [...wantWords].filter((k) => !(k in SIGN_WORDS));
+  const extraW = Object.keys(SIGN_WORDS).filter((k) => !wantWords.has(k));
+  missW.length === 0 && extraW.length === 0 && Object.keys(SIGN_WORDS).length === wantWords.size
+    ? ok(`今日一语 ${Object.keys(SIGN_WORDS).length} 条 = ${perNames.length} 人格 × ${NOTE_POOL.length} 句（无缺档、无孤儿）`)
+    : no(`一语覆盖不全：缺 ${missW.length}（${missW.slice(0, 3).join("、")}）多 ${extraW.length}`);
+
+  // ② 六个族都必须真有香落进来 —— 否则那 16 条文案永远没人看到（死库存的另一种形态）
+  const famCount: Record<string, number> = {};
+  for (const p of Object.values(PERFUMES)) {
+    const f = getSignFamily({ name: p.name });
+    if (f) famCount[f] = (famCount[f] ?? 0) + 1;
+  }
+  const emptyFam = SIGN_FAMILIES.filter((f) => !famCount[f]);
+  emptyFam.length === 0
+    ? ok(`6 族都有香落地（${SIGN_FAMILIES.map((f) => `${FAMILY_LABEL[f]} ${famCount[f]}`).join(" / ")}）`)
+    : no(`${emptyFam.length} 个族没有任何香 → 对应 ${emptyFam.length * perNames.length} 条文案永远不会出现`);
+
+  // ③ 每一条都过闸
+  const badCopy: string[] = [];
+  const noteHits: string[] = [];
+  const echoes: string[] = [];
+  const noPunct: string[] = [];
+  for (const [k, v] of Object.entries(SIGN_LINES)) {
+    const per = perNames.find((n) => k.startsWith(`${n}::`));
+    const tagline = PERSONALITY_TYPES.find((p) => p.name === per)?.tagline ?? "";
+    const pm = PERSONALITY_TYPES.find((p) => p.name === per)?.matchingReport?.coreMessage ?? "";
+    for (const x of [...checkCopy(v), ...checkPriceClaims(v, null)]) {
+      if (x.severity === "block") badCopy.push(`${k} 命中「${x.word}」`);
+    }
+    const nw = countNoteWords(v, vocab);
+    if (nw.length) noteHits.push(`${k} 出现香调词「${nw.join("、")}」`);
+    if (echoSegments(v, tagline, pm).length) echoes.push(k);
+    if (!/[。！？]$/.test(v)) noPunct.push(k);
+  }
+  for (const [k, v] of Object.entries(SIGN_WORDS)) {
+    const idx = Number(k.split("::")[1]);
+    for (const x of [...checkCopy(v), ...checkPriceClaims(v, null)]) {
+      if (x.severity === "block") badCopy.push(`${k} 命中「${x.word}」`);
+    }
+    const nw = countNoteWords(v, vocab);
+    if (nw.length) noteHits.push(`${k} 出现香调词「${nw.join("、")}」`);
+    if (echoSegments(v, NOTE_POOL[idx] ?? "").length) echoes.push(k);
+    if (!/[。！？]$/.test(v)) noPunct.push(k);
+  }
+  badCopy.length === 0
+    ? ok("224 条全部过合规闸（红线词 / 价格主张）")
+    : no(`${badCopy.length} 条踩线：${badCopy.slice(0, 5).join("；")}`);
+  noteHits.length === 0
+    ? ok("零香调词（会被配到任意一支香上，出现即错配）")
+    : no(`${noteHits.length} 条点了香调词：${noteHits.slice(0, 5).join("；")}`);
+  echoes.length === 0
+    ? ok("不复读人格一句话 / 今日一语原句")
+    : no(`${echoes.length} 条复读底稿：${echoes.slice(0, 5).join("、")}`);
+  noPunct.length === 0
+    ? ok("句末标点统一")
+    : no(`${noPunct.length} 条缺句末标点：${noPunct.slice(0, 5).join("、")}`);
+
+  // ④ 同组不撞句（同族不同人格、同原句不同人格，说法必须不同）
+  const groupDup: string[] = [];
+  for (const [keyOf, table] of [
+    ["line", SIGN_LINES],
+    ["word", SIGN_WORDS],
+  ] as const) {
+    const seen = new Map<string, string>();
+    for (const [k, v] of Object.entries(table)) {
+      const g = `${keyOf}:${k.split("::")[1]}|${v}`;
+      const prev = seen.get(g);
+      if (prev) groupDup.push(`${prev} = ${k}`);
+      else seen.set(g, k);
+    }
+  }
+  groupDup.length === 0
+    ? ok("同组无撞句（各组内说法互不相同）")
+    : no(`${groupDup.length} 组撞句：${groupDup.slice(0, 3).join("；")}`);
+
+  // ⑤ 句式塌缩线：首轮 36% 的条目带「不必」，读起来是模板。锁成「每人 ≤ 3 条」
+  const perBu = new Map<string, number>();
+  for (const [k, v] of [...Object.entries(SIGN_LINES), ...Object.entries(SIGN_WORDS)]) {
+    if (!v.includes("不必")) continue;
+    const p = k.split("::")[0];
+    perBu.set(p, (perBu.get(p) ?? 0) + 1);
+  }
+  const buOffenders = [...perBu.entries()].filter(([, c]) => c > 3);
+  buOffenders.length === 0
+    ? ok(`「不必」句式未塌缩（每人最多 ${Math.max(...[...perBu.values()], 0)} 条，上限 3）`)
+    : no(`${buOffenders.length} 个人格「不必」超标：${buOffenders.map(([p, c]) => `${p}(${c})`).join(" ")}`);
+
+  // ⑥ 未测用户必须回落原文案（null），且结果确定
+  const sample = Object.values(PERFUMES)[0];
+  getSignLine(null, sample) === null && getSignWord(null, 0) === null
+    ? ok("未测人格 → 取不到文案（界面回落原描述 / 原句）")
+    : no("未测人格竟然取到了文案 → 个性化会覆盖掉全员一致的版本");
+  const a1 = getSignLine(perNames[0], sample);
+  const a2 = getSignLine(perNames[0], sample);
+  a1 !== null && a1 === a2 && getSignWord(perNames[0], 0) === getSignWord(perNames[0], 0)
+    ? ok("同一（人格, 香）永远同一句（确定性，不随刷新变化）")
+    : no("个性化文案不确定 → 刷新会换句子");
+}
 
 console.log(`\n══════ 结果：${pass} 通过 / ${fail} 失败 ══════`);
 process.exit(fail > 0 ? 1 : 0);
