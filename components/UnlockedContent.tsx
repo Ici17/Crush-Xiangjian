@@ -23,6 +23,7 @@ import {
 } from '@/lib/personalities';
 import PerfumeBottle from '@/components/PerfumeBottle';
 import RadarChart from '@/components/RadarChart';
+import UnlockDeepText from '@/components/UnlockDeepText';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import SaveCardButton from '@/components/SaveCardButton';
 
@@ -283,6 +284,8 @@ export default function UnlockedContent({
           <span className="font-serif font-medium text-amber-950">香气建议：</span>
           {advice.relationAdvice}
         </p>
+        {/* F3：更深一层（离线生成，查不到就不渲染） */}
+        <UnlockDeepText personality={personalityName} block="relation" />
       </section>
 
       {/* ── 朋友匹配入口 ── */}
@@ -358,6 +361,8 @@ export default function UnlockedContent({
             试着这周做一件“不像你”的事
           </p>
         </div>
+        {/* F3：更深一层（墨底配色） */}
+        <UnlockDeepText personality={personalityName} block="hidden" tone="dark" />
       </section>
 
       {/* ━━━ 反差香 ━━━ */}
@@ -373,6 +378,8 @@ export default function UnlockedContent({
         <div className="flex justify-center">
           <ContrastCard contrast={contrast} match={contrastMatch} direction={personality.direction} />
         </div>
+        {/* F3：更深一层（为什么需要一支「不像自己」的香） */}
+        <UnlockDeepText personality={personalityName} block="contrast" />
         {/* A 组卖点：反差香卡导出（墨底「你的反面」，解锁后才可见） */}
         <div className="mt-4">
           <SaveCardButton
@@ -403,6 +410,10 @@ export default function UnlockedContent({
           <span>💡</span>
           <span>你可以带着这份底稿去香水店，让调香师帮你找到最接近的那一支。</span>
         </p>
+        {/* F3：更深一层（怎么用这份底稿，而不是它包含什么） */}
+        <div className="mt-2">
+          <UnlockDeepText personality={personalityName} block="blueprint" />
+        </div>
       </section>
     </div>
   );
