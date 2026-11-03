@@ -24,6 +24,8 @@ import {
 import PerfumeBottle from '@/components/PerfumeBottle';
 import RadarChart from '@/components/RadarChart';
 import UnlockDeepText from '@/components/UnlockDeepText';
+import CollapsibleBlock from '@/components/CollapsibleBlock';
+import ResultSectionNav from '@/components/ResultSectionNav';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import SaveCardButton from '@/components/SaveCardButton';
 
@@ -131,10 +133,12 @@ export default function UnlockedContent({
         </div>
       )}
 
+      <ResultSectionNav />
+
       {/* ── 香气光谱：雷达图 ──
           解析金句作为语义簇内附属块挂在 section 内部（与免费态结构一致），
           故 section 用 mb-6（lg），而非区块间的 mb-10（xl） */}
-      <section className="px-6 mb-6" aria-label="香气光谱">
+      <section id="sec-spectrum" className="px-6 mb-6 scroll-mt-16" aria-label="香气光谱">
         <h3
           className="font-serif text-amber-950 text-center mb-2 text-2xl"
         >
@@ -168,7 +172,7 @@ export default function UnlockedContent({
         />
 
       {/* ━━━ 本命香水 ━━━ */}
-      <section className="px-6 mb-10" aria-label="本命香水推荐">
+      <section id="sec-perfume" className="px-6 mb-10 scroll-mt-16" aria-label="本命香水推荐">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
@@ -185,23 +189,25 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 性格解读 ━━━ */}
-      <section className="px-6 mb-10" aria-label="性格解读">
+      <section id="sec-personality" className="px-6 mb-10 scroll-mt-16" aria-label="性格解读">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
-        <div className="space-y-4">
-          {descriptionParagraphs.map((para, i) => (
-            <p
-              key={i}
-              className="text-amber-800"
-              style={{ fontSize: '16px', lineHeight: 1.75 }}
-            >
-              {para}
-            </p>
-          ))}
-        </div>
+        <CollapsibleBlock collapsedHeight={100}>
+          <div className="space-y-4">
+            {descriptionParagraphs.map((para, i) => (
+              <p
+                key={i}
+                className="text-amber-800"
+                style={{ fontSize: '16px', lineHeight: 1.75 }}
+              >
+                {para}
+              </p>
+            ))}
+          </div>
+        </CollapsibleBlock>
         <div className="flex items-center justify-center gap-2 mt-6">
           <span className="h-px w-5 bg-amber-400" />
           <span className="w-1 h-1 rounded-full bg-amber-400" />
@@ -210,7 +216,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 用香哲学 ━━━ */}
-      <section className="px-6 mb-10" aria-label="用香哲学">
+      <section id="sec-philosophy" className="px-6 mb-10 scroll-mt-16" aria-label="用香哲学">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
@@ -222,15 +228,17 @@ export default function UnlockedContent({
         >
           {getUsagePhilosophy(personalityName)}
         </p>
-        <div className="space-y-3">
-          {guide.map((g) => (
-            <UsageCard key={g.scene} tip={g} />
-          ))}
-        </div>
+        <CollapsibleBlock collapsedHeight={112} moreLabel="查看各场合用法">
+          <div className="space-y-3">
+            {guide.map((g) => (
+              <UsageCard key={g.scene} tip={g} />
+            ))}
+          </div>
+        </CollapsibleBlock>
       </section>
 
       {/* ━━━ 香调偏好 ━━━ */}
-      <section className="px-6 mb-10" aria-label="香调偏好">
+      <section id="sec-preference" className="px-6 mb-10 scroll-mt-16" aria-label="香调偏好">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
@@ -260,7 +268,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 关系解读 ━━━ */}
-      <section className="px-6 mb-10" aria-label="关系解读">
+      <section id="sec-relation" className="px-6 mb-10 scroll-mt-16" aria-label="关系解读">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
@@ -280,10 +288,12 @@ export default function UnlockedContent({
             </p>
           </div>
         </div>
-        <p className="text-sm text-amber-800 leading-relaxed">
-          <span className="font-serif font-medium text-amber-950">香气建议：</span>
-          {advice.relationAdvice}
-        </p>
+        <CollapsibleBlock collapsedHeight={52} moreLabel="展开香气建议">
+          <p className="text-sm text-amber-800 leading-relaxed">
+            <span className="font-serif font-medium text-amber-950">香气建议：</span>
+            {advice.relationAdvice}
+          </p>
+        </CollapsibleBlock>
         {/* F3：更深一层（离线生成，查不到就不渲染） */}
         <UnlockDeepText personality={personalityName} block="relation" />
       </section>
@@ -312,7 +322,8 @@ export default function UnlockedContent({
 
       {/* ── 隐藏人格面：深色杂志区块 ── */}
       <section
-        className="mx-6 mb-10 rounded-3xl p-8 animate-blurReveal"
+        id="sec-hidden"
+        className="mx-6 mb-10 rounded-3xl p-8 animate-blurReveal scroll-mt-16"
         style={{ background: '#3D2817', color: '#FAF3EA' }}
         aria-label="隐藏人格面"
       >
@@ -366,7 +377,7 @@ export default function UnlockedContent({
       </section>
 
       {/* ━━━ 反差香 ━━━ */}
-      <section className="px-6 mb-10" aria-label="反差香">
+      <section id="sec-contrast" className="px-6 mb-10 scroll-mt-16" aria-label="反差香">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">反差香</h2>
@@ -393,7 +404,7 @@ export default function UnlockedContent({
 
       {/* ━━━ 气味底稿 ━━━ */}
       {/* 最后一个直接子块：不加 mb，末尾间距由父容器 pb-20 兜底 */}
-      <section className="px-6" aria-label="气味底稿">
+      <section id="sec-blueprint" className="px-6 scroll-mt-16" aria-label="气味底稿">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
           <h2 className="font-serif text-xl font-medium text-amber-950">气味底稿</h2>
