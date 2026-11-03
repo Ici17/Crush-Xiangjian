@@ -1,8 +1,13 @@
 name: Deploy to Vercel
 
 on:
-  push:
-    branches: [main]
+  # ⚠️ 2026-11-03：自动触发已关闭。
+  # 事实核对：push 之后线上确实更新了（首页 CTA 从 839px 变成 619px），说明
+  # **Vercel 项目自己的 Git 集成在负责自动部署**，本 workflow 是并行的第二条通道。
+  # 而这条通道从 10-28 起就一直失败（Could not retrieve Project Settings，
+  # 即 VERCEL_ORG_ID / VERCEL_PROJECT_ID 两个 secret 已失效），每次 push 都留一个红叉，
+  # 容易让人误判「部署失败」。
+  # 因此改为仅手动触发，作为兜底；要恢复自动触发，先修好那两个 secret（与 VERCEL_TOKEN）。
   workflow_dispatch:
 
 jobs:
