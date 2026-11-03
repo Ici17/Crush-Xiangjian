@@ -1,3 +1,4 @@
+import { PERSONALITY_MATCH_TEXT } from '@/lib/data/personalityMatchText';
 // ============================================================
 // Crush香鉴 — 香水匹配引擎 (18 维向量重构)
 // 基于用户 6 维香调偏好向量 × 香水 18 维调香结构（前/中/后调各 6 维），
@@ -609,7 +610,10 @@ export function inferArchetypeCal(t: {
   mbtiAlias?: string;
   name?: string;
 }): { calChoices: string[]; pathLabels: string[] } {
-  const text = `${t.scentDirection ?? ''} ${t.description ?? ''} ${t.mbtiAlias ?? ''} ${t.name ?? ''}`;
+  // ⚠️ 用「推荐输入快照」而不是 description：description 是展示文案，会随措辞改写变化，
+  // 而这里的关键词推导决定校准偏好 → 决定推荐结果（canonical 指纹锁的就是它）。
+  const stableDesc = (t.name && PERSONALITY_MATCH_TEXT[t.name]) || t.description || '';
+  const text = `${t.scentDirection ?? ''} ${stableDesc} ${t.mbtiAlias ?? ''} ${t.name ?? ''}`;
   const has = (...kw: string[]) => kw.some((k) => text.includes(k));
   let c1 = 'cal1b';
   if (has('甜', '暖', '舒缓', '白花', '棉花', '橙花', '玫瑰', '鸢尾', '紫罗兰', '晚香玉', '麝香', '柔')) c1 = 'cal1a';
