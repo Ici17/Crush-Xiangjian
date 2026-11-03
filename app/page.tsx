@@ -149,10 +149,10 @@ export default function LandingPage() {
       <div className="max-w-[430px] mx-auto relative">
         {/* ─── 1 Top Navigation 已删除(Adam 反馈,CRUSH FRAGRANCE 文字标 + 查看示例报告按钮全部移除) ─── */}
 
-        {/* ─── 2 Atmosphere Hero - 高度 46vh(进一步压缩顶部留白) ─── */}
+        {/* ─── 2 Atmosphere Hero - 高度 40vh(2026-11-03：让主 CTA 进首屏) ─── */}
         <div
           className="relative w-full animate-fadeIn"
-          style={{ height: '46vh', minHeight: 320, animationDelay: '60ms' }}
+          style={{ height: '40vh', minHeight: 280, animationDelay: '60ms' }}
           aria-label="品牌氛围主视觉"
         >
           {/* ─── 顶部胶囊切换：测香 / 今日香签 ─── */}
@@ -321,77 +321,10 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* ─── 5 16 Personality Capsule Scroll(边缘渐变提示可滑动) ─── */}
+        {/* ─── 5 Main CTA Button(脉冲动画) ─── */}
         <div
-          className="mt-4 animate-fadeIn relative"
-          style={{ animationDelay: '380ms' }}
-          aria-label="16种人格预览"
-        >
-          <div
-            className="personality-scroll flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
-            role="list"
-          >
-            {PERSONALITIES.map((p) => (
-              <button
-                key={p.name}
-                role="listitem"
-                onClick={() => handleOpenSheet(p.name)}
-                className="shrink-0 w-[104px] bg-cream-dark rounded-2xl border border-amber-100 overflow-hidden text-left cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-sm flex flex-col"
-                aria-label={`了解 ${p.name} 人格`}
-              >
-                <span className="block h-1.5 w-full" style={{ backgroundColor: personalityAromaColor(p) }} aria-hidden />
-                <span className="block px-3 pt-2.5 pb-2.5">
-                  <span className="block text-amber-950 text-[15px] font-medium leading-tight" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>{p.name}</span>
-                  <span className="block text-amber-700 text-[11px] leading-snug mt-1 line-clamp-1" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>{p.tagline}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-          {/* 右边缘渐变:暗示「可滑动」 */}
-          <div
-            className="pointer-events-none absolute top-0 right-0 bottom-0 w-12"
-            style={{ background: 'linear-gradient(270deg, #FAF3EA 0%, transparent 100%)' }}
-            aria-hidden
-          />
-        </div>
-
-        {/* ─── 6 社会证明:已有 N 人测试 + 头像堆叠 ─── */}
-        <div
-          className="px-5 mt-6 flex items-center justify-center gap-2.5 animate-fadeIn"
-          style={{ animationDelay: '440ms' }}
-          // 2026-09-16：原先写死「12,047 人」与「90% 的人说」，属无数据支撑的虚假陈述，
-          // 用于品牌合作 / 融资时有合规风险。改为不含具体数字的社交证明。
-          // 📌 待 /admin 埋点积累出可信样本后，可在此处展示真实完成人数；
-          //    届时需注意本页当前是静态预渲染（○ Static），取数要放在客户端。
-          aria-label="用户评价"
-        >
-          {/* 头像堆叠(静态占位,强调"真实用户参与") */}
-          <div className="flex -space-x-2">
-            {['#D4A574', '#9A4B2E', '#6B8E5A', '#B56B7A', '#8B5E3C'].map((c, i) => (
-              <div
-                key={i}
-                className="w-7 h-7 rounded-full border-2 border-cream flex items-center justify-center text-[10px] font-bold text-cream"
-                style={{ backgroundColor: c, opacity: 0.85 - i * 0.05 }}
-                aria-hidden
-              >
-                {['珊','落','渊','舟','砚'][i]}
-              </div>
-            ))}
-          </div>
-          <div className="text-left">
-            <p className="text-amber-950 font-serif" style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
-              <span style={{ color: '#B45309' }}>她们都找到了</span>自己的气息
-            </p>
-            <p className="text-amber-600" style={{ fontSize: '11px', lineHeight: 1.2 }}>
-              每一份解读都独一无二
-            </p>
-          </div>
-        </div>
-
-        {/* ─── 7 Main CTA Button(脉冲动画) ─── */}
-        <div
-          className="px-5 mt-6 animate-fadeIn relative"
-          style={{ animationDelay: '480ms' }}
+          className="px-5 mt-5 animate-fadeIn relative"
+          style={{ animationDelay: '330ms' }}
         >
           {/* 已测用户:人格胶囊 + 双按钮 */}
           {myStatus.completed && myStatus.personalityName ? (
@@ -446,17 +379,84 @@ export default function LandingPage() {
           )}
         </div>
 
-        {/* ─── 7 Bottom Small Text(边距↓) ─── */}
+        {/* ─── 6 Bottom Small Text(边距↓) ─── */}
         <div
           className="text-center mt-3 pb-3 animate-fadeIn"
-          style={{ animationDelay: '580ms' }}
+          style={{ animationDelay: '390ms' }}
         >
           <span className="text-amber-700 text-[12px]" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>
             {ESTIMATED_MINUTES} 分钟 · 16 种灵魂人格 · 免费
           </span>
         </div>
 
-        {/* ─── 8 About Section(边距↓ 内边距↓) ─── */}
+        {/* ─── 7 16 Personality Capsule Scroll(边缘渐变提示可滑动) ─── */}
+        <div
+          className="mt-4 animate-fadeIn relative"
+          style={{ animationDelay: '470ms' }}
+          aria-label="16种人格预览"
+        >
+          <div
+            className="personality-scroll flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
+            role="list"
+          >
+            {PERSONALITIES.map((p) => (
+              <button
+                key={p.name}
+                role="listitem"
+                onClick={() => handleOpenSheet(p.name)}
+                className="shrink-0 w-[104px] bg-cream-dark rounded-2xl border border-amber-100 overflow-hidden text-left cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-sm flex flex-col"
+                aria-label={`了解 ${p.name} 人格`}
+              >
+                <span className="block h-1.5 w-full" style={{ backgroundColor: personalityAromaColor(p) }} aria-hidden />
+                <span className="block px-3 pt-2.5 pb-2.5">
+                  <span className="block text-amber-950 text-[15px] font-medium leading-tight" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>{p.name}</span>
+                  <span className="block text-amber-700 text-[11px] leading-snug mt-1 line-clamp-1" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>{p.tagline}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          {/* 右边缘渐变:暗示「可滑动」 */}
+          <div
+            className="pointer-events-none absolute top-0 right-0 bottom-0 w-12"
+            style={{ background: 'linear-gradient(270deg, #FAF3EA 0%, transparent 100%)' }}
+            aria-hidden
+          />
+        </div>
+
+        {/* ─── 8 社会证明:已有 N 人测试 + 头像堆叠 ─── */}
+        <div
+          className="px-5 mt-6 flex items-center justify-center gap-2.5 animate-fadeIn"
+          style={{ animationDelay: '560ms' }}
+          // 2026-09-16：原先写死「12,047 人」与「90% 的人说」，属无数据支撑的虚假陈述，
+          // 用于品牌合作 / 融资时有合规风险。改为不含具体数字的社交证明。
+          // 📌 待 /admin 埋点积累出可信样本后，可在此处展示真实完成人数；
+          //    届时需注意本页当前是静态预渲染（○ Static），取数要放在客户端。
+          aria-label="用户评价"
+        >
+          {/* 头像堆叠(静态占位,强调"真实用户参与") */}
+          <div className="flex -space-x-2">
+            {['#D4A574', '#9A4B2E', '#6B8E5A', '#B56B7A', '#8B5E3C'].map((c, i) => (
+              <div
+                key={i}
+                className="w-7 h-7 rounded-full border-2 border-cream flex items-center justify-center text-[10px] font-bold text-cream"
+                style={{ backgroundColor: c, opacity: 0.85 - i * 0.05 }}
+                aria-hidden
+              >
+                {['珊','落','渊','舟','砚'][i]}
+              </div>
+            ))}
+          </div>
+          <div className="text-left">
+            <p className="text-amber-950 font-serif" style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.2 }}>
+              <span style={{ color: '#B45309' }}>她们都找到了</span>自己的气息
+            </p>
+            <p className="text-amber-600" style={{ fontSize: '11px', lineHeight: 1.2 }}>
+              每一份解读都独一无二
+            </p>
+          </div>
+        </div>
+
+        {/* ─── 9 About Section(边距↓ 内边距↓) ─── */}
         <div
           className="bg-cream px-4 pt-8 pb-12 animate-fadeIn"
           style={{ animationDelay: '680ms' }}
