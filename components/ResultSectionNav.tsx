@@ -13,16 +13,11 @@
  */
 
 import { useEffect, useState } from "react";
+import { SECTIONS, SECTION_ORDER } from "@/lib/resultSections";
 
-const ITEMS = [
-  { id: "sec-spectrum", label: "香气光谱" },
-  { id: "sec-perfume", label: "本命香" },
-  { id: "sec-personality", label: "性格" },
-  { id: "sec-relation", label: "关系" },
-  { id: "sec-hidden", label: "隐藏面" },
-  { id: "sec-contrast", label: "反差香" },
-  { id: "sec-blueprint", label: "底稿" },
-];
+// 文案不写死在这里：导航短名与章节标题都来自 lib/resultSections.ts（单一真源），
+// 那里的断言会拦住「短名互撞」和「短名与标题一字不差」两种情况。
+// 顺带修掉了旧版本漏掉的「用香哲学」「香调偏好」两个入口。
 
 export default function ResultSectionNav() {
   // 本页顶部已经有两条常驻 sticky：返回栏（z-50）+ 活动横幅（z-40）。
@@ -76,29 +71,32 @@ export default function ResultSectionNav() {
     >
       <div className="relative">
         <div className="flex gap-1.5 overflow-x-auto px-3.5 py-2 scrollbar-none">
-          {ITEMS.map((it) => (
-            <button
-              key={it.id}
-              onClick={() => go(it.id)}
-              style={{
-                flex: "0 0 auto",
-                padding: "6px 12px",
-                fontSize: "12.5px",
-                color: "#6B5E4C",
-                background: "#FFFDF9",
-                border: "0.5px solid rgba(168,136,78,0.3)",
-                borderRadius: "999px",
-                fontFamily: "Noto Sans SC, sans-serif",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                lineHeight: 1.4,
-              }}
-            >
-              {it.label}
-            </button>
-          ))}
+          {SECTION_ORDER.map((key) => {
+            const sec = SECTIONS[key];
+            return (
+              <button
+                key={sec.id}
+                onClick={() => go(sec.id)}
+                style={{
+                  flex: "0 0 auto",
+                  padding: "6px 10px",
+                  fontSize: "12.5px",
+                  color: "#6B5E4C",
+                  background: "#FFFDF9",
+                  border: "0.5px solid rgba(168,136,78,0.3)",
+                  borderRadius: "999px",
+                  fontFamily: "Noto Sans SC, sans-serif",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  lineHeight: 1.4,
+                }}
+              >
+                {sec.nav}
+              </button>
+            );
+          })}
         </div>
-        {/* 右侧渐隐：7 个胶囊在 390px 宽下放不下，硬切看着像坏掉，渐隐用来提示「可以滑」 */}
+        {/* 右侧渐隐：9 个胶囊在 390px 宽下放不下，硬切看着像坏掉，渐隐用来提示「可以滑」 */}
         <span
           aria-hidden
           style={{

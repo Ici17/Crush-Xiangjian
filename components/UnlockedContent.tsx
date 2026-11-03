@@ -26,6 +26,7 @@ import RadarChart from '@/components/RadarChart';
 import UnlockDeepText from '@/components/UnlockDeepText';
 import CollapsibleBlock from '@/components/CollapsibleBlock';
 import ResultSectionNav from '@/components/ResultSectionNav';
+import { SECTIONS } from '@/lib/resultSections';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import SaveCardButton from '@/components/SaveCardButton';
 
@@ -142,7 +143,7 @@ export default function UnlockedContent({
         <h3
           className="font-serif text-amber-950 text-center mb-2 text-2xl"
         >
-          你的香气光谱
+          {SECTIONS.spectrum.title}
         </h3>
         <p className="text-center text-amber-700 mb-4" style={{ fontSize: '13px' }}>
           六个维度 · 勾勒你独有的气质坐标
@@ -175,7 +176,7 @@ export default function UnlockedContent({
       <section id="sec-perfume" className="px-6 mb-10 scroll-mt-16" aria-label="本命香水推荐">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">本命香水</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.perfume.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
@@ -192,7 +193,7 @@ export default function UnlockedContent({
       <section id="sec-personality" className="px-6 mb-10 scroll-mt-16" aria-label="性格解读">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">性格解读</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.personality.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <CollapsibleBlock collapsedHeight={100}>
@@ -219,7 +220,7 @@ export default function UnlockedContent({
       <section id="sec-philosophy" className="px-6 mb-10 scroll-mt-16" aria-label="用香哲学">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">用香哲学</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.philosophy.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p
@@ -241,7 +242,7 @@ export default function UnlockedContent({
       <section id="sec-preference" className="px-6 mb-10 scroll-mt-16" aria-label="香调偏好">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">香调偏好</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.preference.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <div className="mb-6">
@@ -271,7 +272,7 @@ export default function UnlockedContent({
       <section id="sec-relation" className="px-6 mb-10 scroll-mt-16" aria-label="关系解读">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">关系解读</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.relation.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <div className="grid grid-cols-2 gap-3 mb-6">
@@ -336,9 +337,7 @@ export default function UnlockedContent({
         <h3
           className="font-serif text-center font-medium mb-3"
           style={{ fontSize: '22px', color: '#D4A574' }}
-        >
-          你不知道的自己
-        </h3>
+        >{SECTIONS.hidden.title}</h3>
         <div className="flex items-center justify-center gap-2 mb-6">
           <span className="h-px w-5" style={{ background: '#D4A574' }} />
           <span className="w-1 h-1 rounded-full" style={{ background: '#D4A574' }} />
@@ -380,7 +379,7 @@ export default function UnlockedContent({
       <section id="sec-contrast" className="px-6 mb-10 scroll-mt-16" aria-label="反差香">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">反差香</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.contrast.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-4" style={{ fontSize: '14px' }}>
@@ -407,7 +406,7 @@ export default function UnlockedContent({
       <section id="sec-blueprint" className="px-6 scroll-mt-16" aria-label="气味底稿">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-px w-6 bg-amber-400" />
-          <h2 className="font-serif text-xl font-medium text-amber-950">气味底稿</h2>
+          <h2 className="font-serif text-xl font-medium text-amber-950">{SECTIONS.blueprint.title}</h2>
           <span className="h-px w-6 bg-amber-400" />
         </div>
         <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
