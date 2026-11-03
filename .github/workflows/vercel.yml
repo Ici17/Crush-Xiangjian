@@ -30,8 +30,19 @@ jobs:
           NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION: ${{ secrets.NEXT_PUBLIC_WAFFO_PRODUCT_SUBSCRIPTION }}
           NEXT_PUBLIC_BASE_URL: ${{ secrets.NEXT_PUBLIC_BASE_URL }}
 
+      # 2026-11-03：部署在 Deploy 步骤失败（构建是好的），报
+      #   "Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again."
+      # 原因：`npx vercel` 不锁版本，CI 拉到了 65.x —— 新版不再仅凭 VERCEL_ORG_ID / VERCEL_PROJECT_ID
+      # 环境变量完成 link，必须先用 `vercel pull` 生成 .vercel/project.json。
+      # 两处修改：① 先 pull ② 锁定 CLI 版本（避免下次又跟着新版本漂移）。
+      - name: Pull Vercel project settings
+        run: npx --yes vercel@65.10.0 pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Deploy to Vercel
-        run: npx vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@65.10.0 --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
