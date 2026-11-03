@@ -668,7 +668,7 @@ function ResultInner() {
 
         {/* ━━━ 人格揭晓区 ━━━ */}
         <section
-          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 mb-10 min-h-[200px]"
+          className="relative flex flex-col items-center justify-center text-center px-6 pt-8 mb-5 min-h-[200px]"
           aria-label="人格揭晓"
         >
           {unlocked && (

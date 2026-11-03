@@ -32,7 +32,13 @@ export default function ResultSectionNav() {
   return (
     <nav
       aria-label="报告章节导航"
-      className="sticky top-0 z-30"
+      // 上下留白必须相等，否则视觉上「一边宽一边窄」：
+      // 上下留白必须相等，否则视觉上「一边宽一边窄」：
+      //   上方 = 人格揭晓区块的 mb-5（20px）
+      //   下方 = 本条带的 mb-5（20px）
+      // 曾经用负 margin 去抵上方 40px，但会和上一区块的 margin 折叠、数值不可控（实测在 12~28 间跳），
+      // 所以改成直接把上一区块的 mb-10 收到 mb-5，两边都用同一个 20px。
+      className="sticky top-0 z-30 mb-5"
       style={{
         background: "rgba(250,243,234,0.94)",
         backdropFilter: "blur(8px)",
@@ -40,27 +46,43 @@ export default function ResultSectionNav() {
         borderBottom: "0.5px solid rgba(168,136,78,0.22)",
       }}
     >
-      <div className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-none">
-        {ITEMS.map((it) => (
-          <button
-            key={it.id}
-            onClick={() => go(it.id)}
-            style={{
-              flex: "0 0 auto",
-              padding: "5px 11px",
-              fontSize: "12.5px",
-              color: "#6B5E4C",
-              background: "#FFFDF9",
-              border: "0.5px solid rgba(168,136,78,0.3)",
-              borderRadius: "999px",
-              fontFamily: "Noto Sans SC, sans-serif",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {it.label}
-          </button>
-        ))}
+      <div className="relative">
+        <div className="flex gap-1.5 overflow-x-auto px-3.5 py-2 scrollbar-none">
+          {ITEMS.map((it) => (
+            <button
+              key={it.id}
+              onClick={() => go(it.id)}
+              style={{
+                flex: "0 0 auto",
+                padding: "6px 12px",
+                fontSize: "12.5px",
+                color: "#6B5E4C",
+                background: "#FFFDF9",
+                border: "0.5px solid rgba(168,136,78,0.3)",
+                borderRadius: "999px",
+                fontFamily: "Noto Sans SC, sans-serif",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                lineHeight: 1.4,
+              }}
+            >
+              {it.label}
+            </button>
+          ))}
+        </div>
+        {/* 右侧渐隐：7 个胶囊在 390px 宽下放不下，硬切看着像坏掉，渐隐用来提示「可以滑」 */}
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            right: 0,
+            width: 26,
+            background: "linear-gradient(90deg, rgba(250,243,234,0) 0%, rgba(250,243,234,0.96) 80%)",
+            pointerEvents: "none",
+          }}
+        />
       </div>
     </nav>
   );
