@@ -1,32 +1,34 @@
 "use client";
 
 /**
- * ResultSectionNav —— 结果页的分段导航（吸顶）
+ * ResultSectionNav —— 结果页的吸顶分区条（状态徽章 + 章节导航 + 搜索入口）
  *
- * 为什么需要：结果页 7.3 屏、11 个区块，用户想回看「本命香水」要滑很久。
- * 有了吸顶导航，7 屏的长度就不再是负担 —— 也让折叠后的长文更好找。
+ * 为什么长成这样（2026-11-04）：
+ *   原来页面顶部叠了三条常驻栏：返回栏(56) + 限时免费横幅(约 60) + 章节导航(49) ≈ 165px，
+ *   占 844 屏高的 20%，而且横幅与导航是两条视觉上重复的横带。
+ *   要往顶部再加东西（搜索/筛选）之前，先把这两条合并 —— 这就是本节的做法：
+ *   限免/演示这类**常驻状态**降级成一枚徽章；一次性/功能性提示（支付成功、未测试）仍留在原处。
  *
- * 注意两点：
- * 1. 目标 section 必须带 `scroll-mt-*`（scroll-margin-top），否则会被吸顶导航盖住标题。
- * 2. 不用 IntersectionObserver 做高亮同步 —— 移动端滚动时它会抖，且收益小；
- *    这里只做「点了能到」，保持简单。
+ * 结构：[状态徽章] ← 章节胶囊横向滚动 → [搜索]
+ *   两端固定、中间滚动，胶囊再多也不会把徽章和搜索挤出去。
+ *
+ * 三条约束：
+ * 1. 目标 section 必须带 `scroll-mt-*`，否则跳过去会被本条带盖住标题。
+ * 2. 吸顶偏移必须实测（上方还有返回栏/提示条），提示条消失后能自动变小 → ResizeObserver。
+ * 3. 章节文案与标题都来自 lib/resultSections.ts（单一真源），本文件不写死文案。
  */
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SECTIONS, SECTION_ORDER } from "@/lib/resultSections";
 
-// 文案不写死在这里：导航短名与章节标题都来自 lib/resultSections.ts（单一真源），
-// 那里的断言会拦住「短名互撞」和「短名与标题一字不差」两种情况。
-// 顺带修掉了旧版本漏掉的「用香哲学」「香调偏好」两个入口。
+export type NavStatus = { label: string; tone: "promo" | "demo" } | null;
 
-export default function ResultSectionNav() {
-  // 本页顶部已经有两条常驻 sticky：返回栏（z-50）+ 活动横幅（z-40）。
-  // 导航若也写 top-0 就会被它们盖住 —— 实际表现是「滚走后再也不出现」。
-  // 所以这里实测两条栏的总高度作为吸顶偏移；横幅在活动结束后会消失，故用 ResizeObserver 跟随。
+export default function ResultSectionNav({ status = null }: { status?: NavStatus }) {
   const [topOffset, setTopOffset] = useState(0);
 
   useEffect(() => {
-    const header = document.querySelector('header, .sticky.top-0') as HTMLElement | null;
+    const header = document.querySelector(".sticky.top-0") as HTMLElement | null;
     const banner = header?.nextElementSibling as HTMLElement | null;
     const measure = () => {
       const h1 = header?.offsetHeight ?? 0;
@@ -53,62 +55,103 @@ export default function ResultSectionNav() {
   return (
     <nav
       aria-label="报告章节导航"
-      // 上下留白必须相等，否则视觉上「一边宽一边窄」：
-      //   上方 = 人格揭晓区块的 mb-5（20px）
-      //   下方 = 本条带的 mb-5（20px）
-      // 曾经用负 margin 去抵上方 40px，但会和上一区块的 margin 折叠、数值不可控（实测在 12~28 间跳），
-      // 所以改成直接把上一区块的 mb-10 收到 mb-5，两边都用同一个 20px。
-      // 吸顶偏移由 topOffset 决定（见上方 useEffect），否则会被顶部两条 sticky 栏盖住。
       className="sticky z-30 mb-5"
       style={{
         top: topOffset,
         background: "rgba(250,243,234,0.94)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        // 2026-11-03：删掉原来的 borderBottom（0.5px 淡线）——在米白底上它既不承担分隔作用，
-        // 又像一道无意义的横线。吸顶时靠半透明背景 + blur 遮挡滚动内容已经够了。
       }}
     >
-      <div className="relative">
-        <div className="flex gap-1.5 overflow-x-auto px-3.5 py-2 scrollbar-none">
-          {SECTION_ORDER.map((key) => {
-            const sec = SECTIONS[key];
-            return (
-              <button
-                key={sec.id}
-                onClick={() => go(sec.id)}
-                style={{
-                  flex: "0 0 auto",
-                  padding: "6px 10px",
-                  fontSize: "12.5px",
-                  color: "#6B5E4C",
-                  background: "#FFFDF9",
-                  border: "0.5px solid rgba(168,136,78,0.3)",
-                  borderRadius: "999px",
-                  fontFamily: "Noto Sans SC, sans-serif",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  lineHeight: 1.4,
-                }}
-              >
-                {sec.nav}
-              </button>
-            );
-          })}
+      {/* 用 grid 而不是 flex：flex-1 + min-w-0 在这里没吃住（9 个胶囊的内容宽度把整条撑到
+          祖先的 max-w-[430px]，390 视口下溢出 40px，右侧搜索按钮被裁掉）。
+          minmax(0,1fr) 是唯一能稳定让中间列收缩的写法。 */}
+      <div
+        className="grid items-center gap-2 px-3.5 py-2"
+        style={{
+          gridTemplateColumns: `${status ? "auto " : ""}minmax(0,1fr) auto`,
+        }}
+      >
+        {status && (
+          <span
+            className="flex-none"
+            role="status"
+            style={{
+              fontSize: "11px",
+              lineHeight: 1.4,
+              padding: "4px 8px",
+              borderRadius: "999px",
+              letterSpacing: "0.02em",
+              fontFamily: "Noto Sans SC, sans-serif",
+              ...(status.tone === "promo"
+                ? { background: "#3D2817", color: "#F8EAD9" }
+                : { background: "rgba(250,238,218,0.9)", color: "#BA7517" }),
+            }}
+          >
+            {status.label}
+          </span>
+        )}
+
+        <div className="relative min-w-0 flex-1">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+            {SECTION_ORDER.map((key) => {
+              const sec = SECTIONS[key];
+              return (
+                <button
+                  key={sec.id}
+                  onClick={() => go(sec.id)}
+                  style={{
+                    flex: "0 0 auto",
+                    padding: "6px 10px",
+                    fontSize: "12.5px",
+                    color: "#6B5E4C",
+                    background: "#FFFDF9",
+                    border: "0.5px solid rgba(168,136,78,0.3)",
+                    borderRadius: "999px",
+                    fontFamily: "Noto Sans SC, sans-serif",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {sec.nav}
+                </button>
+              );
+            })}
+          </div>
+          {/* 右侧渐隐：胶囊放不下，硬切看着像坏掉 */}
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              right: 0,
+              width: 22,
+              background: "linear-gradient(90deg, rgba(250,243,234,0) 0%, rgba(250,243,234,0.96) 80%)",
+              pointerEvents: "none",
+            }}
+          />
         </div>
-        {/* 右侧渐隐：9 个胶囊在 390px 宽下放不下，硬切看着像坏掉，渐隐用来提示「可以滑」 */}
-        <span
-          aria-hidden
+
+        <Link
+          href="/discover"
+          aria-label="去探索页搜索香水"
+          className="flex-none flex items-center justify-center"
           style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            right: 0,
-            width: 26,
-            background: "linear-gradient(90deg, rgba(250,243,234,0) 0%, rgba(250,243,234,0.96) 80%)",
-            pointerEvents: "none",
+            width: 30,
+            height: 28,
+            borderRadius: 999,
+            background: "#FFFDF9",
+            border: "0.5px solid rgba(168,136,78,0.3)",
+            textDecoration: "none",
           }}
-        />
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <circle cx="7" cy="7" r="4.6" stroke="#6B5E4C" strokeWidth="1.3" />
+            <path d="M10.5 10.5L13.5 13.5" stroke="#6B5E4C" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        </Link>
       </div>
     </nav>
   );

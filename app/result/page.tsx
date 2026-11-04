@@ -600,9 +600,11 @@ function ResultInner() {
         {/* ━━━ 顶部横幅容器 ━━━
             收敛为「一个」sticky 容器：原来 3 条横幅各自 sticky top-[var(--nav-h)]，
             同时为真时会互相覆盖。现在内部竖排，最多 2 条：
-            · 第 1 条互斥，优先级 支付成功 > 限时免费 > 演示模式
+            · 第 1 条互斥，优先级 支付成功 > 演示模式
+            · 限时免费不再占整条横幅（2026-11-04 合并顶部）：降级为章节导航条里的徽章「限免 N 天」，
+              省下约 60px；活动结束后徽章自动消失
             · 第 2 条为未测试提示，可与第 1 条共存 */}
-        {(justPaid || promoFree || isDemo || (showUntestedHint && !cpParam)) && (
+        {(justPaid || isDemo || (showUntestedHint && !cpParam)) && (
           <div className="sticky top-[var(--nav-h)] z-40 flex flex-col">
             {/* 第 1 条（互斥，高优先级在前） */}
             {justPaid ? (
@@ -612,20 +614,6 @@ function ResultInner() {
                 aria-live="polite"
               >
                 ✦ 支付成功，已解锁完整版内容！
-              </div>
-            ) : promoFree ? (
-              /* 限时免费活动横幅（活动期内常驻，告知用户当前为临时免费） */
-              <div
-                className="text-center text-[13px] py-2 px-4 shadow-sm"
-                style={{
-                  background: 'linear-gradient(135deg,#3D2817,#5C3826)',
-                  color: '#F8EAD9',
-                  backdropFilter: 'blur(4px)',
-                }}
-                role="status"
-                aria-live="polite"
-              >
-                🎉 限时免费开放中 · 完整版全部模块免费解锁{promoRemaining ? ` · 距结束 ${promoRemaining}` : ''}（结果为娱乐性参考）
               </div>
             ) : isDemo ? (
               <div
@@ -729,14 +717,16 @@ function ResultInner() {
               <span className="h-px w-6 bg-amber-400" />
             </div>
           )}
-          {revealed && unlocked && (
+          {/* 限免期不再显示这枚胶囊（2026-11-04）：顶部合并后，限免状态已由章节导航条里的
+              「限免 N 天」徽章常驻表达，同一个首屏出现两处「限时免费」属于重复。 */}
+          {revealed && unlocked && !promoFree && (
             <motion.div
               className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-4 py-1.5 rounded-full bg-amber-100 text-amber-700"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.4 }}
             >
-              {promoFree ? '✦ 限时免费 · 完整版开放中' : '✦ 已解锁完整版报告'}
+              ✦ 已解锁完整版报告
             </motion.div>
           )}
           </div>

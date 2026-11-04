@@ -25,7 +25,8 @@ import PerfumeBottle from '@/components/PerfumeBottle';
 import RadarChart from '@/components/RadarChart';
 import UnlockDeepText from '@/components/UnlockDeepText';
 import CollapsibleBlock from '@/components/CollapsibleBlock';
-import ResultSectionNav from '@/components/ResultSectionNav';
+import ResultSectionNav, { type NavStatus } from '@/components/ResultSectionNav';
+import { isPromoFree, getPromoRemainingMs } from '@/lib/payment';
 import { SECTIONS } from '@/lib/resultSections';
 import { ScentPreferenceBar } from '@/components/ScentPreferenceBar';
 import SaveCardButton from '@/components/SaveCardButton';
@@ -114,6 +115,14 @@ export default function UnlockedContent({
       .map((s) => s.trim())
       .filter(Boolean);
   }, [personality.description]);
+  // 限免期的常驻状态原本独占一整条横幅（约 60px），现在降级成导航条里的一枚徽章。
+  // 只在客户端算（isPromoFree 依赖 Date.now()），避免 SSR/CSR 文案不一致。
+  const navStatus = useMemo<NavStatus>(() => {
+    if (typeof window === "undefined") return null;
+    if (!isPromoFree()) return null;
+    const days = Math.floor(getPromoRemainingMs() / 86400000);
+    return { label: days > 0 ? `限免 ${days} 天` : "限免中", tone: "promo" as const };
+  }, []);
 
   return (
     // 间距单一来源：容器不再用 space-y（会与子块自带的 mb 叠加）。
@@ -134,7 +143,7 @@ export default function UnlockedContent({
         </div>
       )}
 
-      <ResultSectionNav />
+      <ResultSectionNav status={navStatus} />
 
       {/* ── 香气光谱：雷达图 ──
           解析金句作为语义簇内附属块挂在 section 内部（与免费态结构一致），

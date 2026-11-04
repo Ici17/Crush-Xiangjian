@@ -40,6 +40,10 @@
 
   .app-shell {
     @apply min-h-dvh bg-cream relative;
+    /* 2026-11-04：必须显式 width:100%。只有 max-width:430px 时，实测（CDP，375/390 两个视口）
+       该容器的计算宽度恒为 430px，比 body 宽出 40–55px —— 窄屏上右侧内容被裁，
+       结果页顶部的搜索按钮就落在裁切区里看不见。加 width:100% 后跟随包含块。 */
+    width: 100%;
     max-width: 430px;
     margin: 0 auto;
   }
