@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { CHROME, CDP_BASE_URL, cdpPort } from "./_chrome.mjs";
+import { CHROME, CDP_BASE_URL, cdpPort } from "./cdp.mjs";
 
 const PORT = cdpPort(9343);
 const URL_TARGET = process.argv[2] || CDP_BASE_URL + "/result";

@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { CHROME, CDP_BASE_URL, cdpPort } from "./_chrome.mjs";
+import { CHROME, CDP_BASE_URL, cdpPort } from "./cdp.mjs";
 
 const PORT = cdpPort(9338);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

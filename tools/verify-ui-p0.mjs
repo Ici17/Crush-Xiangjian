@@ -2,7 +2,7 @@
 // tokens 变量生效 / prefers-reduced-motion 降级生效 / 窄屏无横向溢出。
 // 用法：node tools/verify-ui-p0.mjs [宽度=390]
 import { spawn } from "node:child_process";
-import { CHROME, CDP_BASE_URL, cdpPort } from "./_chrome.mjs";
+import { CHROME, CDP_BASE_URL, cdpPort } from "./cdp.mjs";
 
 
 const PORT = cdpPort(9344);

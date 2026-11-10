@@ -9,7 +9,7 @@
 // ============================================================
 
 import { spawn } from "node:child_process";
-import { CHROME, cdpPort } from "./_chrome.mjs";
+import { CHROME, cdpPort } from "./cdp.mjs";
 
 
 const URL_TARGET = process.argv[2] || "https://crushxiangjian.com/";

@@ -46,6 +46,9 @@ next-env.d.ts
 *.result.json
 _*.cjs
 _*.mjs
+# ⚠️ 上面这条会忽略 tools/ 下任何 _ 开头的模块。仓库内共用模块不要用前导下划线命名：
+# 2026-11-10 踩过一次 —— tools/_chrome.mjs 被静默漏提交，`git add tools/` 不报错，
+# 8 个工具的 import 全部悬空，直到 `git show --stat` 才发现少一个文件。
 serve.mjs
 serve*.log
 build*.log

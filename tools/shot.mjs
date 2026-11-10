@@ -2,7 +2,7 @@
 // 用法：node tools/shot.mjs <url> <out.png> [width] [height]
 
 import { spawn } from "node:child_process";
-import { CHROME, CDP_BASE_URL, cdpPort } from "./_chrome.mjs";
+import { CHROME, CDP_BASE_URL, cdpPort } from "./cdp.mjs";
 import { writeFileSync } from "node:fs";
 
 
