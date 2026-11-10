@@ -1,0 +1,56 @@
+# 静态门禁 + 生产构建。
+#
+# 为什么单独建：项目 14 个 scripts/audit-*.ts 一直只能本地手跑，
+# 「改了题库忘了跑门禁」「canonical 指纹漂移」这类问题全靠人记。
+# 部署仍由 Vercel Git 集成负责（vercel.yml 只留手动触发），本工作流不部署。
+#
+# 门禁数锁 14：新增门禁必须同时改这个下限，删门禁会直接红。
+
+name: 静态门禁 + 构建
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: 14 个静态门禁 + 生产构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 静态门禁（scripts/audit-*.ts）
+        run: |
+          set -euo pipefail
+          count=0
+          for f in scripts/audit-*.ts; do
+            echo "::group::$f"
+            npx tsx "$f"
+            echo "::endgroup::"
+            count=$((count + 1))
+          done
+          echo "共跑 $count 个门禁"
+          if [ "$count" -lt 14 ]; then
+            echo "::error::门禁数量少于 14，疑似脚本被误删或新增门禁后忘了更新下限"
+            exit 1
+          fi
+
+      - name: 生产构建
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
