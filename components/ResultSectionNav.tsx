@@ -21,6 +21,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SECTIONS, SECTION_ORDER } from "@/lib/resultSections";
+import { track } from "@/lib/analytics";
 
 export type NavStatus = { label: string; tone: "promo" | "demo" } | null;
 
@@ -137,6 +138,7 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
         <Link
           href="/discover"
           aria-label="去探索页搜索香水"
+          onClick={() => track("nav_search_click")}
           className="flex-none flex items-center justify-center"
           style={{
             width: 30,

@@ -61,6 +61,9 @@ export const TRACK_EVENTS = [
   // 结果页「想问点别的」：在上 L2 在线顾问之前，先用零成本测「到底有多少人会追问」。
   // intent = 结构化问题 id（rare/season/budget），不是自由文本 —— 不采用户输入。
   'ai_advisor_intent', // 用户点了某个追问意图（带 intent, personality）
+  // 结果页顶部（合并后的章节导航条）搜索入口 → /discover。
+  // 2026-11-10 补：这个入口 11-04 上线时忘了埋，导致「有没有人点」无法回答。
+  'nav_search_click', // 报告页搜索入口点击（不带 props，path 由 track 自动注入）
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -109,6 +112,7 @@ export const EVENT_LABEL: Record<string, string> = {
   ai_reason_expand: 'AI解读展开',
   ai_cp_view: '合香AI解读曝光',
   ai_advisor_intent: '追问意图点击',
+  nav_search_click: '报告页搜索点击',
   error: '埋点异常',
 };
 
