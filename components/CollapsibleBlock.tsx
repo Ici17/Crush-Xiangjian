@@ -52,14 +52,15 @@ export default function CollapsibleBlock({
               bottom: 0,
               height: 36,
               background: dark
-                ? "linear-gradient(180deg, rgba(61,40,23,0) 0%, #3D2817 100%)"
-                : "linear-gradient(180deg, rgba(250,243,234,0) 0%, #FAF3EA 100%)",
+                ? "linear-gradient(180deg, rgba(61,40,23,0) 0%, var(--cx-brown-deep) 100%)"
+                : "linear-gradient(180deg, var(--cx-cream-0) 0%, var(--cx-cream) 100%)",
               pointerEvents: "none",
             }}
           />
         )}
       </div>
       <button
+        className="tap-44-y"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         style={{
@@ -68,7 +69,7 @@ export default function CollapsibleBlock({
           padding: "4px 10px",
           fontSize: "12px",
           letterSpacing: "0.08em",
-          color: dark ? "#D4A574" : "#A8884E",
+          color: dark ? "var(--cx-gold-light)" : "var(--cx-gold)",
           background: "transparent",
           border: "none",
           cursor: "pointer",

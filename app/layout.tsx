@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import "./tokens.css";
 import "./globals.css";
 import SiteFooter from "@/components/SiteFooter";
 import PageTracker from "@/components/PageTracker";
+import MotionProvider from "@/components/MotionProvider";
 import { TOTAL_QUESTION_COUNT } from "@/lib/branchingQuestions";
 
 // 题数取自唯一真源：校准题增减后 SEO 描述自动跟上，不会留下过时文案
@@ -74,7 +76,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased flex flex-col min-h-screen">
         <PageTracker />
-        {children}
+        <MotionProvider>{children}</MotionProvider>
         <SiteFooter />
       </body>
     </html>

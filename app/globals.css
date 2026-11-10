@@ -1,3 +1,5 @@
+/* 设计令牌由 app/layout.tsx 在本文件之前 import（tokens.css）。
+   这里及以下组件统一用 var(--cx-*) 取色，不再写死品牌色值。 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,7 +46,7 @@
        该容器的计算宽度恒为 430px，比 body 宽出 40–55px —— 窄屏上右侧内容被裁，
        结果页顶部的搜索按钮就落在裁切区里看不见。加 width:100% 后跟随包含块。 */
     width: 100%;
-    max-width: 430px;
+    max-width: var(--cx-shell-max);
     margin: 0 auto;
   }
 
@@ -53,15 +55,15 @@
   button:focus-visible,
   [role="button"]:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid #D4A574;
+    outline: 2px solid var(--cx-gold-light);
     outline-offset: 2px;
     border-radius: inherit;
   }
 
   /* 选中色 */
   ::selection {
-    background-color: #D4A574;
-    color: #2C1810;
+    background-color: var(--cx-gold-light);
+    color: var(--cx-ink);
   }
 
   /* 滚动条 */
@@ -69,10 +71,10 @@
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #F5EDE6;
+    background: var(--cx-cream-dark);
   }
   ::-webkit-scrollbar-thumb {
-    background: #D4A574;
+    background: var(--cx-gold-light);
     border-radius: 2px;
   }
 }
@@ -108,14 +110,45 @@
 }
 
 @layer utilities {
+  /* ─── 命中区扩展：视觉尺寸不变，可点区域补到 44px ───
+     结果页导航胶囊实测约 30px 高、搜索按钮 30×28，都低于 Apple HIG /
+     WCAG 2.5.5 的 44px 建议值。直接加 min-height 会把导航条撑高 16px
+     （之前专门调过上下 20px 的对称间距），所以用伪元素只扩命中区。
+     .tap-44-y 只扩垂直（胶囊之间只有 6px 间隙，横向扩会互相抢点击）；
+     .tap-44 用于最右侧孤立图标按钮，热区向右扩、左边界贴住按钮，
+     免得盖住左边最后一个胶囊。
+     ⚠️ 伪元素受最近的 overflow 容器裁切：横向滚动条 .overflow-x-auto
+     会连带把 overflow-y 计算成 auto，所以导航条的垂直 padding 必须放在
+     滚动容器**内部**（见 ResultSectionNav），否则 44px 热区会被裁回 30px。 */
+  .tap-44-y { position: relative; }
+  .tap-44-y::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--cx-tap-min);
+    transform: translateY(-50%);
+  }
+  .tap-44 { position: relative; }
+  .tap-44::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: var(--cx-tap-min);
+    height: var(--cx-tap-min);
+    transform: translateY(-50%);
+  }
+
   .animate-fadeIn {
-    animation: fadeIn 600ms ease-out forwards;
+    animation: fadeIn var(--cx-dur-slow) var(--cx-ease-out) forwards;
   }
   .animate-slideUp {
     animation: slideUp 500ms ease-out forwards;
   }
   .animate-scaleIn {
-    animation: scaleIn 400ms cubic-bezier(0.34,1.56,0.64,1) forwards;
+    animation: scaleIn var(--cx-dur-base) cubic-bezier(0.34,1.56,0.64,1) forwards;
   }
   .animate-blurReveal {
     animation: blurReveal 700ms cubic-bezier(0.16,1,0.3,1) forwards;
@@ -251,5 +284,25 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* ─── 系统偏好：减少动态效果 ───
+   刻意用 0.01ms 而不是 animation:none：.stagger > * 初始 opacity:0，
+   靠 animation-fill-mode:forwards 变可见；直接禁用动画会让整页内容永远隐形。
+   framer-motion 的 JS 动画由 components/MotionProvider.tsx 的
+   MotionConfig reducedMotion="user" 负责，本块只管 CSS 侧。 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -1,0 +1,49 @@
+/**
+ * tokens.css —— 最小设计令牌（第 0 期 P0，2026-11-10）
+ *
+ * 只收「项目里反复出现、且值固定」的品牌色 / 圆角 / 动效时长 / 布局常量。
+ * 目标不是一次性重构所有 inline style，而是给后续组件一个不写死色值的入口：
+ * 先在 globals.css 与结果页导航、折叠块里用起来，其余逐步迁移。
+ *
+ * 色值与 tailwind.config.ts 的 amber / cream 色阶对齐；改品牌色时两处一起改。
+ * 本文件由 app/layout.tsx 在 globals.css 之前单独 import，不依赖 CSS @import 的
+ * PostCSS 插件行为（顺序只影响同优先级声明，:root 变量本身不受影响）。
+ */
+
+:root {
+  /* 品牌三色 */
+  --cx-cream: #FAF3EA;
+  --cx-cream-dark: #F5EDE6;
+  --cx-ink: #2C1810;
+  --cx-gold: #A8884E;
+  --cx-gold-light: #D4A574;
+
+  /* 表面与文字 */
+  --cx-surface: #FFFDF9;
+  --cx-brown-deep: #3D2817;
+  --cx-text-muted: #6B5E4C;
+  --cx-amber-50: #FDF8F0;
+  --cx-amber-accent: #BA7517;
+  --cx-warm-ink: #F8EAD9;
+  --cx-border-soft: rgba(168, 136, 78, 0.3);
+
+  /* 半透明底色：吸顶导航 / 渐隐遮罩，与 --cx-cream 同色 */
+  --cx-cream-94: rgba(250, 243, 234, 0.94);
+  --cx-cream-96: rgba(250, 243, 234, 0.96);
+  --cx-cream-0: rgba(250, 243, 234, 0);
+  --cx-cream-demo: rgba(250, 238, 218, 0.9);
+
+  /* 圆角 */
+  --cx-radius-pill: 999px;
+  --cx-radius-card: 1.25rem;
+
+  /* 动效（与 globals.css 里的 animation 时长对齐） */
+  --cx-dur-fast: 200ms;
+  --cx-dur-base: 400ms;
+  --cx-dur-slow: 600ms;
+  --cx-ease-out: ease-out;
+
+  /* 布局 / 交互 */
+  --cx-shell-max: 430px;
+  --cx-tap-min: 44px;
+}

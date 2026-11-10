@@ -50,7 +50,9 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
   const go = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // CSS 的 prefers-reduced-motion 降级覆盖不到 JS 的 scrollIntoView，这里显式尊重偏好。
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   };
 
   return (
@@ -59,7 +61,7 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
       className="sticky z-30 mb-5"
       style={{
         top: topOffset,
-        background: "rgba(250,243,234,0.94)",
+        background: "var(--cx-cream-94)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
       }}
@@ -68,7 +70,7 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
           祖先的 max-w-[430px]，390 视口下溢出 40px，右侧搜索按钮被裁掉）。
           minmax(0,1fr) 是唯一能稳定让中间列收缩的写法。 */}
       <div
-        className="grid items-center gap-2 px-3.5 py-2"
+        className="grid items-center gap-2 px-3.5"
         style={{
           gridTemplateColumns: `${status ? "auto " : ""}minmax(0,1fr) auto`,
         }}
@@ -81,12 +83,12 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
               fontSize: "11px",
               lineHeight: 1.4,
               padding: "4px 8px",
-              borderRadius: "999px",
+              borderRadius: "var(--cx-radius-pill)",
               letterSpacing: "0.02em",
               fontFamily: "Noto Sans SC, sans-serif",
               ...(status.tone === "promo"
-                ? { background: "#3D2817", color: "#F8EAD9" }
-                : { background: "rgba(250,238,218,0.9)", color: "#BA7517" }),
+                ? { background: "var(--cx-brown-deep)", color: "var(--cx-warm-ink)" }
+                : { background: "var(--cx-cream-demo)", color: "var(--cx-amber-accent)" }),
             }}
           >
             {status.label}
@@ -94,21 +96,25 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
         )}
 
         <div className="relative min-w-0 flex-1">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+          {/* py-2 必须放在滚动容器内部：外层 padding 会让 overflow-x-auto
+              的裁切盒只剩约 30px 高，把胶囊的 44px 命中区裁掉。
+              内外总高度仍为 16 + 30 = 46px，与改动前一致。 */}
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-none py-2">
             {SECTION_ORDER.map((key) => {
               const sec = SECTIONS[key];
               return (
                 <button
                   key={sec.id}
+                  className="tap-44-y"
                   onClick={() => go(sec.id)}
                   style={{
                     flex: "0 0 auto",
                     padding: "6px 10px",
                     fontSize: "12.5px",
-                    color: "#6B5E4C",
-                    background: "#FFFDF9",
-                    border: "0.5px solid rgba(168,136,78,0.3)",
-                    borderRadius: "999px",
+                    color: "var(--cx-text-muted)",
+                    background: "var(--cx-surface)",
+                    border: "0.5px solid var(--cx-border-soft)",
+                    borderRadius: "var(--cx-radius-pill)",
                     fontFamily: "Noto Sans SC, sans-serif",
                     cursor: "pointer",
                     whiteSpace: "nowrap",
@@ -129,7 +135,7 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
               bottom: 0,
               right: 0,
               width: 22,
-              background: "linear-gradient(90deg, rgba(250,243,234,0) 0%, rgba(250,243,234,0.96) 80%)",
+              background: "linear-gradient(90deg, var(--cx-cream-0) 0%, var(--cx-cream-96) 80%)",
               pointerEvents: "none",
             }}
           />
@@ -139,19 +145,28 @@ export default function ResultSectionNav({ status = null }: { status?: NavStatus
           href="/discover"
           aria-label="去探索页搜索香水"
           onClick={() => track("nav_search_click")}
-          className="flex-none flex items-center justify-center"
+          className="tap-44 flex-none flex items-center justify-center"
           style={{
             width: 30,
             height: 28,
-            borderRadius: 999,
-            background: "#FFFDF9",
-            border: "0.5px solid rgba(168,136,78,0.3)",
+            borderRadius: "var(--cx-radius-pill)",
+            background: "var(--cx-surface)",
+            border: "0.5px solid var(--cx-border-soft)",
             textDecoration: "none",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <circle cx="7" cy="7" r="4.6" stroke="#6B5E4C" strokeWidth="1.3" />
-            <path d="M10.5 10.5L13.5 13.5" stroke="#6B5E4C" strokeWidth="1.3" strokeLinecap="round" />
+          {/* stroke 放在 svg 的 style 里才会解析 var()；SVG presentation attribute
+              写 stroke="var(...)" 在多数浏览器不生效。子元素继承该描边色。 */}
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden
+            style={{ stroke: "var(--cx-text-muted)" }}
+          >
+            <circle cx="7" cy="7" r="4.6" strokeWidth="1.3" />
+            <path d="M10.5 10.5L13.5 13.5" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
         </Link>
       </div>
