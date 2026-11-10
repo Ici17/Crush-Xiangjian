@@ -10,7 +10,7 @@
     "serve:api": "next start -p 3457",
     "serve:all": "node serve.mjs",
     "lint": "eslint",
-    "test": "node --import tsx --test tests/branching.test.ts tests/normalize-ref.test.ts tests/price-range.test.ts tests/recommendations.test.ts",
+    "test": "node --import tsx --test tests/branching.test.ts tests/normalize-ref.test.ts tests/price-range.test.ts tests/recommendations.test.ts tests/service-worker.test.ts",
     "check:perfumes": "tsx scripts/check-vectors.ts",
     "import:perfumes": "tsx scripts/import-perfumes.ts",
     "list:unmapped": "tsx scripts/list_unmapped.ts"
