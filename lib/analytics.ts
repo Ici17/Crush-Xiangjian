@@ -160,7 +160,7 @@ function getRef(): string {
   try {
     let ref = window.sessionStorage.getItem(REF_KEY);
     if (!ref) {
-      ref = normalizeRef(document.referrer, window.location.pathname);
+      ref = normalizeRef(document.referrer, window.location.pathname, window.location.search);
       window.sessionStorage.setItem(REF_KEY, ref);
     }
     return ref;

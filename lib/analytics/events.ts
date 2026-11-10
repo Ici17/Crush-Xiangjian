@@ -284,7 +284,18 @@ export function shanghaiDateKey(ts: number = Date.now()): string {
 }
 
 /** 把来源 URL 归一化成渠道名（不保存完整 URL，避免携带隐私参数） */
-export function normalizeRef(ref: string | undefined, path: string): string {
+export function normalizeRef(ref: string | undefined, path: string, search = ''): string {
+  // 2026-11-10：分享链接优先于 referrer。微信内打开时 document.referrer 通常为空，
+  // 只看 referrer 会把所有分享来客记成「直接访问」，导致第一次分发完全无法归因。
+  // 现有链接已带参数：/friend?inv=...、/shared?p=...；后续手动分发可加 ?src=wx 之类。
+  try {
+    const q = new URLSearchParams(search);
+    if (q.has('src') || q.has('inv') || q.has('p') || path === '/shared' || path === '/friend') {
+      return '好友分享';
+    }
+  } catch {
+    /* search 解析失败时退回原有 referrer 逻辑 */
+  }
   const raw = (ref || '').toLowerCase();
   if (!raw) return path && path !== '/' ? '内部直达' : '直接访问';
   if (raw.includes('weixin') || raw.includes('wechat') || raw.includes('mp.qq')) return '微信';
