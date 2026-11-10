@@ -50,6 +50,9 @@ jobs:
             exit 1
           fi
 
+      - name: 单元测试（node:test + tsx，无额外依赖）
+        run: npm test
+
       - name: 生产构建
         run: npm run build
         env:
