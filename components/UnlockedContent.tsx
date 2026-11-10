@@ -191,7 +191,8 @@ export default function UnlockedContent({
         <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
           三支香气，与你的灵魂产生共振
         </p>
-        <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1">
+        {/* hscroll-fade-r：横滑列表在视口边缘的右侧渐隐，避免下一张卡被硬切在半句文案中间 */}
+        <div className="flex gap-3.5 overflow-x-auto no-scrollbar px-1 hscroll-fade-r">
           {perfumes.map((p) => (
             <PerfumeCard key={p.name} perfume={p} direction={personality.direction} />
           ))}

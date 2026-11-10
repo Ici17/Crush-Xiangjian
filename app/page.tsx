@@ -396,7 +396,7 @@ export default function LandingPage() {
           aria-label="16种人格预览"
         >
           <div
-            className="personality-scroll flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none"
+            className="personality-scroll flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none hscroll-fade-r"
             role="list"
           >
             {PERSONALITIES.map((p) => (

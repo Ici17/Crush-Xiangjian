@@ -961,7 +961,20 @@ export default function FriendView({ inviterName: initialInviterName = "" }: Fri
 
           {/* 底部引导：未测时 */}
           {!myType && (
-            <div className="sticky bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-md border-t border-amber-100 p-4 safe-bottom z-30">
+            <div className="sticky bottom-0 left-0 right-0 bg-cream/95 backdrop-blur-md p-4 safe-bottom z-30">
+              {/* 与结果页底栏一致：去掉硬边线，改用向上渐隐，正文不再被横切 */}
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  bottom: '100%',
+                  height: 24,
+                  background: 'linear-gradient(180deg, var(--cx-cream-0) 0%, var(--cx-cream) 100%)',
+                  pointerEvents: 'none',
+                }}
+              />
               <Link
                 href="/question"
                 className="block w-full py-3 text-center bg-amber-800 text-amber-50 rounded-full font-sans font-semibold text-sm active:scale-95 transition-transform shadow-brand"

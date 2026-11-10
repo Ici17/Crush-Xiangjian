@@ -306,7 +306,7 @@ export default function SharedViewClient({ personalityName }: SharedViewClientPr
                 </div>
               </div>
               {recommendations.length > 1 && (
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1 hscroll-fade-r">
                   {recommendations.slice(1, 3).map((rec) => (
                     <div
                       key={rec.name}

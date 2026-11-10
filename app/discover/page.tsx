@@ -269,7 +269,7 @@ export default function DiscoverPage() {
         {/* 人格选择器 */}
         <div className="mt-6">
           <div className="text-[11px] tracking-[0.2em] text-[#A8884E] mb-2">当 前 人 格</div>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 hscroll-fade-r">
             {PERSONALITIES.map((p) => {
               const on = p.name === personality;
               return (

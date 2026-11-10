@@ -14,7 +14,7 @@ export default function SiteFooter() {
   return (
     <footer
       aria-label="页脚"
-      className="mt-20 border-t border-amber-200/70 bg-[#FAF3EA]"
+      className="mt-20 border-t border-amber-200/70 bg-cream"
       style={{ fontFamily: "Noto Sans SC, sans-serif" }}
     >
       <div className="mx-auto max-w-5xl px-6 py-8 space-y-2">

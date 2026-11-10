@@ -783,7 +783,7 @@ function ResultInner() {
               -mx-6 + px-6：出血到屏幕边缘（可滚到边），同时首项与其余区块左对齐 */}
           {pathLabels.length > 0 && (
             <div
-              className="flex gap-2 overflow-x-auto no-scrollbar -mx-6 px-6 mb-6"
+              className="flex gap-2 overflow-x-auto no-scrollbar hscroll-fade-r -mx-6 px-6 mb-6"
               aria-label="香气探索路径"
             >
               <span
@@ -821,7 +821,7 @@ function ResultInner() {
           <p className="text-center text-amber-700 mb-6" style={{ fontSize: '14px' }}>
             三支香气，与你的灵魂产生共振
           </p>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar px-1">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar hscroll-fade-r px-1">
             {recommendations.map((rec) => {
               // 展示角色用 role（方案 B：本命香可能来自 advanced 池，tier 是真实档位）
               const isSignature = rec.role === 'signature';
@@ -1336,11 +1336,26 @@ function ResultInner() {
 
       {/* ━━━ 底部固定 CTA（智能单/双按钮）━━━ */}
       <div
-        className="sticky left-0 right-0 bottom-0 px-[18px] pt-3 bg-cream/90 backdrop-blur-md border-t border-amber-100 z-10"
+        className="sticky left-0 right-0 bottom-0 px-[18px] pt-3 bg-cream/90 backdrop-blur-md z-10"
         style={{ paddingBottom: 'calc(8px + var(--safe-bottom))' }}
         role="toolbar"
         aria-label={hasFriend ? '分享和查看契合度' : '分享测试结果'}
       >
+        {/* 向上渐隐：原来一条 border-t 会把滚到这里的正文硬切断（截图里
+            「香调偏好」标题和正文都被切在半行）。改成 24px 透明→米白过渡，
+            内容自然淡出到操作区；这一层是 absolute，不占布局高度。 */}
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: '100%',
+            height: 24,
+            background: 'linear-gradient(180deg, var(--cx-cream-0) 0%, var(--cx-cream) 100%)',
+            pointerEvents: 'none',
+          }}
+        />
         {/* 有朋友参与测试：双 CTA（分享 + 契合度）；否则单分享 ━━━ */}
         {hasFriend ? (
           <div className="flex gap-3">

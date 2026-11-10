@@ -9,6 +9,16 @@
  * 实现选择：**maxHeight + overflow:hidden**，不用 -webkit-line-clamp ——
  * 这里的子节点是多个 <p>，line-clamp 对多段落不可靠（会被当成一个盒子按行截断，
  * 各浏览器表现不一致）。maxHeight 在任何结构下都稳定。
+ *
+ * ─── 提示的视觉语言（2026-11-10 第二轮，用户否掉了白底整行按钮「很突兀」）───
+ * 结果页的章节标题是「1px 短金线 + 衬线墨字 + 1px 短金线」（UnlockedContent.tsx
+ * 的 `h-px w-6 bg-amber-400` + `font-serif text-xl`），章节之间还有「— • —」装饰。
+ * 折叠提示属于同一套克制语言，不该是一个现代 App 风格的白底圆角 CTA：
+ *   · 无底色 / 无边框 / 无阴影 / 无圆角，只有文字 + 细箭头 + 两侧短金线；
+ *   · 紧贴渐隐末尾（margin 0），不悬空、也不用负 margin 压住正文；
+ *   · 字号 13.5px 衬线深墨（比旧版 12px 金色小字清楚），箭头提供可点击暗示；
+ *   · 视觉高度 30px，命中区仍由 .tap-44-y 的伪元素扩到 44px。
+ * 不改动 collapsedHeight：调用方有一处只给 52px，任何「塞进内容区」的做法都会盖住正文。
  */
 
 import { useState, type ReactNode } from "react";
@@ -32,17 +42,8 @@ export default function CollapsibleBlock({
   const [open, setOpen] = useState(false);
   const dark = tone === "dark";
   const label = open ? lessLabel : moreLabel;
+  const lineColor = dark ? "rgba(212,165,116,0.35)" : "var(--cx-border-soft)";
 
-  /**
-   * 提示条（2026-11-10 视觉调整）。
-   *
-   * 旧版是 12px 金色小字、无边框、悬在渐隐下方 8px 的空白处 —— 用户反馈
-   * 「展开收起提示不够明显、字太下了」。现在改成有底色 / 细边框 / chevron 的整行操作带：
-   *  - 收起态 marginTop 用 -14px 上移，贴住渐隐区，文字重心随之抬高；
-   *  - 展开态回到 4px 正常间距，避免压住展开后的最后一行正文；
-   *  - 视觉高度只有 34px，命中区仍由 .tap-44-y 的伪元素扩到 44px（不改视觉尺寸）。
-   * 不改动 collapsedHeight：调用方有一处只给 52px，塞大按钮会盖住正文。
-   */
   const toggle = (
     <button
       className="tap-44-y"
@@ -52,49 +53,46 @@ export default function CollapsibleBlock({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        position: "relative",
-        zIndex: 1,
-        // 整行操作带而不是小胶囊：小胶囊会把渐隐那行文字从中间切成两半，
-        // 整行带则形成一条完整的「下面还有内容」边界，也更醒目。
+        gap: 10,
         width: "100%",
-        margin: open ? "4px 0 0" : "-14px 0 0",
-        padding: "7px 18px",
-        minHeight: 34,
+        margin: open ? "6px 0 0" : "0",
+        padding: 0,
+        minHeight: 30,
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        color: dark ? "var(--cx-gold-light)" : "var(--cx-brown-deep)",
+        fontFamily: "Noto Serif SC, serif",
         fontSize: "13.5px",
         fontWeight: 500,
-        letterSpacing: "0.04em",
-        color: dark ? "var(--cx-warm-ink)" : "var(--cx-brown-deep)",
-        background: dark ? "rgba(250,243,234,0.12)" : "var(--cx-surface)",
-        border: dark
-          ? "1px solid rgba(212,165,116,0.45)"
-          : "1px solid var(--cx-border-soft)",
-        borderRadius: "12px",
-        boxShadow: dark ? "none" : "0 2px 10px rgba(139,111,92,0.12)",
-        cursor: "pointer",
-        fontFamily: "Noto Sans SC, sans-serif",
+        letterSpacing: "0.08em",
       }}
     >
-      <span>{label}</span>
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
-        aria-hidden
-        style={{
-          transform: open ? "rotate(180deg)" : "none",
-          transition: "transform 200ms var(--cx-ease-out)",
-        }}
-      >
-        <path
-          d="M2.5 4.5L6 8L9.5 4.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      {/* 与章节标题同源的短金线：让提示成为页面排版的一部分，而不是一块按钮 */}
+      <span aria-hidden style={{ width: 24, height: 1, background: lineColor }} />
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        {label}
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 12 12"
+          fill="none"
+          aria-hidden
+          style={{
+            transform: open ? "rotate(180deg)" : "none",
+            transition: "transform 200ms var(--cx-ease-out)",
+          }}
+        >
+          <path
+            d="M2.5 4.5L6 8L9.5 4.5"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <span aria-hidden style={{ width: 24, height: 1, background: lineColor }} />
     </button>
   );
 
@@ -116,7 +114,7 @@ export default function CollapsibleBlock({
               left: 0,
               right: 0,
               bottom: 0,
-              height: 48,
+              height: 44,
               background: dark
                 ? "linear-gradient(180deg, rgba(61,40,23,0) 0%, var(--cx-brown-deep) 100%)"
                 : "linear-gradient(180deg, var(--cx-cream-0) 0%, var(--cx-cream) 100%)",

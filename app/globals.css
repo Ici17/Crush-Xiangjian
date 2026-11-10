@@ -285,6 +285,16 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* ─── 横向滚动容器右侧渐隐 ───
+     全站多处 overflow-x-auto（首页人格卡 / 探索页胶囊 / 结果页香水卡 / 探索路径标签）
+     会在视口边缘把下一项从半句文案中间硬切掉，看着像渲染坏了。
+     用 mask-image 而不是额外 DOM 遮罩：不需要包一层 relative，也不会抢点击。
+     与顶部章节导航的既有渐隐同一套米白观感；末项右侧会有一点淡出，属预期。 */
+  .hscroll-fade-r {
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 28px), transparent 100%);
+  }
 }
 
 /* ─── 系统偏好：减少动态效果 ───
