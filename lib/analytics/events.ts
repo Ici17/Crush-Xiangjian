@@ -67,6 +67,9 @@ export const TRACK_EVENTS = [
   // 首屏「今天穿什么香」：场景/情绪标签点选、结构化提问完成。
   // props 用 action 区分，perfume 记选中的展示名（不采用户输入、不采 PII）。
   'home_scent_pick',
+  // 首页顶部三个模式入口（测香 / 今日穿香 / 今日香签）的切换曝光。
+  // 此前 tab 切换零埋点，加了第三个入口后必须能回答「哪个 tab 有人点」。
+  'home_tab_view', // 带 tab
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -117,6 +120,7 @@ export const EVENT_LABEL: Record<string, string> = {
   ai_advisor_intent: '追问意图点击',
   nav_search_click: '报告页搜索点击',
   home_scent_pick: '首屏选香',
+  home_tab_view: '首页模式切换',
   error: '埋点异常',
 };
 

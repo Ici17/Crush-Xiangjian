@@ -14,6 +14,18 @@ import DailyPanel from '@/components/DailyPanel';
 import HomeScentPicker from '@/components/HomeScentPicker';
 
 /**
+ * 顶部三个入口（2026-11-23 用户定名）：
+ * 测香 = 13 题人格测试；今日穿香 = 自主标签选香；今日香签 = 每日抽签仪式。
+ * hero 与 tab 常驻，下方内容按 mode 切换；顺序即视觉顺序，别在别处再抄一份。
+ */
+const MODES = [
+  { key: 'test', label: '测香' },
+  { key: 'scent', label: '今日穿香' },
+  { key: 'daily', label: '今日香签' },
+] as const;
+type HomeMode = (typeof MODES)[number]['key'];
+
+/**
  * 落地页 - 保留设计师品牌符号 + 恢复原始结构,只压缩 hero 高度
  *
  * 设计师品牌符号(已保留):CRUSH FRAGRANCE 文字标 + 上下琥珀色横线
@@ -104,15 +116,16 @@ export default function LandingPage() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selected, setSelected] = useState<Personality>(PERSONALITIES[0]);
-  const [mode, setMode] = useState<'test' | 'daily'>('test');
+  const [mode, setMode] = useState<HomeMode>('test');
   const myStatus = useMyTestStatus();
 
-  // 支持 ?mode=daily 直达今日香签（朋友匹配页引导跳转）
+  // 支持 ?mode=daily（朋友页 / 结果页 / 选香模块的既有链接）与 ?mode=scent 直达。
+  // 白名单解析：任意字符串都不改 mode，避免脏参数把首页切到空白态。
   // 注意：刻意不用 useSearchParams —— 它是 CSR bailout hook，会让本页失去静态预渲染
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const m = new URLSearchParams(window.location.search).get('mode');
-    if (m === 'daily') setMode('daily');
+    if (m === 'daily' || m === 'scent') setMode(m);
   }, []);
 
   const handleOpenSheet = (name: string): void => {
@@ -156,33 +169,29 @@ export default function LandingPage() {
           style={{ height: '40vh', minHeight: 280, animationDelay: '60ms' }}
           aria-label="品牌氛围主视觉"
         >
-          {/* ─── 顶部胶囊切换：测香 / 今日香签 ─── */}
+          {/* ─── 顶部胶囊切换：测香 / 今日穿香 / 今日香签 ───
+              三项由 MODES 一处定义，点选即埋 home_tab_view（此前 tab 切换零埋点，
+              无法评估哪个入口有人用）。字长 2/4/4 不等，px-3 + nowrap 保证 390 视口不换行。 */}
           <div className="absolute top-4 left-0 right-0 flex justify-center z-20">
             <div className="inline-flex items-center bg-black/25 border border-[#D4A574]/50 rounded-full p-1 backdrop-blur-sm">
-              <button
-                onClick={() => setMode('test')}
-                className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors"
-                style={{
-                  fontFamily: 'Noto Sans SC, sans-serif',
-                  background: mode === 'test' ? '#A8884E' : 'transparent',
-                  color: mode === 'test' ? '#FAF3EA' : '#E8D9C4',
-                }}
-                aria-pressed={mode === 'test'}
-              >
-                测香
-              </button>
-              <button
-                onClick={() => setMode('daily')}
-                className="px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors"
-                style={{
-                  fontFamily: 'Noto Sans SC, sans-serif',
-                  background: mode === 'daily' ? '#A8884E' : 'transparent',
-                  color: mode === 'daily' ? '#FAF3EA' : '#E8D9C4',
-                }}
-                aria-pressed={mode === 'daily'}
-              >
-                今日香签
-              </button>
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => {
+                    setMode(m.key);
+                    try { track('home_tab_view', { tab: m.key }); } catch { /* 埋点不影响切换 */ }
+                  }}
+                  className="px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors whitespace-nowrap"
+                  style={{
+                    fontFamily: 'Noto Sans SC, sans-serif',
+                    background: mode === m.key ? '#A8884E' : 'transparent',
+                    color: mode === m.key ? '#FAF3EA' : '#E8D9C4',
+                  }}
+                  aria-pressed={mode === m.key}
+                >
+                  {m.label}
+                </button>
+              ))}
             </div>
           </div>
           {/* 深色渐变背景 */}
@@ -390,10 +399,8 @@ export default function LandingPage() {
           </span>
         </div>
 
-        {/* ─── 6.5 今天穿什么香（自主标签选香 + 结构化提问入口）───
-             必须放在主 CTA 之后：首屏 CTA 可见是硬约束，不能把它顶下去。
-             组件完全独立，不 import lib/daily/*，不影响日签零漂移。 */}
-        <HomeScentPicker />
+        {/* 6.5 原「今天穿什么香」已移为顶部「今日穿香」tab（用户要求：
+             测香 tab 里不留任何引导，首屏只留测试主链路）。 */}
 
         {/* ─── 7 16 Personality Capsule Scroll(边缘渐变提示可滑动) ─── */}
         <div
@@ -508,6 +515,54 @@ export default function LandingPage() {
       </>)}
 
       </div>
+
+      {/* ─── 今日穿香：独立 tab，不再占测香首屏 ───
+          轻量导语 + 选香模块 + 一条回测香的细链（scent 模式下主 CTA 不在首屏，
+          用细链兜住转化，不做白底大按钮）。 */}
+      {mode === 'scent' && (
+        <div className="pb-10">
+          <div className="px-5 pt-5 text-center">
+            <div
+              style={{
+                fontFamily: 'Noto Serif SC, serif',
+                fontSize: '18px',
+                letterSpacing: '0.16em',
+                color: '#2C1810',
+              }}
+            >
+              今 日 穿 香
+            </div>
+            <p
+              className="mt-2 mb-0"
+              style={{ fontSize: '12px', color: '#6B5E4C', lineHeight: 1.7 }}
+            >
+              按此刻的场景与心情，挑一支今天要穿的香
+            </p>
+          </div>
+          <HomeScentPicker />
+          <div className="px-5 mt-5 text-center">
+            <button
+              onClick={() => {
+                setMode('test');
+                try { track('home_tab_view', { tab: 'test' }); } catch { /* ignore */ }
+              }}
+              className="tap-44-y"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '12px',
+                color: '#A8884E',
+                cursor: 'pointer',
+                fontFamily: 'Noto Sans SC, sans-serif',
+                textDecoration: 'underline',
+                textUnderlineOffset: '3px',
+              }}
+            >
+              去做 13 题完整测试 →
+            </button>
+          </div>
+        </div>
+      )}
 
       {mode === 'daily' && <DailyPanel />}
 
