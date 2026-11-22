@@ -11,6 +11,7 @@ import { encodeInvite } from '@/lib/inviteState';
 import { track } from '@/lib/analytics';
 import PersonalityIcon from '@/components/PersonalityIcon';
 import DailyPanel from '@/components/DailyPanel';
+import HomeScentPicker from '@/components/HomeScentPicker';
 
 /**
  * 落地页 - 保留设计师品牌符号 + 恢复原始结构,只压缩 hero 高度
@@ -388,6 +389,11 @@ export default function LandingPage() {
             {ESTIMATED_MINUTES} 分钟 · 16 种灵魂人格 · 免费
           </span>
         </div>
+
+        {/* ─── 6.5 今天穿什么香（自主标签选香 + 结构化提问入口）───
+             必须放在主 CTA 之后：首屏 CTA 可见是硬约束，不能把它顶下去。
+             组件完全独立，不 import lib/daily/*，不影响日签零漂移。 */}
+        <HomeScentPicker />
 
         {/* ─── 7 16 Personality Capsule Scroll(边缘渐变提示可滑动) ─── */}
         <div

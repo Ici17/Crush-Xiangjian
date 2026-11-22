@@ -64,6 +64,9 @@ export const TRACK_EVENTS = [
   // 结果页顶部（合并后的章节导航条）搜索入口 → /discover。
   // 2026-11-10 补：这个入口 11-04 上线时忘了埋，导致「有没有人点」无法回答。
   'nav_search_click', // 报告页搜索入口点击（不带 props，path 由 track 自动注入）
+  // 首屏「今天穿什么香」：场景/情绪标签点选、结构化提问完成。
+  // props 用 action 区分，perfume 记选中的展示名（不采用户输入、不采 PII）。
+  'home_scent_pick',
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -113,6 +116,7 @@ export const EVENT_LABEL: Record<string, string> = {
   ai_cp_view: '合香AI解读曝光',
   ai_advisor_intent: '追问意图点击',
   nav_search_click: '报告页搜索点击',
+  home_scent_pick: '首屏选香',
   error: '埋点异常',
 };
 
