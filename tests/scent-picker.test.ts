@@ -65,10 +65,44 @@ test("结构化提问是三步固定选项、无自由输入", () => {
   }
 });
 
+test("同一种子可复现，但换 seedKey 能换出不同的香（不是固定映射）", () => {
+  const base = { scene: "date", mood: "seen", dateKey: DATE };
+  const a = pickScent({ ...base, seedKey: "v1|1" });
+  const again = pickScent({ ...base, seedKey: "v1|1" });
+  assert.deepEqual(a, again, "同一种子必须可复现");
+
+  const seen = new Set<string>();
+  const reasons = new Set<string>();
+  for (let i = 1; i <= 12; i++) {
+    const p = pickScent({ ...base, seedKey: `v1|${i}` });
+    assert.ok(p);
+    seen.add(p.name);
+    reasons.add(p.reason);
+  }
+  assert.ok(seen.size >= 4, `12 次换一支只出现 ${seen.size} 支香，仍像查表`);
+  assert.ok(reasons.size >= 3, "理由文案池没有轮转");
+});
+
+test("每个标签至少 3 条理由文案，避免一句模板套所有香", () => {
+  for (const t of [...SCENE_TAGS, ...MOOD_TAGS]) {
+    assert.ok(t.reasons.length >= 3, `${t.label} 只有 ${t.reasons.length} 条理由`);
+    assert.ok(t.reasons.every((r) => r.includes("{note}")));
+  }
+});
+
+test("最近推过的香只软降权，不硬过滤", () => {
+  const base = { scene: "solo", dateKey: DATE, seedKey: "v1|1" };
+  const first = pickScent(base);
+  assert.ok(first);
+  const next = pickScent({ ...base, seedKey: "v1|2", avoidNames: [first.name] });
+  assert.ok(next, "把上一支放进 avoidNames 后仍必须给得出结果");
+  assert.ok(next.name.length > 0);
+});
+
 test("结果文案不碰合规红线（迷信 / 医疗 / 财务 / 治愈）", () => {
   const banned = ["治愈", "疗愈", "转运", "改命", "招桃花", "灵验", "命中注定", "疗效", "投资建议"];
   const all = [...SCENE_TAGS, ...MOOD_TAGS].flatMap((t) => [
-    t.label, t.hint, t.reason,
+    t.label, t.hint, ...t.reasons,
     pickScent({ scene: t.key, dateKey: DATE })?.reason ?? "",
   ]);
   for (const text of all) {

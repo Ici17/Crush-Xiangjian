@@ -18,7 +18,7 @@
  * 探针（与结果页追问共用漏斗，用来判断要不要上真正的在线顾问）。
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   SCENE_TAGS,
@@ -29,7 +29,7 @@ import {
   type BudgetKey,
   type ScentPick,
 } from "@/lib/scentPicker";
-import { track } from "@/lib/analytics";
+import { track, getVisitorId } from "@/lib/analytics";
 
 type Answers = { scene?: string; mood?: string; budget?: BudgetKey };
 
@@ -44,10 +44,27 @@ export default function HomeScentPicker() {
   const [asking, setAsking] = useState(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
+  const [current, setCurrent] = useState<Answers>({});
+  // 用 ref 而不是 state：连点两次时 state 闭包会拿到同一个旧值，导致换不出新结果。
+  // vid 只是本地随机匿名 ID，不采 PII（与全站埋点口径一致）。
+  const turnRef = useRef(0);
+  const recentRef = useRef<string[]>([]);
 
   const runPick = (next: Answers, action: string) => {
-    const p = pickScent(next);
+    const n = ++turnRef.current;
+    let vid = "";
+    try { vid = getVisitorId(); } catch { /* 隐私模式下拿不到，种子仍能靠计数变化 */ }
+    const p = pickScent({
+      ...next,
+      seedKey: `${vid}|${n}`,
+      avoidNames: recentRef.current,
+    });
+    if (p) {
+      // 最近推过的只软降权，不排除；留 6 支窗口避免连续重复
+      recentRef.current = [...recentRef.current.filter((x) => x !== p.name), p.name].slice(-6);
+    }
     setPick(p);
+    setCurrent(next);
     try {
       track("home_scent_pick", {
         action,
@@ -58,6 +75,8 @@ export default function HomeScentPicker() {
       /* 埋点异常不影响主流程 */
     }
   };
+
+  const reroll = () => runPick(current, "reroll");
 
   const chooseTag = (t: PickTag) => {
     const next: Answers = t.kind === "scene"
@@ -245,7 +264,15 @@ export default function HomeScentPicker() {
                   >
                     {pick.name}
                   </span>
-                  <span style={{ fontSize: "11px", color: GOLD }}>{pick.brand}</span>
+                  <span className="shrink-0 text-right">
+                    <span style={{ fontSize: "11px", color: GOLD }}>{pick.brand}</span>
+                    <span
+                      className="block mt-0.5"
+                      style={{ fontSize: "10px", color: "var(--cx-text-muted)" }}
+                    >
+                      扩散 {pick.intensity} · 留香 {pick.longevity}
+                    </span>
+                  </span>
                 </div>
                 <div
                   className="mt-1.5"
@@ -267,7 +294,7 @@ export default function HomeScentPicker() {
                 >
                   {pick.reason}
                 </p>
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between gap-3">
                   <Link
                     href="/?mode=daily"
                     className="tap-44-y"
@@ -275,9 +302,25 @@ export default function HomeScentPicker() {
                   >
                     看今天完整香签 →
                   </Link>
-                  <span style={{ fontSize: "10px", color: "var(--cx-text-muted)" }}>
-                    扩散 {pick.intensity} · 留香 {pick.longevity}
-                  </span>
+                  {/* 细文字链，不做白底大按钮：换一支是轻量动作，不该抢主 CTA 的层级 */}
+                  <button
+                    onClick={reroll}
+                    className="tap-44-y"
+                    aria-label="换一支香水"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "0 2px",
+                      fontSize: "11.5px",
+                      color: GOLD,
+                      cursor: "pointer",
+                      fontFamily: "Noto Sans SC, sans-serif",
+                      textDecoration: "underline",
+                      textUnderlineOffset: "3px",
+                    }}
+                  >
+                    换一支 ↻
+                  </button>
                 </div>
               </div>
             )}
