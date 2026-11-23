@@ -73,6 +73,9 @@ export const TRACK_EVENTS = [
   // 答题中途挽留弹窗：view / accept / dismiss 三态，单独统计这部分转化，
   // 不混进 test_abandon（后者只记真实离开位置）。带 step=已答题数。
   'retention_popup',
+  // 结果页两页拆分（2026-11-24）：免费页点「查看完整版」、完整版页曝光。
+  'full_report_open', // 带 source / unlocked
+  'full_report_view',
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -125,6 +128,8 @@ export const EVENT_LABEL: Record<string, string> = {
   home_scent_pick: '首屏选香',
   home_tab_view: '首页模式切换',
   retention_popup: '中途挽留弹窗',
+  full_report_open: '完整版入口点击',
+  full_report_view: '完整版页曝光',
   error: '埋点异常',
 };
 

@@ -36,6 +36,7 @@ import { useInviteStatus, setAsInviter, encodeInvite } from '@/lib/inviteState';
 import PaymentModal, { type PaymentContext } from '@/components/PaymentModal';
 import UnlockedContent, { detectFamily, FAMILY_COLORS, FAMILY_BG } from '@/components/UnlockedContent';
 import ScarcityStrip from '@/components/ScarcityStrip';
+import FreePageTeasers from '@/components/FreePageTeasers';
 import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining, getPromoRemainingMs, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
@@ -64,7 +65,7 @@ function isInWeChat(): boolean {
 export default function ResultPage() {
   return (
     <Suspense fallback={<ResultSkeleton />}>
-      <ResultInner />
+      <ResultInner mode="free" />
     </Suspense>
   );
 }
@@ -72,7 +73,7 @@ export default function ResultPage() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SSR 骨架屏（避免空白，Adam 反馈结果页打不开）
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function ResultSkeleton() {
+export function ResultSkeleton() {
   return (
     <main className="bg-cream min-h-screen overflow-x-hidden relative">
       {/* 顶部占位 */}
@@ -142,7 +143,7 @@ function RelationAdviceSection({ personalityName }: { personalityName: string })
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 结果页主体
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function ResultInner() {
+export function ResultInner({ mode }: { mode: 'free' | 'full' }) {
   const params = useSearchParams();
   // P0-2：携带邀请者 inv 时，结果页的「契合度」入口一并带上，
   // 让朋友测完先看自己结果、再一键回 /friend?inv 看与邀请者的匹配（裂变闭环）。
@@ -777,8 +778,8 @@ function ResultInner() {
           </section>
         )}
 
-        {/* ━━━ 锁定态：雷达图 + 本命香水 + 免费解锁 ━━━ */}
-        {!unlocked && (
+        {/* ━━━ 锁定态：雷达图 + 本命香水（免费页专属，限免期也显示）━━━ */}
+        {mode === 'free' && (
           <>
             {/* ━━━ 雷达图（纳入首屏可见区）━━━ */}
             <section className="px-6 mb-6" aria-label="香气光谱雷达图">
@@ -860,7 +861,7 @@ function ResultInner() {
                   ? '进阶香'
                   : '尝试香';
               // 锁定态：本命香全展示，其余 blur
-              const isLocked = !unlocked && !isSignature;
+              const isLocked = mode === 'free' && !isSignature;
               // 锁定态瓶型配色与解锁版统一：按香调族动态着色
               const family = detectFamily(personality.direction, rec.notesStructured.top);
               return (
@@ -1052,7 +1053,7 @@ function ResultInner() {
 
         {/* ━━━ 想问点别的：提问率探针（规则实现，不调模型，仅解锁态）━━━ */}
         {/* 目的：上 L2 在线顾问之前先测出「多少人真的会追问」。零在线成本、零延迟。 */}
-        {unlocked && (
+        {false && (
           <AdvisorIntent
             userVector={advisorVector}
             excludeNames={displayPerfumes.map((p) => p.name)}
@@ -1061,6 +1062,8 @@ function ResultInner() {
           />
         )}
 
+        {mode === 'free' && (
+        <>
         {/* ━━━ 免费内容：性格解读 ━━━ */}
         <section className="px-6 mb-10" aria-label="性格解读">
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -1192,11 +1195,27 @@ function ResultInner() {
           </>
         )}
 
-        {/* ━━━ 已解锁内容 / 付费墙（条件渲染）━━━ */}
-        {unlocked ? (
-          <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} perfumes={displayPerfumes} />
+          </>
+        )}
+
+        {/* ━━━ 两页拆分（2026-11-24）━━━ */}
+        {mode === 'full' ? (
+          unlocked ? (
+            <UnlockedContent personalityName={personalityName} radarData={radarData} shareLink={shareLink} justPaid={justPaid} perfumes={displayPerfumes} />
+          ) : null
         ) : (
-        /* ━━━ 内联付费墙 ━━━ */
+          <FreePageTeasers
+            promoFree={promoFree}
+            ctaLabel={promoFree ? '查看完整版 →' : `¥${currentPrice} 解锁完整报告 →`}
+            onUnlock={() => {
+              try { track('full_report_open', { source: 'result_free', unlocked }); } catch { /* ignore */ }
+              if (unlocked) window.location.href = '/result/full';
+              else { setPayContext('full'); setPayKey(currentKey); }
+            }}
+          />
+        )}
+        {false && (
+        /* ━━━ 旧内联付费墙（保留但不再渲染）━━━ */
         <section className="px-6" aria-label="解锁完整报告">
           <h4
             className="font-serif font-medium text-amber-950 mb-2 text-center"
