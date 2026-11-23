@@ -8,9 +8,13 @@
  *
  * 保留：一行娱乐性参考免责声明（覆盖合规底线）。
  */
+"use client";
+
 import Link from "next/link";
+import { useCopy, pickCopy } from "@/lib/content/useCopy";
 
 export default function SiteFooter() {
+  const copy = useCopy();
   return (
     <footer
       aria-label="页脚"
@@ -19,7 +23,7 @@ export default function SiteFooter() {
     >
       <div className="mx-auto max-w-5xl px-6 py-8 space-y-2">
         <div className="text-center text-[11px] text-amber-700/60 leading-relaxed">
-          本测试为娱乐性参考，不构成医学 / 心理 / 婚恋 / 投资建议
+          {pickCopy(copy, 'copy.footer.disclaimer', '本测试为娱乐性参考，不构成医学 / 心理 / 婚恋 / 投资建议')}
         </div>
         <div className="flex items-center justify-center gap-3 text-center text-[12px]">
           <Link

@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { EVENT_LABEL } from '@/lib/analytics/events';
+import ContentConfigPanel from '@/components/ContentConfigPanel';
 
 type FunnelStep = {
   key: string;
@@ -510,6 +511,9 @@ export default function AdminDashboard() {
           </table>
         </div>
       </section>
+
+      {/* 内容配置：只给已登录用户看，改展示文案不用发版 */}
+      {authed && <div className="mt-4"><ContentConfigPanel /></div>}
 
       <p className="mt-6 text-[11px] leading-relaxed" style={{ color: '#A08D72' }}>
         全部指标基于匿名事件，不含姓名、手机、微信身份、IP 等个人信息；匿名标识仅存于用户本地浏览器。

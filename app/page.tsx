@@ -12,6 +12,7 @@ import { track } from '@/lib/analytics';
 import PersonalityIcon from '@/components/PersonalityIcon';
 import DailyPanel from '@/components/DailyPanel';
 import HomeScentPicker from '@/components/HomeScentPicker';
+import { useCopy, pickCopy } from '@/lib/content/useCopy';
 
 /**
  * 顶部三个入口（2026-11-23 用户定名）：
@@ -117,6 +118,7 @@ export default function LandingPage() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selected, setSelected] = useState<Personality>(PERSONALITIES[0]);
   const [mode, setMode] = useState<HomeMode>('test');
+  const copy = useCopy(); // L1：后台可配的展示文案；空配置时全部用原静态兜底
   const myStatus = useMyTestStatus();
 
   // 支持 ?mode=daily（朋友页 / 结果页 / 选香模块的既有链接）与 ?mode=scent 直达。
@@ -291,8 +293,7 @@ export default function LandingPage() {
             className="mt-5 text-amber-600"
             style={{ fontFamily: 'Noto Sans SC, sans-serif', fontSize: '15px', lineHeight: 1.8, letterSpacing: '0.04em' }}
           >
-            每个人身上，都藏着一种独一无二的香气。
-            找到它，就找到了自己。
+            {pickCopy(copy, 'copy.home.hero_subtitle', '每个人身上，都藏着一种独一无二的香气。找到它，就找到了自己。')}
           </p>
         </div>
 
@@ -395,7 +396,7 @@ export default function LandingPage() {
           style={{ animationDelay: '390ms' }}
         >
           <span className="text-amber-700 text-[12px]" style={{ fontFamily: 'Noto Sans SC, sans-serif' }}>
-            {ESTIMATED_MINUTES} 分钟 · 16 种灵魂人格 · 免费
+            {pickCopy(copy, 'copy.home.cost_line', `${ESTIMATED_MINUTES} 分钟 · 16 种灵魂人格 · 免费`)}
           </span>
         </div>
 
