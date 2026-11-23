@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import MemorySceneSection from '@/components/MemorySceneSection';
 import { getMemoryScene, type PerfumeSnapshot } from '@/lib/memoryScenes';
 import { track } from '@/lib/analytics';
+import { readQuickResultCount, clearQuickResult } from '@/lib/quickResult';
 import {
   getPersonality,
   getRadarScores,
@@ -156,6 +157,9 @@ function ResultInner() {
   const [pathLabels, setPathLabels] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [showUntestedHint, setShowUntestedHint] = useState(false); // 裸开 / 无测试记录时提示示例人格
+  // 中途挽留接受的「快速版结果」：必须显式标注，不能让用户误以为是完整 13 题的结果
+  const [quickCount, setQuickCount] = useState(0);
+  useEffect(() => { setQuickCount(readQuickResultCount()); }, []);
   const [shareHint, setShareHint] = useState('');
   const [shareLink, setShareLink] = useState('');
   const [shareQrSvg, setShareQrSvg] = useState('');
@@ -604,7 +608,7 @@ function ResultInner() {
             · 限时免费不再占整条横幅（2026-11-04 合并顶部）：降级为章节导航条里的徽章「限免 N 天」，
               省下约 60px；活动结束后徽章自动消失
             · 第 2 条为未测试提示，可与第 1 条共存 */}
-        {(justPaid || isDemo || (showUntestedHint && !cpParam)) && (
+        {(justPaid || isDemo || (showUntestedHint && !cpParam) || quickCount > 0) && (
           <div className="sticky top-[var(--nav-h)] z-40 flex flex-col">
             {/* 第 1 条（互斥，高优先级在前） */}
             {justPaid ? (
@@ -648,6 +652,30 @@ function ResultInner() {
                   style={{ textUnderlineOffset: '2px' }}
                 >
                   去测香
+                </Link>
+              </div>
+            )}
+
+            {/* 中途挽留接受的快速版：显式标注，避免误认成完整 13 题结果 */}
+            {quickCount > 0 && (
+              <div
+                className="flex items-center justify-center gap-2 px-4 py-2 text-center text-[12px]"
+                style={{
+                  background: 'rgba(250,238,218,0.7)',
+                  borderBottom: '1px solid rgba(168,136,78,0.25)',
+                  color: '#8B5E3C',
+                  backdropFilter: 'blur(4px)',
+                }}
+                role="status"
+              >
+                <span>快速版 · 基于已答 {quickCount} 题，答完完整版更贴近你</span>
+                <Link
+                  href="/question"
+                  onClick={() => clearQuickResult()}
+                  className="text-amber-600 font-medium hover:text-amber-700 underline decoration-amber-400"
+                  style={{ textUnderlineOffset: '2px' }}
+                >
+                  重新测
                 </Link>
               </div>
             )}

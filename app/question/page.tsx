@@ -15,6 +15,8 @@ import {
 } from "@/lib/branchingQuestions";
 import { markInviteeCompleted } from "@/lib/inviteState";
 import { track } from "@/lib/analytics";
+import RetentionModal from "@/components/RetentionModal";
+import { writeQuickResult, clearQuickResult } from "@/lib/quickResult";
 
 const STORAGE_KEY = "crushxiangjian_branch_progress";
 const PATH_KEY = "crushxiangjian_path_choices";
@@ -67,6 +69,8 @@ export default function QuestionPage() {
   const [transitionText, setTransitionText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingHintIdx, setLoadingHintIdx] = useState(0);
+  const [showRetention, setShowRetention] = useState(false);
+  const [retentionAnswered, setRetentionAnswered] = useState(0);
 
   /** 加载页：每隔 1.6s 切换一条嗅觉暗示 */
   useEffect(() => {
@@ -197,6 +201,34 @@ export default function QuestionPage() {
     return () => window.removeEventListener("pagehide", onHide);
   }, []);
 
+  // ── 中途流失挽留（2026-11-23）──
+  // 桌面 exit-intent 靠 mouseleave，移动端没有；答题页也没有「中途退出」按钮，
+  // 而 pagehide 发生在页面卸载时，弹不出任何 UI。所以用「切后台 ≥3 秒后回来」：
+  // 用户回来时页面可见，弹窗才看得见；不劫持浏览器返回键、不打扰正常答题。
+  // 每会话只弹一次（sessionStorage），避免反复切微信被打扰。
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      const hiddenMs = hiddenAt ? Date.now() - hiddenAt : 0;
+      hiddenAt = 0;
+      if (finishedRef.current || showRetention) return;
+      if (hiddenMs < 3000) return; // 只是瞄一眼通知，不算流失
+      if (sessionStorage.getItem("cx_retention_shown") === "1") return;
+      const p = progressRef.current;
+      const answered = p.choices.length + p.calibrationChoices.length;
+      if (answered < 2) return; // 一题都没答不打扰
+      sessionStorage.setItem("cx_retention_shown", "1");
+      setRetentionAnswered(answered);
+      setShowRetention(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [showRetention]);
+
   // 情境中文短标签（PRD 格式）：顶层 q1–q7 映射，不看子分支 scenario
   const Q_TOP_LABEL: Record<string, string> = {
     q1: "关于温度",
@@ -220,6 +252,7 @@ export default function QuestionPage() {
 
   function goFinish(allChoices: string[]) {
     finishedRef.current = true; // 已进入出结果流程，后续离开不再计「中途放弃」
+    clearQuickResult(); // 正常答完 13 题 → 结果页不该再显示「快速版」提示
     setIsSubmitting(true);
 
     const result = calculatePersonalityFromPath(allChoices);
@@ -668,6 +701,23 @@ export default function QuestionPage() {
           </div>
         )}
       </div>
+
+      {/* 中途挽留：切后台 ≥3 秒回来且已答 ≥2 题时才挂载，每会话一次 */}
+      {showRetention && (
+        <RetentionModal
+          answeredCount={retentionAnswered}
+          onDismiss={() => setShowRetention(false)}
+          onAccept={() => {
+            setShowRetention(false);
+            finishedRef.current = true; // 已接受快速结果，跳转不再计「中途放弃」
+            const p = progressRef.current;
+            writeQuickResult(p.choices, p.calibrationChoices);
+            // 整页跳转而不是 router.push：结果页要在挂载时重新读 localStorage 的
+            // 「快速版」标记并显示提示，整页刷新更确定；微信内置浏览器也更稳。
+            window.location.assign("/result");
+          }}
+        />
+      )}
 
       {/* 转场覆盖层 */}
       {showTransition && (

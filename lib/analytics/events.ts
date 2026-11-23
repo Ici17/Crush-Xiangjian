@@ -70,6 +70,9 @@ export const TRACK_EVENTS = [
   // 首页顶部三个模式入口（测香 / 今日穿香 / 今日香签）的切换曝光。
   // 此前 tab 切换零埋点，加了第三个入口后必须能回答「哪个 tab 有人点」。
   'home_tab_view', // 带 tab
+  // 答题中途挽留弹窗：view / accept / dismiss 三态，单独统计这部分转化，
+  // 不混进 test_abandon（后者只记真实离开位置）。带 step=已答题数。
+  'retention_popup',
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -121,6 +124,7 @@ export const EVENT_LABEL: Record<string, string> = {
   nav_search_click: '报告页搜索点击',
   home_scent_pick: '首屏选香',
   home_tab_view: '首页模式切换',
+  retention_popup: '中途挽留弹窗',
   error: '埋点异常',
 };
 

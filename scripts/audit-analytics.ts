@@ -267,12 +267,13 @@ console.log("H. 事件总数与 KV 每日布局门禁");
 // 37 = 第 2 批的 29 + daily_advice_view + ai_reason_view/ai_reason_expand
 //      + ai_cp_view + ai_advisor_intent + nav_search_click
 //      + home_scent_pick（2026-11-22 首屏选香）
-//      + home_tab_view（2026-11-23 首页三 tab 切换）。
+//      + home_tab_view（2026-11-23 首页三 tab 切换）
+//      + retention_popup（2026-11-23 答题中途挽留）。
 // ⚠️ 这个数字是「锁」不是「记录」：加事件必须同步改这里，否则漏埋/多埋立刻暴露。
 ck(
-  defined.length === 37,
-  `事件总数 === 37（当前 ${defined.length}）`,
-  `实际 ${defined.length} —— 第 2 批 22 → 29，+daily_advice_view → 30，+AI 解读两条 → 32，+ai_cp_view → 33，+ai_advisor_intent → 34，+nav_search_click → 35，+home_scent_pick → 36，+home_tab_view → 37`,
+  defined.length === 38,
+  `事件总数 === 38（当前 ${defined.length}）`,
+  `实际 ${defined.length} —— 第 2 批 22 → 29，+daily_advice_view → 30，+AI 解读两条 → 32，+ai_cp_view → 33，+ai_advisor_intent → 34，+nav_search_click → 35，+home_scent_pick → 36，+home_tab_view → 37，+retention_popup → 38`,
 );
 // KV 每日 layout = counts + uv + sess + sstart + 各 DIM_KEYS，共 DIM_KEYS.length + 4。
 // 该断言守住「读写共享同一份 layout」：一旦有人把 store.ts 改回硬编码下标，这里立刻红。
