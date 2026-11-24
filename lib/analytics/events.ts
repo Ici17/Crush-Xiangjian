@@ -76,6 +76,8 @@ export const TRACK_EVENTS = [
   // 结果页两页拆分（2026-11-24）：免费页点「查看完整版」、完整版页曝光。
   'full_report_open', // 带 source / unlocked
   'full_report_view',
+  // 结果页底部三个功能入口点击（friend/scent/daily），带 source=result_free|result_full
+  'result_feature_open',
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];
@@ -130,6 +132,7 @@ export const EVENT_LABEL: Record<string, string> = {
   retention_popup: '中途挽留弹窗',
   full_report_open: '完整版入口点击',
   full_report_view: '完整版页曝光',
+  result_feature_open: '结果页功能入口',
   error: '埋点异常',
 };
 

@@ -37,6 +37,7 @@ import PaymentModal, { type PaymentContext } from '@/components/PaymentModal';
 import UnlockedContent, { detectFamily, FAMILY_COLORS, FAMILY_BG } from '@/components/UnlockedContent';
 import ScarcityStrip from '@/components/ScarcityStrip';
 import FreePageTeasers from '@/components/FreePageTeasers';
+import ResultFeatureLinks from '@/components/ResultFeatureLinks';
 import { markPaid, getPaidLevel, PRICE_CONFIG, isPromoFree, formatPromoRemaining, getPromoRemainingMs, type PriceKey } from '@/lib/payment';
 import RadarChart from '@/components/RadarChart';
 import PerfumeBottle from '@/components/PerfumeBottle';
@@ -1151,47 +1152,8 @@ export function ResultInner({ mode }: { mode: 'free' | 'full' }) {
         {/* ━━━ 免费内容：关系解读 ━━━ */}
         <RelationAdviceSection personalityName={personalityName} />
 
-          {/* ━━━ 朋友匹配入口 + 今日香签入口（同一语义簇，合并为一个容器）━━━ */}
-          <div className="px-6 mb-14 space-y-3">
-            <Link
-              href={friendHref}
-              className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #FDF8F3, #FFF9F2)' }}
-            >
-              <div className="flex items-center gap-3">
-                <span style={{ fontSize: '22px' }}>💫</span>
-                <div className="flex-1 text-left">
-                  <p className="font-serif text-amber-950" style={{ fontSize: '15px', fontWeight: 500 }}>
-                    测测你们的香气契合度
-                  </p>
-                  <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
-                    发给 TA，一起测 看看你们的匹配等级
-                  </p>
-                </div>
-                <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
-              </div>
-            </Link>
-
-            {/* 今日香签：把一次性的测试结果延伸到每日仪式 */}
-            <Link
-              href="/?mode=daily"
-              className="block rounded-2xl border border-amber-200 p-4 active:scale-[0.98] transition-transform hover:shadow-sm"
-              style={{ background: 'linear-gradient(135deg, #FFF9F2, #FDF8F3)' }}
-            >
-              <div className="flex items-center gap-3">
-                <span style={{ fontSize: '22px' }}>🎴</span>
-                <div className="flex-1 text-left">
-                  <p className="font-serif text-amber-950" style={{ fontSize: '15px', fontWeight: 500 }}>
-                    今日香签 · 三笺已备
-                  </p>
-                  <p className="text-amber-600 mt-0.5" style={{ fontSize: '12px' }}>
-                    每天三笺，选一支贴合今天心情的气息
-                  </p>
-                </div>
-                <span className="text-amber-400" style={{ fontSize: '18px' }}>›</span>
-              </div>
-            </Link>
-          </div>
+          {/* ━━━ 三个功能入口（共享组件：朋友契合度 / 今日穿香 / 今日香签）━━━ */}
+          <ResultFeatureLinks friendHref={friendHref} source="free" />
           </>
         )}
 
